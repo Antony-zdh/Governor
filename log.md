@@ -4,6 +4,112 @@
 
 ---
 
+## 2026-07-23 · Stage 8 分析完成 + Stage 7 规则×Stage 8 probe 交叉验证
+
+远端 agent 又推了一版新 commit，产出 `compare_probes.py`（§6.4 全部指标）：
+P0 empty 10.0%/stop-acc 58.9%；P1_32/P1_64 empty 降到 0.6%/0.3%、
+stop 更频繁但 stop-acc 略低（56.7%/57.1%）；P2/P3 几乎不空的时候
+（stop_rate 仅 8-9%）反而 stop-acc 很高（87.5%/88.9%，ready-precision
+64.8-67.3%）——说明 P2/P3 在"愿意给出明确答案"这件事上很挑剔，
+但一旦给出就相当可信；P4 基本不可用（empty 99.9%）。已 fast-forward
+合入 main（无冲突）。
+
+用户接着问：Stage 7 找到的最优规则（Conservative/Balanced 两个可用操作点）
+能不能也拿新 probe 测一下？写了 `probe_compare/test_stage7_rules.py`：
+规则本身完全不变（`consec_p8_mt1024_cert1` / `consec_p6_mt1024_cert0`），
+只把喂给规则的 probe 信号从 P0 换成 P1_32/P1_64/P2/P3/P4，在 Stage 8 的
+同一 100 题子集上对比（P0 也在这 100 题上重新跑了一遍作为公平基线，
+不能直接借用 Stage 7 report.md 里 n=500 的数字）。`is_certain` 对
+P1-P4 用和 logging_run.py 完全相同的 UNCERTAIN_WORDS 检测（在各自
+raw_output 上做），而不是偷懒复用 parse_ok——两者衡量的不是一回事。
+
+- **结果：套用新 probe 对这两条规则没有正向帮助，多数情况下更差**。
+  P1_32/P1_64 确实触发更频繁一点，但每次 probe 调用本身贵 3-6 倍
+  （32/64 vs 10 tokens），省下的 token 抵不过 probe 自己的开销，
+  总 token 反而涨了 255-932；准确率基本打平（±0-2pp，噪声范围内）。
+  P2/P3/P4 更糟：>90% 空答案率导致"连续 N 次非空"这个门槛几乎满足不了，
+  规则触发率崩到 0-2%，等于退化回几乎跑满全程。
+- **结论**：Stage 7 的 consecutive 类规则是围绕 P0 的短/廉价 probe 调出来的
+  最优点，直接换成"更贵但更可靠"的 probe 并不会自动变好——**规则设计和
+  probe 设计需要联合优化**，不能简单替换其中一个。这对 Stage 10
+  Governor++ 是个直接的设计约束：不能先固定规则形状再挑 probe，
+  或者反过来，两者要一起搜索。
+- 产出：`results/stage8_probe_compare/{comparison_report.md,
+  comparison_table.csv, fig_compare.png, stage7_rules_x_stage8_probes.csv,
+  stage7_rules_x_stage8_probes_report.md}`，`probe_compare/{compare_probes.py,
+  test_stage7_rules.py}`。
+
+---
+
+## 2026-07-23 · Stage 6 Round 1 标注分析（100/296，`analyze_audit.py`）
+
+用户决定不标满 296 例，标到 100 个就停下先出结果、推进后续 stage
+（案例文件顺序是打散的，前 100 个自然覆盖了全部 6 组，10-23 例/组，
+非精确配额但足够看方向）。plan.md §4.5 Round 1 设计假设两名独立标注者
+算 Cohen's kappa——实际只有用户一人标注，`analyze_audit.py` 如实报告
+不含 kappa，不编造第二人数据。
+
+- **整体 probe validity rate 只有 39.0%**（95% CI [30%, 49%]，n=100）——
+  也就是说这 10-token boxed probe 有六成左右的时候并不真实反映模型当时的
+  belief。这个数字比之前 31 例草稿分析时看到的趋势更极端、也更可信（n更大）。
+- **single_letter 类型 validity rate = 0%**（n=25！）——单字母答案几乎
+  100% 是格式伪影，不是真实的选择题作答。强烈支持 Stage 3 就发现的
+  "非选择题输出 B/D 字母" 假象。
+- **validity 随 local consensus share 强烈单调上升**：share=1.0（前后
+  probe 完全一致）时 81.3% 有效，share 0-0.5 时只有 6.5% 有效——
+  这是本轮最重要的发现之一：**局部一致性本身确实是 validity 的强预测因子，
+  但门槛效应非常陡（0.5→1.0 之间跳变），不是线性关系**，
+  为 Stage 10 Governor++ 的 rule 设计提供了直接依据（不能只看
+  "是否一致"，要看"是否完全一致"）。
+- forced-guess rate（tentative_guess）25.0%，artifact rate
+  （format_artifact）26.0%；`supported_wrong` 只标了 1 例，太少无法算
+  `P(correct|supported_wrong)`。
+- §4.7 判断标准（限定在 probe≠final 的 56 例）：情况 A（forced guess，
+  37.5%）和情况 C（format artifact，37.5%）并列最高，情况 B
+  （supported_wrong 后 recover，1.8%）几乎不存在——初步支持"论文重点应
+  从错误 belief 转向 forced extraction + format artifact 导致的过早停止"，
+  但 n 还小，留到 Round 3（若标注量再增加）复核。
+- 复查了此前标记的疑似错标 `41_15`：probe=17 实际等于 reference_answer
+  （真答案），只是模型后来漂移到错误的最终答案 15——用户的
+  `supported_correct` 标签是对的，我之前的 flag（比较 probe vs final
+  而非 probe vs reference）是我的误判，不是用户的问题。
+- 产出：`audit/{audit_report.md, annotations_enriched.csv, analyze_audit.py}`。
+
+---
+
+## 2026-07-23 · Stage 8 GPU 数据采集（远程 agent 完成，已合入 main）
+
+`benchmark/FalseConsensus/probe_compare/`。offline 部分（`select_subset.py`，
+100 题分层子集，1737 个已有 checkpoint）和 GPU 部分（`run_probe_variants.py`，
+5 种 probe 设计 P1_32/P1_64/P2/P3/P4）都是本地先写好、`--dry-run` 验证过
+管线正确性，再打包成一份自包含的中文 prompt 交给远程 GPU agent 去跑
+（服务器本地没有 GPU）。
+
+- 远程 agent 用同一 commit（`450eb3d`）+ 同一模型
+  （DeepSeek-R1-Distill-Qwen-7B，vLLM）跑通了全部 8685 次调用
+  （1737 checkpoint × 5 设计），100/100 题、0 错误、约 5 分钟。
+- 中途卡了一次：远程 push 到 GitHub 返回 403——远端 `.env` 里的
+  fine-grained PAT 没给 `Contents: Read and write` 权限。用户在 GitHub
+  上补了权限后重新 push，本地 `git fetch` + `--ff-only merge` 直接干净
+  合并（无冲突），并用 `probe_variants.csv` 的真实行数/分组统计核对过
+  和远程报告完全一致，确认数据没有被篡改或截断。
+- **真实 parse_ok 率**（原设计目标是测"格式遵循率"）：P1_32 99.4% /
+  P1_64 99.7% / P2 10.4% / P3 11.6% / P4 0.1%。样例显示 P2/P3/P4 这类
+  "打标签"式指令 probe 基本被模型无视——模型继续正常写推理过程而不是
+  输出 `<status>` 标签；P4（独立抽取式 query）几乎必定重新触发完整
+  `<think>` 推理而不是照要求回答 UNFINISHED。只有 P1（沿用原 boxed
+  续写格式、只是加长 token 预算）保持近乎完美的格式遵循率。
+- 这本身就是一个有信息量的负结果：结构化/打标签式 probe 设计在这个
+  模型上不可行，改进 probe 有效性的方向应该是"更长的同格式续写"
+  而非"换一种指令格式"。
+- 产出：`results/stage8_probe_compare/{probe_variants.csv, variant_traj/*.json}`
+  （8685 行 + 100 个逐题 JSON）。`compare_probes.py`（§6.4 全部指标：
+  empty rate / truncation rate / artifact rate / valid-answer rate /
+  readiness precision / calibration error 等）尚未产出，正由远端 agent
+  编写。
+
+---
+
 ## 2026-07-23 · Stage 9（部分）离线难度分析——在等 Stage 6 人工标注期间先做
 
 `benchmark/FalseConsensus/difficulty/analyze_difficulty.py`。只用现有数据
