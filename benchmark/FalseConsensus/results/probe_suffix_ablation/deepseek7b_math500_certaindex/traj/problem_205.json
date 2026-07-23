@@ -1,0 +1,91 @@
+{
+  "problem_id": 205,
+  "dataset": "math500",
+  "problem": "Let $\\mathbf{A}$ be a matrix such that\n\\[\\mathbf{A} \\begin{pmatrix} 3 \\\\ 1 \\\\ 0 \\end{pmatrix} = \\begin{pmatrix} 2 \\\\ 4 \\\\ -3 \\end{pmatrix} \\quad \\text{and} \\quad \\mathbf{A} \\begin{pmatrix} -5 \\\\ 2 \\\\ 2 \\end{pmatrix} = \\begin{pmatrix} 0 \\\\ -5 \\\\ -5 \\end{pmatrix}.\\]Find $\\mathbf{A} \\begin{pmatrix} -13 \\\\ 3 \\\\ 4 \\end{pmatrix}.$",
+  "target": "\\begin{pmatrix}-2\\\\-14\\\\-7\\end{pmatrix}",
+  "probes": [
+    {
+      "probe_id": 1,
+      "token_position": 128,
+      "probe_text": " \\begin{pmatrix} -12 \\\\",
+      "answer": ""
+    },
+    {
+      "probe_id": 2,
+      "token_position": 256,
+      "probe_text": " \\begin{pmatrix} -13 \\\\",
+      "answer": ""
+    },
+    {
+      "probe_id": 3,
+      "token_position": 384,
+      "probe_text": " \\begin{pmatrix} -14 \\\\",
+      "answer": ""
+    },
+    {
+      "probe_id": 4,
+      "token_position": 512,
+      "probe_text": " \\begin{pmatrix} -10 \\\\",
+      "answer": ""
+    },
+    {
+      "probe_id": 5,
+      "token_position": 640,
+      "probe_text": " \\begin{pmatrix} -13 \\\\",
+      "answer": ""
+    },
+    {
+      "probe_id": 6,
+      "token_position": 768,
+      "probe_text": " \\begin{pmatrix} -2 \\\\ -",
+      "answer": ""
+    },
+    {
+      "probe_id": 7,
+      "token_position": 896,
+      "probe_text": " \\begin{pmatrix} -2 \\\\ -",
+      "answer": ""
+    },
+    {
+      "probe_id": 8,
+      "token_position": 1024,
+      "probe_text": " \\begin{pmatrix} -2 \\\\ -",
+      "answer": ""
+    },
+    {
+      "probe_id": 9,
+      "token_position": 1152,
+      "probe_text": " \\begin{pmatrix} -2 \\\\ -",
+      "answer": ""
+    },
+    {
+      "probe_id": 10,
+      "token_position": 1280,
+      "probe_text": " \\begin{pmatrix} -2 \\\\ -",
+      "answer": ""
+    },
+    {
+      "probe_id": 11,
+      "token_position": 1408,
+      "probe_text": " \\begin{pmatrix} -2 \\\\ -",
+      "answer": ""
+    },
+    {
+      "probe_id": 12,
+      "token_position": 1536,
+      "probe_text": " \\begin{pmatrix} -2 \\\\ -",
+      "answer": ""
+    },
+    {
+      "probe_id": 13,
+      "token_position": 1664,
+      "probe_text": " \\begin{pmatrix} -2 \\\\ -",
+      "answer": ""
+    }
+  ],
+  "full_text": "<think>\nOkay, so I have this problem where I need to find the matrix **A** such that when it multiplies two specific vectors, it gives certain results. Then, using that matrix **A**, I have to compute the product of **A** with another vector. Hmm, let me try to break this down step by step.\n\nFirst, let me write down what I know. The matrix **A** is a linear transformation, so it should satisfy the property that **A***(c₁**v** + c₂**w**) = c₁**A***(**v**) + c₂**A***(**w**), where c₁ and c₂ are scalars. That means if I can express the vector I need to multiply **A** with as a linear combination of the vectors I already know how **A** acts on, I can compute the result easily.\n\nSo, the vectors given are:\n\n**v**₁ = [3, 1, 0]^T, and **A****v**₁ = [2, 4, -3]^T.\n\n**v**₂ = [-5, 2, 2]^T, and **A****v**₂ = [0, -5, -5]^T.\n\nAnd I need to find **A****v** where **v** = [-13, 3, 4]^T.\n\nAlright, so my goal is to express **v** as a linear combination of **v**₁ and **v**₂, right? Then, applying **A** will just be a matter of taking the coefficients and combining the results from **A****v**₁ and **A****v**₂.\n\nBut wait, hold on. **v**₁ and **v**₂ are vectors in R³. So, to express **v** as a linear combination, I need to solve the equation:\n\n**v** = a**v**₁ + b**v**₂.\n\nWhich translates to the system:\n\n3a - 5b = -13\n\n1a + 2b = 3\n\n0a + 2b = 4\n\nWait, is that right? Let me write it down:\n\nFirst component: 3a + (-5)b = -13\n\nSecond component: 1a + 2b = 3\n\nThird component: 0a + 2b = 4\n\nOkay, so from the third equation, 0a + 2b = 4, that simplifies to 2b = 4, so b = 2.\n\nThen, plug b = 2 into the second equation: a + 2*(2) = 3 => a + 4 = 3 => a = -1.\n\nNow, let's check if these values of a and b satisfy the first equation: 3*(-1) -5*(2) = -3 -10 = -13. Yes, that works.\n\nSo, **v** can be expressed as:\n\n**v** = -1* **v**₁ + 2* **v**₂.\n\nTherefore, applying **A** to **v** gives:\n\n**A****v** = **A**(-1**v**₁ + 2**v**₂) = -1**A**(**v**₁) + 2**A**(**v**₂).\n\nWe already know what **A**(**v**₁) and **A**(**v**₂) are, so plugging those in:\n\n**A****v** = -1*[2, 4, -3]^T + 2*[0, -5, -5]^T.\n\nLet me compute each component step by step.\n\nFirst component: -1*2 + 2*0 = -2 + 0 = -2\n\nSecond component: -1*4 + 2*(-5) = -4 -10 = -14\n\nThird component: -1*(-3) + 2*(-5) = 3 -10 = -7\n\nSo, putting it all together, **A****v** = [-2, -14, -7]^T.\n\nWait, let me double-check my calculations to make sure I didn't make any mistakes.\n\nFirst component: -2, that's correct.\n\nSecond component: -4 -10 is indeed -14.\n\nThird component: 3 -10 is -7. Yeah, that seems right.\n\nJust to recap, I expressed the vector **v** as a combination of **v**₁ and **v**₂, found the coefficients a and b, then used linearity of **A** to compute the result as a combination of **A****v**₁ and **A****v**₂. The calculations seem straightforward, and I verified each step.\n\nI don't see any errors in my reasoning or computations, so I think this should be the correct answer.\n\n**Final Answer**\n\\boxed{\\begin{pmatrix} -2 \\\\ -14 \\\\ -7 \\end{pmatrix}}\n</think>\n\nGiven the matrix \\(\\mathbf{A}\\) such that:\n\\[\n\\mathbf{A} \\begin{pmatrix} 3 \\\\ 1 \\\\ 0 \\end{pmatrix} = \\begin{pmatrix} 2 \\\\ 4 \\\\ -3 \\end{pmatrix} \\quad \\text{and} \\quad \\mathbf{A} \\begin{pmatrix} -5 \\\\ 2 \\\\ 2 \\end{pmatrix} = \\begin{pmatrix} 0 \\\\ -5 \\\\ -5 \\end{pmatrix},\n\\]\nwe need to find \\(\\mathbf{A} \\begin{pmatrix} -13 \\\\ 3 \\\\ 4 \\end{pmatrix}\\).\n\nFirst, we express the vector \\(\\begin{pmatrix} -13 \\\\ 3 \\\\ 4 \\end{pmatrix}\\) as a linear combination of the vectors \\(\\begin{pmatrix} 3 \\\\ 1 \\\\ 0 \\end{pmatrix}\\) and \\(\\begin{pmatrix} -5 \\\\ 2 \\\\ 2 \\end{pmatrix}\\). We set up the system of equations:\n\\[\n3a - 5b = -13,\n\\]\n\\[\na + 2b = 3,\n\\]\n\\[\n2b = 4.\n\\]\n\nFrom the third equation, we find \\(b = 2\\). Substituting \\(b = 2\\) into the second equation, we get \\(a = -1\\). Checking these values in the first equation confirms they are correct.\n\nThus, we can write:\n\\[\n\\begin{pmatrix} -13 \\\\ 3 \\\\ 4 \\end{pmatrix} = -1 \\begin{pmatrix} 3 \\\\ 1 \\\\ 0 \\end{pmatrix} + 2 \\begin{pmatrix} -5 \\\\ 2 \\\\ 2 \\end{pmatrix}.\n\\]\n\nApplying \\(\\mathbf{A}\\) to both sides, we get:\n\\[\n\\mathbf{A} \\begin{pmatrix} -13 \\\\ 3 \\\\ 4 \\end{pmatrix} = -1 \\mathbf{A} \\begin{pmatrix} 3 \\\\ 1 \\\\ 0 \\end{pmatrix} + 2 \\mathbf{A} \\begin{pmatrix} -5 \\\\ 2 \\\\ 2 \\end{pmatrix}.\n\\]\n\nSubstituting the given results:\n\\[\n\\mathbf{A} \\begin{pmatrix} -13 \\\\ 3 \\\\ 4 \\end{pmatrix} = -1 \\begin{pmatrix} 2 \\\\ 4 \\\\ -3 \\end{pmatrix} + 2 \\begin{pmatrix} 0 \\\\ -5 \\\\ -5 \\end{pmatrix}.\n\\]\n\nCalculating each component:\n- First component: \\(-1 \\cdot 2 + 2 \\cdot 0 = -2\\)\n- Second component: \\(-1 \\cdot 4 + 2 \\cdot (-5) = -4 - 10 = -14\\)\n- Third component: \\(-1 \\cdot (-3) + 2 \\cdot (-5) = 3 - 10 = -7\\)\n\nThus, the final answer is:\n\\[\n\\boxed{\\begin{pmatrix} -2 \\\\ -14 \\\\ -7 \\end{pmatrix}}\n\\]",
+  "tokens_used": 1775,
+  "finished_naturally": true,
+  "final_answer": "\\begin{pmatrix}-2\\\\-14\\\\-7\\end{pmatrix}",
+  "final_correct": true
+}
