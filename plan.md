@@ -55,8 +55,8 @@
 | Stage 8：Improved Probe               |             ✅ 完成 | 100 题子集×5 probe 设计，8685 次调用；`compare_probes.py` 全部 §6.4 指标已出（见 `results/stage8_probe_compare/comparison_report.md`）；额外验证：把 Stage 7 两个可用操作点原样套用 P1-P4 信号（`probe_compare/test_stage7_rules.py`），发现更长/更结构化的 probe 不能直接提升这两条规则——token 成本涨幅盖过覆盖率收益，P2/P3/P4 因空答案率过高导致规则几乎不触发；结论：规则与 probe 设计需联合优化，不能简单替换 |
 | Stage 9：Mechanism Analysis (Difficulty Control) | 🟡 离线部分完成 | Analysis 1/2 + Terminality/Correctness/Safe-stop 已完成；Analysis 3/4 及 probe_validity 特征待 Stage 6 标注后补齐；见 `results/stage9_difficulty/report.md` |
 | Stage 10：Governor++                  |           ⬜ 未开始 | 构建 reliability-aware controller（需 Stage 6 + Stage 9 完整结果） |
-| Stage 11：Cross-model                 |           ⬜ 未开始 | 检验结论能否跨模型泛化                               |
-| Stage 12：Cross-dataset               |           ⬜ 未开始 | 检验结论能否跨数据集泛化                             |
+| Stage 11：Cross-model                 |     🟡 单模型单 seed 完成 | Qwen3-8B / MATH500 500题，overall accuracy 78.2%（vs DeepSeek-7B 81.2%）；见 §9.4、`results/stage11_cross_model/` |
+| Stage 12：Cross-dataset               |     🟡 单模型单 seed 完成 | DeepSeek-7B：AMC23 60.0%、AIME24 26.7%；见 §10.3、`results/stage12_cross_dataset/` |
 
 ## 1.2 首轮核心结果
 
@@ -795,6 +795,18 @@ test 20%
 - best early-stop Pareto；
 - Governor++ gain。
 
+## 9.4 结果（2026-07-24，Qwen3-8B / MATH500 全 500 题，单 seed）
+
+`results/stage11_cross_model/qwen3_8b_math500/`。overall accuracy
+**78.2%**（vs Stage 1 DeepSeek-7B 同数据集 81.2%），finished naturally
+35.0%。window share=1 372 题、window-answer accuracy 89.0%、false
+consensus 41 题（11.0%）。Governor 早停模拟：would-stop 340/500，
+stopped-answer accuracy 83.5%（早停子集内的 final accuracy 89.7%，
+两者分母不同，不要混用）。整体上"跨模型"这一维度上，false consensus
+现象和 recovery 现象在 Qwen3-8B 上依然存在，量级与 DeepSeek-7B 接近，
+初步支持诊断发现不是单一模型的伪影。仍是单 seed、单模型，还没做
+9.1 里列的第 3/4/5 个模型。
+
 ---
 
 # 10. Stage 12 — Cross-dataset Validation
@@ -826,6 +838,22 @@ answer_schema ∈ {
     text_short_answer
 }
 ```
+
+## 10.3 结果（2026-07-24，DeepSeek-7B，单 seed）
+
+`results/stage12_cross_dataset/`。AMC23（40题）overall accuracy
+**60.0%**，finished naturally 37.5%；window share=1 25题、
+window-answer accuracy 92.0%、false consensus 2题（8.0%）；Governor
+早停模拟 would-stop 31/40，stopped-answer accuracy 67.7%（子集内 final
+accuracy 74.2%）。AIME24（30题，最难数据集）overall accuracy
+**26.7%**，finished naturally 0.0%（全部超预算截断，说明 budget 对
+高难题不够，或题目本身超出模型能力）；cumulative share=1 从未出现
+（CR(cumulative)=nan）；window share=1 仅 9题、accuracy 77.8%、false
+consensus 2题（22.2%，比例明显高于 MATH500/AMC23，样本量太小需谨慎）；
+Governor 早停模拟 would-stop 15/30，stopped-answer accuracy 26.7%（子集
+内 final accuracy 53.3%）。样本量小（30-40题），这两个数据集的数字
+方差很大，暂不适合下强结论，只作为跨数据集方向的初步信号。GSM8K/
+GPQA-Diamond（10.1 里的 4/5）还没跑。
 
 ---
 
@@ -1124,10 +1152,10 @@ Ablation 至少移除：
 
 1. **Probe Validity Audit** — 🟡 标注工具已交付（`audit/annotate.html`，296例），人工标注进行中，`analyze_audit.py` 待 annotations.csv 后补齐
 2. **现有 log 上的完整 Pareto Sweep** — ✅ 完成（`results/stage7_pareto/`）
-3. **Improved Probe 对比** — ⬜ 未开始（需真实模型服务器）
+3. **Improved Probe 对比** — 🟡 结构化 probe 设计已验证不可行（`results/stage8_probe_compare/`），另做了一版 probe 后缀措辞 ablation（"certaindex" 风格，`results/probe_suffix_ablation/`，DeepSeek-7B/MATH500，overall accuracy 79.6% vs Stage 1 simple probe 81.2%，影响温和）；6.2 的 P0-P4 完整对比仍未做
 4. **控制 difficulty 后重新分析 consensus time** — 🟡 离线可做部分已完成（`results/stage9_difficulty/`），Analysis 3/4 待补
 5. **Rule-based Governor++**
 6. **Calibrated Governor++**
-7. **多模型与多数据集复现**
+7. **多模型与多数据集复现** — 🟡 Stage 11（Qwen3-8B/MATH500，overall accuracy 78.2%）+ Stage 12（AMC23 60.0%/AIME24 26.7%，DeepSeek-7B）单 seed 结果已跑完并合入 main（`799e827`），见 §9.4/§10.3；9.1/10.1 里排的其余模型/数据集（第 3+ 个模型、GSM8K、GPQA-Diamond）和多 seed 还没做
 
 在前四项完成之前，不进行复杂 verifier、PRM 或大规模训练。

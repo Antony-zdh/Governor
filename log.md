@@ -4,6 +4,50 @@
 
 ---
 
+## 2026-07-24 · Stage 11 跨模型 + Stage 12 跨数据集 + probe suffix ablation（远程 vast.ai GPU，已合入 main）
+
+`vast-5090`（vast.ai instance `45605832`，1x RTX 5090）上的远程 Claude Code
+agent 依次跑完三组实验，本地 `git fetch` + `--ff-only merge`
+（`5626955` → `799e827`）干净合入，无冲突。磁盘只有 24G，DeepSeek-7B 权重
+删除后腾出空间下载 Qwen3-8B（用户在 `AskUserQuestion` 中确认后才执行删除，
+未自行推断同意）。
+
+- **Stage 11（`results/stage11_cross_model/qwen3_8b_math500/`）**：
+  Qwen3-8B 在 MATH500 全 500 题上，overall accuracy **78.2%**（vs Stage 1
+  DeepSeek-7B 同数据集 81.2%），finished naturally 35.0%。window share=1
+  372 题、window-answer accuracy 89.0%、false consensus 41 题（11.0%）；
+  Governor 模拟早停 340/500，stopped-answer accuracy 83.5%（vs 该子集
+  final accuracy 89.7%，注意这是子集内的口径，不是整体准确率——见下方坑）。
+- **Stage 12（`results/stage12_cross_dataset/`）**：DeepSeek-7B 在
+  AMC23（40题）overall accuracy **60.0%**，finished naturally 37.5%；
+  AIME24（30题）overall accuracy **26.7%**，finished naturally 0.0%（全部
+  超预算截断）。两个数据集样本量小、方差大，AIME24 上 cumulative
+  share=1 甚至从未出现（CR(cumulative)=nan）。
+- **Probe suffix ablation（`results/probe_suffix_ablation/deepseek7b_math500_certaindex/`）**：
+  同模型同数据集（DeepSeek-7B / MATH500 500题），换一种 probe 后缀
+  wording（"certaindex" 风格），overall accuracy **79.6%**，finished
+  naturally 60.8%（远高于 Stage 1 的 61.8%……几乎持平）。相比 Stage 1
+  simple probe 的 81.2%，低约 1.6pp——说明 probe 措辞的影响是温和的，
+  不是决定性因素。
+- **坑（本次真正花时间的地方）**：远程 agent 口头汇报"final accuracy"时，
+  实际报的是 `analyze.py` Stage 5 Governor 模拟里 `stopped` 子集的
+  `final_correct.mean()`（分母只有触发早停的题），而不是 `overall_acc`
+  （分母是全部题，report.md 里"overall accuracy"那一行）。两个都是
+  合法指标但分母不同，口头汇报没说清楚导致我一度以为四组实验准确率
+  都在 88-90% 这么高。通过直接读 `analyze.py` 源码（L379/L426/L472-473）
+  和四份 report.md 独立核实，远程 agent 自己也独立发现并纠正了同样的
+  问题，两边核对结果完全一致。以后引用这批数据只用上面列出的
+  overall accuracy 数字，早停子集准确率（89.7%/74.2%/53.3%/90.0%）
+  如果要用必须明确标注"仅统计 Governor 触发早停的子集"。
+- vast.ai 实例流程：安装了本地 `vastai` CLI（venv，因为系统 Python 3.9
+  跑不了这个包的 3.10+ `match` 语法），配置了 API key + 2FA
+  session，之后可以自己开关这台 GPU 实例（只能 `stop`，绝不能
+  `destroy`——会丢光权重/结果/repo 状态）。三组实验确认全部跑完、
+  分析完、提交推送成功后，本次已用 `vastai stop instance 45605832`
+  停止实例（数据完整保留）。
+
+---
+
 ## 2026-07-23 · Stage 8 分析完成 + Stage 7 规则×Stage 8 probe 交叉验证
 
 远端 agent 又推了一版新 commit，产出 `compare_probes.py`（§6.4 全部指标）：
