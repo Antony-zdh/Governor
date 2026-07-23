@@ -50,11 +50,13 @@
 | Stage 3：初步错误分类                 |         ✅ 首轮完成 | 134 个候选案例；前 100 题 28 例初步分类              |
 | Stage 4：Trajectory Analysis          |             ✅ 完成 | consensus time、recovery、initial answer             |
 | Stage 5：早停离线回放                 |             ✅ 完成 | Dynasor-style early stop 模拟                        |
-| Stage 6：Probe Validity Audit         | ⬜ 下一步最高优先级 | 验证 probe 是否真的代表当前推理状态                  |
-| Stage 7：Stop-rule Pareto Sweep       |           ⬜ 未开始 | 系统比较不同停止规则                                 |
-| Stage 8：Improved Probe               |           ⬜ 未开始 | 比较短答案、长答案、结构化 probe                     |
-| Stage 9：Governor++                   |           ⬜ 未开始 | 构建 reliability-aware controller                    |
-| Stage 10：Cross-model / Cross-dataset |           ⬜ 未开始 | 检验结论能否泛化                                     |
+| Stage 6：Probe Validity Audit         |   🟡 工具完成，标注中 | 296 例已抽样（6组×~50），annotate.html 标注工具已交付；等待人工标注 annotations.csv |
+| Stage 7：Stop-rule Pareto Sweep       |             ✅ 完成 | 142 配置离线回放；Conservative/Balanced/Aggressive 三个操作点；见 `results/stage7_pareto/report.md` |
+| Stage 8：Improved Probe               |           ⬜ 未开始 | 比较短答案、长答案、结构化 probe（需真实模型服务器） |
+| Stage 9：Mechanism Analysis (Difficulty Control) | 🟡 离线部分完成 | Analysis 1/2 + Terminality/Correctness/Safe-stop 已完成；Analysis 3/4 及 probe_validity 特征待 Stage 6 标注后补齐；见 `results/stage9_difficulty/report.md` |
+| Stage 10：Governor++                  |           ⬜ 未开始 | 构建 reliability-aware controller（需 Stage 6 + Stage 9 完整结果） |
+| Stage 11：Cross-model                 |           ⬜ 未开始 | 检验结论能否跨模型泛化                               |
+| Stage 12：Cross-dataset               |           ⬜ 未开始 | 检验结论能否跨数据集泛化                             |
 
 ## 1.2 首轮核心结果
 
@@ -1120,10 +1122,10 @@ Ablation 至少移除：
 
 按优先级排序：
 
-1. **Probe Validity Audit**
-2. **现有 log 上的完整 Pareto Sweep**
-3. **Improved Probe 对比**
-4. **控制 difficulty 后重新分析 consensus time**
+1. **Probe Validity Audit** — 🟡 标注工具已交付（`audit/annotate.html`，296例），人工标注进行中，`analyze_audit.py` 待 annotations.csv 后补齐
+2. **现有 log 上的完整 Pareto Sweep** — ✅ 完成（`results/stage7_pareto/`）
+3. **Improved Probe 对比** — ⬜ 未开始（需真实模型服务器）
+4. **控制 difficulty 后重新分析 consensus time** — 🟡 离线可做部分已完成（`results/stage9_difficulty/`），Analysis 3/4 待补
 5. **Rule-based Governor++**
 6. **Calibrated Governor++**
 7. **多模型与多数据集复现**

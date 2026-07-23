@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<title>Stage 6 · Probe Validity Audit</title>
+<style>
+  :root {
+    --blue: #2a78d6; --orange: #eb6834; --gray: #52514e; --grid: #e6e5e1;
+    --bg: #ffffff; --fg: #0b0b0b; --panel: #f7f7f5; --border: #ddd;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    margin: 0; background: var(--bg); color: var(--fg); font-size: 14px;
+  }
+  header {
+    position: sticky; top: 0; background: var(--bg); z-index: 10;
+    border-bottom: 1px solid var(--border); padding: 10px 20px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  header h1 { font-size: 16px; margin: 0; white-space: nowrap; }
+  #progress-bar-wrap { flex: 1; height: 8px; background: var(--grid); border-radius: 4px; overflow: hidden; }
+  #progress-bar { height: 100%; background: var(--blue); width: 0%; }
+  #progress-text { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  main { display: flex; gap: 0; max-width: 1400px; margin: 0 auto; }
+  #case-panel { flex: 2; padding: 16px 20px; min-width: 0; }
+  #annot-panel {
+    flex: 1; min-width: 320px; max-width: 380px; padding: 16px 20px;
+    border-left: 1px solid var(--border); position: sticky; top: 53px;
+    align-self: flex-start; height: calc(100vh - 53px); overflow-y: auto;
+  }
+  section.block { margin-bottom: 14px; padding: 10px 12px; background: var(--panel); border-radius: 8px; border: 1px solid var(--border); }
+  section.block h3 { margin: 0 0 6px 0; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--gray); }
+  pre {
+    white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 13px; line-height: 1.5; margin: 0;
+  }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .tag { display: inline-block; background: var(--grid); color: var(--gray); border-radius: 4px; padding: 1px 6px; font-size: 11px; margin: 0 4px 4px 0; }
+  .badge-ok { color: #1a7a3c; font-weight: 600; }
+  .badge-bad { color: #c0392b; font-weight: 600; }
+  table.probes { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.probes th, table.probes td { padding: 3px 6px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.probes tr.current { background: #fff3cd; font-weight: 600; }
+  .probe-highlight {
+    border: 2px solid var(--orange); border-radius: 6px; padding: 8px 10px; background: #fff8f2;
+  }
+  details summary { cursor: pointer; color: var(--blue); font-size: 12px; }
+  .label-btn {
+    display: block; width: 100%; text-align: left; padding: 8px 10px; margin-bottom: 6px;
+    border: 1px solid var(--border); border-radius: 6px; background: white; cursor: pointer; font-size: 13px;
+  }
+  .label-btn:hover { border-color: var(--blue); }
+  .label-btn.selected { background: var(--blue); color: white; border-color: var(--blue); }
+  .label-btn kbd { float: right; opacity: .6; }
+  .binary-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px; }
+  textarea { width: 100%; min-height: 60px; font-family: inherit; font-size: 13px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; }
+  .nav-row { display: flex; gap: 8px; margin-top: 12px; }
+  button.nav { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: white; cursor: pointer; font-size: 13px; }
+  button.nav:hover { border-color: var(--blue); }
+  #export-btn { width: 100%; margin-top: 10px; padding: 10px; border-radius: 6px; border: none; background: var(--orange); color: white; font-weight: 600; cursor: pointer; }
+  #export-btn:hover { opacity: .9; }
+  #jump-wrap { display: flex; gap: 6px; margin-top: 8px; align-items: center; font-size: 12px; }
+  #jump-input { width: 60px; padding: 4px; }
+  .guideline-wrap { padding: 0 20px 20px; max-width: 1400px; margin: 0 auto; }
+  .guideline-wrap table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  .guideline-wrap th, .guideline-wrap td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; vertical-align: top; }
+  .done-marker { color: #1a7a3c; margin-left: 6px; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1b1b1a; --fg: #eee; --panel: #262624; --border: #3a3a38; }
+    .label-btn { background: #262624; color: #eee; }
+    #export-btn { color: white; }
+    tr.current { background: #4a3d1f !important; }
+    .probe-highlight { background: #2e2419; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Stage 6 · Probe Validity Audit</h1>
+  <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+  <div id="progress-text">0 / 0</div>
+</header>
+
+<main>
+  <div id="case-panel"></div>
+  <div id="annot-panel">
+    <section class="block">
+      <h3>主标签（数字键 1-7）</h3>
+      <div id="label-buttons"></div>
+    </section>
+    <section class="block">
+      <h3>二元字段</h3>
+      <div id="binary-fields"></div>
+    </section>
+    <section class="block">
+      <h3>备注（可选）</h3>
+      <textarea id="notes" placeholder="任何补充说明..."></textarea>
+    </section>
+    <div class="nav-row">
+      <button class="nav" id="prev-btn">← 上一个 (←)</button>
+      <button class="nav" id="next-btn">下一个 (→) →</button>
+    </div>
+    <div id="jump-wrap">
+      跳转到第 <input id="jump-input" type="number" min="1" /> 个 <button id="jump-btn">Go</button>
+    </div>
+    <button id="export-btn">导出 annotations.csv</button>
+  </div>
+</main>
+
+<div class="guideline-wrap">
+  <details>
+    <summary>标注指南（点击展开 / 折叠）</summary>
+    <p>每个 probe 标注一个<b>主标签</b>：</p>
+    <table>
+      <tr><th>Label</th><th>定义</th></tr>
+      <tr><td class="mono">supported_correct</td><td>prefix 已经充分支持当前 probe，且答案正确</td></tr>
+      <tr><td class="mono">supported_wrong</td><td>prefix 已经形成明确但错误的答案</td></tr>
+      <tr><td class="mono">tentative_guess</td><td>prefix 尚未完成，probe 只是被迫猜测</td></tr>
+      <tr><td class="mono">incomplete_answer</td><td>答案被 token 限制截断</td></tr>
+      <tr><td class="mono">format_artifact</td><td>输出形式与任务不匹配</td></tr>
+      <tr><td class="mono">inconsistent_with_prefix</td><td>probe 与 reasoning prefix 明显矛盾</td></tr>
+      <tr><td class="mono">ambiguous</td><td>无法可靠判断</td></tr>
+    </table>
+    <p style="margin-top:10px">额外<b>二元字段</b>（可多选，独立于主标签）：</p>
+    <ul>
+      <li><span class="mono">valid_as_current_answer</span> — 这个 probe 输出是否可以作为模型此刻真实答案的合理代表</li>
+      <li><span class="mono">ready_to_stop</span> — 如果 Governor 在此刻停止生成，是否合理</li>
+      <li><span class="mono">answer_complete</span> — 答案本身（不考虑对错）在 10 token 内是否说完整了</li>
+      <li><span class="mono">prefix_contains_support</span> — reasoning prefix 中是否包含推导出该答案的实际依据</li>
+      <li><span class="mono">requires_more_reasoning</span> — 模型此刻是否明显还需要更多推理才能给出可靠答案</li>
+    </ul>
+    <p>判断时重点看：reasoning prefix 的最后几句话是否已经在陈述/复述一个结论，还是仍在演算过程中被 probe 打断。</p>
+    <p style="margin-top:10px"><b>format_artifact 的常见子情况</b>（探针后缀固定是 <span class="mono">**Final Answer**\n\n\[ \boxed{</span>，只续写10个token；以下都算"形式不匹配"，不是内容对错问题，供参考不是穷举）：</p>
+    <ol style="margin:4px 0 0 20px; padding:0;">
+      <li>boxed 结构没收尾（10 token内没写完右括号/LaTeX结构，如 <span class="mono">\boxed{\frac{1}{2</span>）——跟 incomplete_answer 的区别：后者是内容没想完，前者是就算想完了这几个token字面结构也不可用，两者常同时发生，选更贴切的</li>
+      <li>答案类型跟题目要求对不上（选择题却输出数值，或反过来输出了单个字母）</li>
+      <li>同一个 boxed 里塞了多个并列候选（如 <span class="mono">\boxed{2 \text{ or } 3}</span>）</li>
+      <li>占位符/模板字面量残留（如 <span class="mono">\boxed{X}</span>）</li>
+      <li>续写成推理性文字/公式片段而非独立答案（如 <span class="mono">= 3x + 2</span>）</li>
+      <li>表示形式不满足题目规范但内容本身没错（要求最简分数却给小数，要求区间却给单点值）</li>
+      <li>多余符号导致自动提取器抓空/抓歪（肉眼看着对，但 probe_answer_normalized 跟真实答案对不上）</li>
+    </ol>
+  </details>
+</div>
+
+<script>
+const CASES = /*__CASES_JSON__*/;
+
+const LABELS = [
+  ["supported_correct", "prefix 已充分支持，且正确"],
+  ["supported_wrong", "prefix 已形成明确但错误的答案"],
+  ["tentative_guess", "prefix 未完成，probe 是被迫猜测"],
+  ["incomplete_answer", "答案被 token 限制截断"],
+  ["format_artifact", "输出形式与任务不匹配"],
+  ["inconsistent_with_prefix", "probe 与 prefix 明显矛盾"],
+  ["ambiguous", "无法可靠判断"],
+];
+
+const BINARY_FIELDS = [
+  ["valid_as_current_answer", "valid_as_current_answer"],
+  ["ready_to_stop", "ready_to_stop"],
+  ["answer_complete", "answer_complete"],
+  ["prefix_contains_support", "prefix_contains_support"],
+  ["requires_more_reasoning", "requires_more_reasoning"],
+];
+
+const STORAGE_KEY = "fc_audit_annotations_v1";
+let annotations = {};
+try {
+  annotations = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+} catch (e) {
+  annotations = {};
+}
+
+let idx = 0;
+const savedIdxRaw = localStorage.getItem(STORAGE_KEY + "_idx");
+if (savedIdxRaw !== null) {
+  const n = parseInt(savedIdxRaw, 10);
+  if (!isNaN(n) && n >= 0 && n < CASES.length) idx = n;
+}
+
+function esc(s) {
+  if (s === null || s === undefined) return "";
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(annotations));
+  localStorage.setItem(STORAGE_KEY + "_idx", String(idx));
+}
+
+function currentAnnotation() {
+  const c = CASES[idx];
+  if (!annotations[c.case_id]) {
+    annotations[c.case_id] = {
+      label: null,
+      valid_as_current_answer: false,
+      ready_to_stop: false,
+      answer_complete: false,
+      prefix_contains_support: false,
+      requires_more_reasoning: false,
+      notes: "",
+    };
+  }
+  return annotations[c.case_id];
+}
+
+function renderCase() {
+  const c = CASES[idx];
+  const panel = document.getElementById("case-panel");
+  const groups = c.sample_groups.map(g => `<span class="tag">${esc(g)}</span>`).join("");
+  const correctBadge = c.final_correct
+    ? `<span class="badge-ok">final_correct = True</span>`
+    : `<span class="badge-bad">final_correct = False</span>`;
+
+  const probesRows = c.context_probes.map(p => `
+    <tr class="${p.is_current ? "current" : ""}">
+      <td>#${p.probe_id}</td>
+      <td>${p.token_position}</td>
+      <td class="mono">${esc(p.answer) || "<empty>"}</td>
+      <td>${p.is_certain ? "certain" : "uncertain"}</td>
+    </tr>`).join("");
+
+  panel.innerHTML = `
+    <section class="block">
+      <h3>案例 ${idx + 1} / ${CASES.length} · case_id=${esc(c.case_id)}</h3>
+      ${groups}
+      <div style="margin-top:6px">problem_id=${c.problem_id} · probe_id=${c.probe_id} · token_position=${c.token_position} / ${c.num_probes_total} probes total</div>
+    </section>
+
+    <section class="block">
+      <h3>Problem</h3>
+      <pre>${esc(c.problem)}</pre>
+      <div style="margin-top:6px">reference answer: <span class="mono">${esc(c.reference_answer)}</span></div>
+    </section>
+
+    <section class="block">
+      <h3>Reasoning Prefix (前 ${c.token_position} tokens)</h3>
+      <pre>${esc(c.reasoning_prefix)}</pre>
+    </section>
+
+    <section class="block probe-highlight">
+      <h3>当前 Probe（token_position=${c.token_position}）</h3>
+      <div>prompt suffix: <span class="mono">${esc(c.probe_prompt_suffix)}</span></div>
+      <div style="margin-top:4px">raw output: <pre class="mono">${esc(c.probe_raw_output)}</pre></div>
+      <div style="margin-top:4px">normalized answer: <span class="mono">${esc(c.probe_answer_normalized) || "<empty>"}</span> · ${c.is_certain ? "certain" : "uncertain wording"}</div>
+    </section>
+
+    <section class="block">
+      <h3>前后 ±3 个 Probe</h3>
+      <table class="probes">
+        <tr><th>#</th><th>token_pos</th><th>answer</th><th>certainty</th></tr>
+        ${probesRows}
+      </table>
+    </section>
+
+    <section class="block">
+      <h3>Final Reasoning Continuation ${c.continuation_truncated ? "(截断显示)" : ""}</h3>
+      <details><summary>展开查看剩余推理直到结束</summary><pre>${esc(c.final_continuation)}</pre></details>
+      <div style="margin-top:6px">final answer: <span class="mono">${esc(c.final_answer)}</span> · ${correctBadge}</div>
+    </section>
+  `;
+}
+
+function renderAnnotPanel() {
+  const a = currentAnnotation();
+
+  const labelBtns = document.getElementById("label-buttons");
+  labelBtns.innerHTML = LABELS.map(([key, desc], i) => `
+    <button class="label-btn ${a.label === key ? "selected" : ""}" data-label="${key}">
+      ${i + 1}. ${key}<kbd>${i + 1}</kbd>
+      <div style="font-size:11px; opacity:.7; font-weight:normal">${desc}</div>
+    </button>`).join("");
+  labelBtns.querySelectorAll(".label-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      currentAnnotation().label = btn.dataset.label;
+      saveState();
+      renderAnnotPanel();
+      updateProgress();
+    });
+  });
+
+  const binWrap = document.getElementById("binary-fields");
+  binWrap.innerHTML = BINARY_FIELDS.map(([key, label]) => `
+    <label class="binary-row">
+      <input type="checkbox" data-bin="${key}" ${a[key] ? "checked" : ""} />
+      <span class="mono">${label}</span>
+    </label>`).join("");
+  binWrap.querySelectorAll("input[data-bin]").forEach(cb => {
+    cb.addEventListener("change", () => {
+      currentAnnotation()[cb.dataset.bin] = cb.checked;
+      saveState();
+    });
+  });
+
+  const notes = document.getElementById("notes");
+  notes.value = a.notes || "";
+  notes.oninput = () => {
+    currentAnnotation().notes = notes.value;
+    saveState();
+  };
+}
+
+function updateProgress() {
+  const done = CASES.filter(c => annotations[c.case_id] && annotations[c.case_id].label).length;
+  document.getElementById("progress-bar").style.width = (100 * done / CASES.length) + "%";
+  document.getElementById("progress-text").textContent = `${done} / ${CASES.length} labeled`;
+}
+
+function render() {
+  renderCase();
+  renderAnnotPanel();
+  updateProgress();
+  window.scrollTo(0, 0);
+}
+
+document.getElementById("prev-btn").addEventListener("click", () => {
+  idx = Math.max(0, idx - 1);
+  saveState();
+  render();
+});
+document.getElementById("next-btn").addEventListener("click", () => {
+  idx = Math.min(CASES.length - 1, idx + 1);
+  saveState();
+  render();
+});
+document.getElementById("jump-btn").addEventListener("click", () => {
+  const n = parseInt(document.getElementById("jump-input").value, 10);
+  if (!isNaN(n) && n >= 1 && n <= CASES.length) {
+    idx = n - 1;
+    saveState();
+    render();
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
+  if (e.key >= "1" && e.key <= "7") {
+    const i = parseInt(e.key, 10) - 1;
+    currentAnnotation().label = LABELS[i][0];
+    saveState();
+    renderAnnotPanel();
+    updateProgress();
+  } else if (e.key === "ArrowRight") {
+    idx = Math.min(CASES.length - 1, idx + 1);
+    saveState();
+    render();
+  } else if (e.key === "ArrowLeft") {
+    idx = Math.max(0, idx - 1);
+    saveState();
+    render();
+  }
+});
+
+function csvEscape(v) {
+  const s = String(v === undefined || v === null ? "" : v);
+  if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+document.getElementById("export-btn").addEventListener("click", () => {
+  const header = [
+    "case_id", "problem_id", "probe_id", "sample_groups", "label",
+    "valid_as_current_answer", "ready_to_stop", "answer_complete",
+    "prefix_contains_support", "requires_more_reasoning", "notes",
+  ];
+  const lines = [header.join(",")];
+  for (const c of CASES) {
+    const a = annotations[c.case_id] || {};
+    lines.push([
+      c.case_id, c.problem_id, c.probe_id,
+      (c.sample_groups || []).join(";"),
+      a.label || "",
+      a.valid_as_current_answer || false,
+      a.ready_to_stop || false,
+      a.answer_complete || false,
+      a.prefix_contains_support || false,
+      a.requires_more_reasoning || false,
+      a.notes || "",
+    ].map(csvEscape).join(","));
+  }
+  const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "annotations.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+render();
+</script>
+</body>
+</html>
