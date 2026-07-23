@@ -27,6 +27,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "TokenDeprivation"))
 from utils import load_dataset  # noqa: E402
+from clients import apply_chat_template  # noqa: E402
 
 from dynasor.core.evaluator import (  # noqa: E402
     extract_answer,
@@ -36,7 +37,13 @@ from dynasor.core.evaluator import (  # noqa: E402
 from dynasor.core.entropy import obtain_answer  # noqa: E402
 
 
-PROBE_SUFFIX = "**Final Answer**\n\n\\[ \\boxed{"
+PROBE_SUFFIXES = {
+    "simple": "**Final Answer**\n\n\\[ \\boxed{",
+    # original CertaIndex/Dynasor probe wording (dynasor/core/cot.py), kept
+    # verbatim for the probe-suffix ablation -- not just the trailing
+    # "**Final Answer**\n\n\\[ \\boxed{" part, which is what Stage 1-8 used.
+    "certaindex": "... Oh, I suddenly got the answer to the whole problem, **Final Answer**\n\n\\[ \\boxed{",
+}
 UNCERTAIN_WORDS = ["wait", "hold", "but", "okay", "no", "hmm"]
 
 CSV_FIELDS = [
@@ -68,6 +75,8 @@ def parse_args():
     p.add_argument("--budget", type=int, default=3072, help="max reasoning tokens")
     p.add_argument("--probe-interval", type=int, default=128)
     p.add_argument("--probe-tokens", type=int, default=10)
+    p.add_argument("--probe-suffix-style", type=str, default="simple",
+                    choices=list(PROBE_SUFFIXES.keys()))
     p.add_argument("--temperature", type=float, default=0.6)
     p.add_argument("--top-p", type=float, default=0.95)
     p.add_argument("--seed", type=int, default=42)
@@ -76,8 +85,8 @@ def parse_args():
     return p.parse_args()
 
 
-def apply_template(problem: str) -> str:
-    return "<｜User｜>" + problem + "<｜Assistant｜>"
+def apply_template(problem: str, model: str) -> str:
+    return apply_chat_template(problem, model)
 
 
 def group_answers(answers):
@@ -114,6 +123,7 @@ class Runner:
     def __init__(self, args):
         self.args = args
         self.client = openai.OpenAI(api_key=args.api_key, base_url=args.url, timeout=600)
+        self.probe_suffix = PROBE_SUFFIXES[args.probe_suffix_style]
         self.lock = threading.Lock()
         os.makedirs(args.output, exist_ok=True)
         os.makedirs(os.path.join(args.output, "traj"), exist_ok=True)
@@ -145,7 +155,7 @@ class Runner:
 
     def run_problem(self, problem_id, problem, target):
         args = self.args
-        prompt = apply_template(problem.strip())
+        prompt = apply_template(problem.strip(), args.model)
         text = ""
         tokens_used = 0
         finished = False
@@ -171,7 +181,7 @@ class Runner:
             if finished:
                 break
 
-            probe_resp = self.complete(prompt + text + PROBE_SUFFIX, args.probe_tokens, seed=args.seed)
+            probe_resp = self.complete(prompt + text + self.probe_suffix, args.probe_tokens, seed=args.seed)
             probe_text = probe_resp.choices[0].text
             answer = strip_string(obtain_answer(probe_text))
             is_certain = not any(w in probe_text.lower() for w in UNCERTAIN_WORDS)

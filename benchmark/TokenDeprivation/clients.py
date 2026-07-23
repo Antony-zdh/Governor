@@ -26,6 +26,16 @@ MODEL_TEMPLATES.update(
     }
 )
 
+MODEL_TEMPLATES.update(
+    {
+        # Qwen3 reasoning models auto-emit <think>...</think> from a plain
+        # ChatML assistant turn (no forced "reason step by step" system
+        # prompt needed, unlike the non-reasoning Qwen2.5-Math template above).
+        model: lambda p: "<|im_start|>user\n" + p + "<|im_end|>\n<|im_start|>assistant\n"
+        for model in ["Qwen/Qwen3-8B", "Qwen/Qwen3-4B", "Qwen/Qwen3-14B", "Qwen/Qwen3-32B"]
+    }
+)
+
 
 def apply_chat_template(prompt, model_name):
     # Get the template function for the model, default to identity function
