@@ -540,6 +540,155 @@ Improved probe 至少满足：
 
 若 P2/P3 明显优于 P0，后续主实验全部切换到新 probe。
 
+## 6.6 Probe 忠实度 vs 保守度：paired re-probe 2×2 实验（下一阶段 roadmap 第 1 步）
+
+### 6.6.1 动机与要回答的问题
+
+Probe 后缀消融（`results/probe_suffix_ablation/`）发现：把 probe 后缀从裸的
+`**Final Answer** \boxed{`（`simple`）换成 Certaindex 式"顿悟"前缀
+`... Oh, I suddenly got the answer to the whole problem, **Final Answer** \boxed{`
+（`certaindex`），**整体准确率几乎不变**（81.2% → 79.6%），但同一条"3-probe
+一致即停"规则的表现天差地别：
+
+| | simple | certaindex |
+|---|---|---|
+| 触发停机 | 416/500 | 311/500 |
+| 停机答案准确率 | 69.2% | 88.7% |
+| 同批题跑到底准确率 | 85.6% | 90.0% |
+| 早停准确率损失 | **16.4pp** | **1.3pp** |
+| 错误停机 | 128 题 | 35 题 |
+| 平均省 token | 1,321 | 683 |
+
+certaindex 触发**更少、更晚、更准**。这有一个硬 confound，必须拆开才能指导
+Governor++ 设计：提升到底来自
+- **(a) 更真实地读出当前状态**（probe 答案更忠实反映模型此刻的真实 belief，
+  于是 3-probe 一致更有意义），还是
+- **(b) 只是更保守**（更晚才凑够一致，恰好停在已收敛的简单题上，是 selection
+  效应）？
+
+若是 (a)，probe 措辞是一个独立于聚合/阈值的一等杠杆，应进入 Governor++ 核心；
+若是 (b)，它本质是 min_tokens/patience 的变体，折进停机规则即可。
+
+### 6.6.2 核心洞察
+
+"延迟早停"和"真实读出"**不是两个独立的对立选项**——在 (a) 成立时它们是同一件
+事的因果两端：一个忠实的 probe 本就应该停得更晚，因为真实 belief 确实更晚才稳定。
+所以真正要问的是：**这个延迟是踩在了真正的收敛点上（忠实），还是只是一个变钝的
+高门槛、恰好和"题简单"相关（保守）？**
+
+### 6.6.3 实验设计：单轨迹基 2×2 析因
+
+把 **timing（何时停）** 和 **readout（读出谁的答案）** 当两个正交因子，
+**四格全部锁在同一条 simple 轨迹上**（关键，见 6.6.4）：
+
+| | 读 simple 答案 | 读 certaindex 答案 |
+|---|---|---|
+| **停在 simple 规则位置** | ① 现状 simple ≈ 69.2% | ② **读出效应** |
+| **停在 certaindex 规则位置** | ③ **timing/保守效应** | ④ certaindex（88.7% 的类比值） |
+
+- 对角线①④是已知锚点；两个非对角格②③把 69.2→88.7 的提升**完全分解为
+  读出主效应 + timing 主效应 + 交互项**。
+- 格② = 在 simple 的（早）停机点上只换成 certaindex 的读出 → 隔离读出。
+- 格③ = 在 certaindex 的（晚）停机点上仍读 simple 的答案 → 隔离 timing/保守。
+
+### 6.6.4 方法与数据（关键约束）
+
+**决定：复用现有 500 条主轨迹，不重跑主 reasoning。** 底座用
+`results/stage1_logging`（DeepSeek-R1-Distill-Qwen-7B，MATH500 全 500 题，
+budget 3072，8,739 个 checkpoint）。理由：probe 不影响主轨迹（见下 1），我们要改
+的全是 probe 侧的东西（措辞、box 预算、is_certain、validity），一次 **re-probe**
+即可，重跑主轨迹只会让 vanilla 81.2% / naive 416/500 等所有已记录锚点漂移、失去
+连续性。真正需要重新生成主轨迹的是 Stage 12-长 budget（3k/6k/12k）和多 seed，
+与本实验无关。
+
+**必须密集 re-probe，且四格同一轨迹基。**
+
+1. **probe 不影响主轨迹**：`logging_run.py` 中 probe 是独立的
+   `complete(prompt+text+suffix)`，主生成从 `text` 继续、不含 probe。因此
+   simple run 与 certaindex run 的主轨迹差异**纯粹是 run-to-run 采样噪声**，
+   不是处理效应 —— 若把某一格建在 certaindex 自己的轨迹上，会把该噪声混入，
+   破坏正交。故**全部四格建在 simple 的 500 条轨迹上**。
+2. **密集 re-probe（硬要求）**：在 simple 轨迹的**每一个** checkpoint 都补 probe
+   （不是只在 simple 停机点补一次）。只有拿到完整的答案流，才能把"3-连一致、
+   非空、certain"规则套上去、求出各 probe 在这条 simple 轨迹上的停机位置
+   （格③④的 timing）。checkpoint prefix 重构复用 Stage 8
+   `run_probe_variants.py` 的 token 切片：
+   `ids = tokenizer.encode(traj["full_text"], add_special_tokens=False)`；
+   `prefix = tokenizer.decode(ids[:token_position])`。
+3. **probe 输入必须逐字复刻 `logging_run.py`，否则复现不了 simple 的答案**：
+   Stage 8 的 `build_prompt` 用的是 `prefix + suffix`，**漏了问题 prompt** ——
+   而原始 probe 是 `apply_chat_template(problem) + text + suffix`（`logging_run.py`
+   L158/L184）。本实验的 probe 输入 = `apply_chat_template(problem) + prefix +
+   suffix`，**必须带上 chat prompt**。suffix 取 `PROBE_SUFFIXES[style]`
+   （`logging_run.py` 里的 simple / certaindex 原文），probe seed 固定 `42`
+   （与原始一致，主生成才是 `seed+problem_id`）。
+4. **解析与 is_certain 逐字对齐**：`answer = strip_string(obtain_answer(probe_text))`；
+   `is_certain = not any(w in probe_text.lower() for w in UNCERTAIN_WORDS)`，
+   `UNCERTAIN_WORDS = ["wait","hold","but","okay","no","hmm"]`；答案等价性
+   用 `dynasor` 的 `math_equal`（`analyze.py` 的 `eq`）。四格用同一把尺才可比。
+5. **re-probe 网格 = 措辞 × box 预算**：
+   `probe_suffix ∈ {simple, certaindex}` × `probe_tokens ∈ {10, 32}`。
+   - `10`：逐字复刻 Stage 1（无 stop 序列），是**锚点**；
+   - `32`：修 incomplete（长答案如向量/区间/方程装不下 10 token → 空/截断，
+     Stage 1 空 probe 率 6.3%）。**但不能天真调大**：现状每 probe 恒用满 10 token
+     （`avg_probe_output_tokens/avg_probe_calls = 174.78/17.478 = 10.0`，说明生成
+     不在闭合处停），直接调到 64 → probe 成本 ~1120 token/题、吃光 Pareto 省量。
+     故 `32` 档加 **stop 序列 `\]`**（`\boxed{...}` 后的显示数学闭合），短答案
+     几秒即停、比 flat-10 更省，长答案才用到 32。`avg_probe_output_tokens`
+     照常记录进 Pareto 的 compute 轴。
+6. **验证锚点（必跑）**：`simple@10` 的 re-probe 结果，应在抽样的若干题上
+   **复现 Stage 1 `probes.csv` 的 probe 答案**（seed/temp 固定，允许极少数因
+   vLLM batching 非确定性不一致，目标一致率 ≳95%）。这是整条重构（chat prompt +
+   token 切片 + 解析）是否忠实的黄金校验 —— 先过这关再跑全量。
+7. 成本：全部 probe-only（≤32 token），不重跑主 reasoning，Stage 8 同规模
+   ~5–15 分钟 GPU。
+
+### 6.6.5 主分析 + 辅助分析
+
+主分析（`analyze_2x2.py`）：
+- 四格准确率表 + 读出主效应、timing 主效应、交互项；
+- **commit 率**（P(probe 给出确定非空答案)，量保守度）与**条件忠实度**
+  （见下）分开报告，避免把"少答"误当"读得准"。
+
+判据与解读：
+- 格② ≫ 69.2%：在同样早的时点、同一状态上 certaindex 就读出更准 → **纯读出
+  增益，且不必停更晚也能拿到**（对省 compute 最优）；
+- 格② ≈ 69.2%：读出在固定时点没帮助 → 增益来自 timing。**但这不否定忠实**：
+  simple 的停机点是 premature 的，真实状态本就没定，忠实读出也应不准；忠实的
+  价值可能正体现为"拒绝在此停"。要再分"忠实追踪收敛"还是"钝的高门槛"，用下面
+  两个辅助分析。
+
+辅助分析（同一份 paired 数据，零额外 GPU）：
+- **continuation-match**：定义"真值" `a_continue(p,c)` = 让同一 prefix 继续跑到底
+  的答案（greedy/temp0 取确定意图，或 K 条 rollout 取多数，即 §7.4 的在线版）；
+  忠实度 = P(probe 答案 == `a_continue`)。比较 simple 与 certaindex 的忠实度。
+- **105 个额外停机点分析**：把"simple 会停但 certaindex 不停"的
+  ~(416−311)=105 个检查点单独拎出，看其 `a_continue`：若多为 premature
+  （probe 答案 ≠ 真实走向且最终会变）→ certaindex 是在正确拒绝假共识（忠实）；
+  若多为本来就对 → certaindex 只是丢掉了好节省（保守）。
+
+### 6.6.6 可选扩展：2×2×2（隔离 run 噪声）
+
+再做一次**对称 re-probe**（在 certaindex 轨迹上补 simple probe），把设计升级为
+`轨迹 × timing × readout`，专门量化"真实 69.2→88.7 里有多少只是两次 run 主轨迹
+不同（与 probe 无关）"。属 robustness check，非核心问题必需，第二优先。
+
+### 6.6.7 产出物与成功判据
+
+- 脚本 `probe_compare/reprobe_paired.py`：改编自 `run_probe_variants.py`，
+  参数 `--probe-suffix {simple|certaindex}` × `--probe-tokens {10|32}`
+  （32 档带 `--stop "\]"`），底座 `--stage1-dir results/stage1_logging`，全 500 题；
+  probe 输入含 chat prompt（§6.6.4-3）、is_certain/解析对齐（§6.6.4-4）。
+  **先跑 `simple@10` 过验证锚点（§6.6.4-6），再跑其余三格**
+  （certaindex@10、simple@32、certaindex@32）。
+- 脚本 `probe_compare/analyze_2x2.py`（离线）：四格 + 读出/timing 主效应 + 交互项
+  + commit 率/条件忠实度 + continuation-match + 105 点分析。
+- 产出：`results/probe_paired_2x2/{reprobe_paired.csv, report.md, fig_2x2.png}`；
+  同一份数据直接给第 2 步 Pareto sweep 当（更好 probe 的）底座。
+- 决策：读出主效应显著（格② 明显高于 69.2%）→ probe 措辞进入 Governor++ 一等
+  设计空间（roadmap 第 4 步），并作为第 2 步 Pareto sweep 的候选 probe；
+  若几乎全是 timing 效应 → 归并为停机规则的 min_tokens/patience 参数。
+
 ---
 
 # 7. Stage 9 — Mechanism Analysis with Difficulty Control
@@ -1159,3 +1308,38 @@ Ablation 至少移除：
 7. **多模型与多数据集复现** — 🟡 Stage 11（Qwen3-8B/MATH500，overall accuracy 78.2%）+ Stage 12（AMC23 60.0%/AIME24 26.7%，DeepSeek-7B）单 seed 结果已跑完并合入 main（`799e827`），见 §9.4/§10.3；9.1/10.1 里排的其余模型/数据集（第 3+ 个模型、GSM8K、GPQA-Diamond）和多 seed 还没做
 
 在前四项完成之前，不进行复杂 verifier、PRM 或大规模训练。
+
+---
+
+# 19. 下一阶段 roadmap（teammate 五步）
+
+teammate 给出的下一步五步，及讨论后的排期/细化：
+
+1. **Paired probe：忠实读出 vs 保守 timing** — 🎯 **实验已设计完（见 §6.6）**，是整条
+   链的枢纽（其结果决定 probe 措辞该进 Governor++ 核心还是并入停机规则）。做法：
+   在 simple 的 500 条轨迹上密集 re-probe certaindex，做单轨迹基 2×2 析因
+   （timing × readout）+ continuation-match。**先做这一步。**
+2. **Accuracy–compute Pareto sweep** — 扫 min_tokens / patience / window / threshold /
+   history stability，比较准确率、总 token、触发率、错误停机率。注意这是**扩展
+   Stage 7（已有 142 配置，见 §5）**，应在第 1 步选出的 probe 上跑，并加**按难度
+   分层**的 breakdown。
+3. **更长 budget（MATH500 + AIME，3k/6k/12k）** — 确认"晚共识更不可靠"是题更难/
+   budget 不够，还是共识时间本身（AIME24 在 3072 下 0% 自然结束，强烈指向 budget
+   饿死）。**与 1/2 独立，降级为 GPU 并行支线，且先跑 targeted 子集**（只挑 3k 下
+   形成晚共识的题加 budget），因为它验证的是诊断性 claim、不在造 Governor++ 的
+   关键路径上。
+4. **Rule-based Governor++（= Stage 10 v1，§8.1）** — 过滤无效 probe（Stage 6/3）+
+   限制最早停止时间（Stage 9/4）+ 更长稳定期（Stage 4/5）+ 历史换答案次数
+   （Stage 4 recovery）。依赖第 1、2 步结论。
+5. **轻量 calibrator（= Stage 10 v2，§8.3）** — **gating 在第 4 步之后**：先看规则版
+   能否补回大部分损失，不够再训（Risk 2）。特征用 Stage 9 逻辑回归里最强的
+   hit_token_cap / level / entropy / answer switches + Stage 6 validity，保持
+   logistic/GBM 轻量。
+
+讨论中补充的三条（未定）：
+- **跨模型 holdout**：1–4 步都在 DeepSeek-7B 上做，把 **Qwen3-8B 留作最终验证集**
+  （Stage 11 显示其假共识率 11% > DeepSeek 6.5%，阈值不能直接搬），别在它上调参。
+- **先定 headline 成功指标**：如"恢复 naive 3-probe 规则损失准确率的 ≥X%，同时
+  保留其 token 节省的 ≥Y%"（见 §8.7），否则 Pareto 扫完不知道选哪个点。
+- **多 seed**：至今全单 seed；最终 Governor++ 配置需多 seed 出方差，1–2pp 改善才
+  说得清是否噪声。

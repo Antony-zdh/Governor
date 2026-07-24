@@ -4,6 +4,39 @@
 
 ---
 
+## 2026-07-24 · 下一阶段 roadmap 讨论 + paired re-probe 2×2 实验设计（仅 plan，未跑）
+
+和 teammate 对齐了下一阶段五步，写进 plan.md §19；重点把第 1 步的实验设计定死，
+写进 **plan.md §6.6**。目标：拆开 probe 后缀消融里 certaindex 的 confound——
+"早停准确率损失从 16.4pp 降到 1.3pp"到底来自**更真实读出状态**还是**只是更保守
+（触发更少更晚）**。
+
+- 设计要点：**单轨迹基 2×2 析因**（timing × readout），四格全部锁在 simple 的 500
+  条轨迹上。关键论证：probe 不影响主轨迹（独立 forward pass），所以 simple/certaindex
+  两次 run 的轨迹差异纯是 run 噪声、不是处理效应——若把某格建在 certaindex 自己的
+  轨迹上会把噪声混进来、破坏正交。
+- 硬要求：**密集 re-probe**（simple 轨迹每个 checkpoint 都补 certaindex probe，
+  ~8,739 个），才能在 simple 轨迹上求出 certaindex 规则的停机位置（格③④的 timing）；
+  只在 simple 停机点补一次是不够的。复用 Stage 8 `run_probe_variants.py` 的
+  token 切片重构（`encode(full_text)[:token_position]`），is_certain / math_equal
+  口径对齐 logging_run.py。
+- 判据：格②（simple 时点 + certaindex 读出）≫ 69.2% → 纯读出增益、且不必停更晚
+  （最优）；≈ 69.2% → 增益来自 timing，再用 continuation-match + "105 个额外停机点"
+  分析区分"忠实追踪收敛"还是"钝的高门槛"。可选 2×2×2（第二次对称 re-probe）隔离
+  run 噪声。
+- 方法细节已定死进 plan §6.6.4/6.6.7：**复用现有 500 条主轨迹（`stage1_logging`）、
+  不重跑主 reasoning**；一次 re-probe 网格 `probe_suffix{simple,certaindex} ×
+  probe_tokens{10,32}` 解决"选 probe + box 预算防 incomplete"两问题；32 档用
+  stop 序列 `\]` 防 probe 成本炸（现状每 probe 恒用满，flat-64 会吃光 Pareto）；
+  probe 输入**必须带 chat prompt**（Stage 8 的 `run_probe_variants.py` 漏了，
+  会复现不出 simple 答案）；is_certain/obtain_answer/seed=42 逐字对齐 logging_run.py；
+  **`simple@10` 必须先复现 Stage 1 probes.csv（≳95%）作为重构忠实度的黄金校验**。
+- 待写脚本：`probe_compare/reprobe_paired.py`（改编 run_probe_variants.py）+
+  `analyze_2x2.py`；产出 `results/probe_paired_2x2/`。
+- **本轮:更新 plan/log 后 push，启动 vast-5090 GPU + tmux agent 实现并跑起来。**
+
+---
+
 ## 2026-07-24 · Stage 11 跨模型 + Stage 12 跨数据集 + probe suffix ablation（远程 vast.ai GPU，已合入 main）
 
 `vast-5090`（vast.ai instance `45605832`，1x RTX 5090）上的远程 Claude Code
