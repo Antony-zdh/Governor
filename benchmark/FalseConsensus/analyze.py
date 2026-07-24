@@ -73,6 +73,9 @@ def parse_args():
     p.add_argument("--certain-bar", type=int, default=3, help="Dynasor early-exit window")
     p.add_argument("--consensus-share", type=float, default=0.8)
     p.add_argument("--min-probes-for-consensus", type=int, default=3)
+    p.add_argument("--model-label", type=str, default="DeepSeek-R1-Distill-7B",
+                   help="series label shown in the calibration figure legends "
+                        "(set this on cross-model runs, e.g. --model-label Qwen3-8B)")
     return p.parse_args()
 
 
@@ -383,11 +386,11 @@ def main():
     cal_win = bin_calibration(pp[pp["window_share"].notna()], "window_share")
     plot_calibration(
         cal_cum, os.path.join(out_dir, "fig1_calibration.png"),
-        "Figure 1 · Agreement vs Accuracy (cumulative share)", "DeepSeek-R1-Distill-7B",
+        "Figure 1 · Agreement vs Accuracy (cumulative share)", args.model_label,
     )
     plot_calibration(
         cal_win, os.path.join(out_dir, "fig1b_window_calibration.png"),
-        f"Figure 1b · Agreement vs Accuracy (last-{args.window} window share)", "DeepSeek-R1-Distill-7B",
+        f"Figure 1b · Agreement vs Accuracy (last-{args.window} window share)", args.model_label,
     )
     fig2_hist(pp, os.path.join(out_dir, "fig2_share_hist.png"))
     cum_fc, win_fc, stop_fc, cases = export_cases(pp, trajs, out_dir)
