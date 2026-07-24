@@ -787,6 +787,76 @@ S_t = P(\text{current answer is correct and terminal} \mid \mathcal{H}_t)
 
 > Agreement 只描述当前答案分布是否集中；安全停止还需要 correctness 与 terminality。
 
+## 7.5 within-problem K-rollout 实验：晚共识不可靠的因果验证（补 Analysis 3/4，roadmap 第 3 步）
+
+### 7.5.1 动机
+
+Stage 4 观察到"共识形成越晚，最终准确率越低"（>2048 tok 55–58% vs <512 tok
+78–87%）。Stage 9 Analysis 1（离线、按 MATH level 分层）已表明这里有**相当一部分
+是难度混杂**，但两个 confound 没排干净：(1) **budget 截断** —— Stage 1/9 用的是
+3072 旧数据，晚共识题更易撞上限、final 答案被迫截断压低准确率；(2) **难度控制只
+到 level 粒度**、且 AIME 没有 level。本实验把这两个 confound 彻底排除，正式补上
+Stage 9 deferred 的 Analysis 3（难度匹配对比）和 Analysis 4（recovery 概率）。
+
+### 7.5.2 设计：同题重复 K 次 + 拉满 budget
+
+- **同题 K 次 rollout**：把难度**按构造锁死** —— 同一道题的 K 条 rollout 难度完全
+  相同，于是"晚共识不可靠"若在题内依然成立，就是真实的**轨迹级**现象，而非难度
+  伪影。这比"跨题分层"强，且**绕开了"如何分层难度"的难题**。
+- **max budget**（如 12k，MATH 应使 finish_naturally 近 100%）去掉截断 confound；
+  跑完先验证 finish 率、AIME 若 12k 仍截断则单独标出。
+- **难度指标 = 经验 pass rate**（K 里答对比例），独立于任何单条轨迹的收敛动态。
+  **绝不能用轨迹派生量（token 长度 / entropy / 换答案次数）当难度** —— 它们就是
+  共识动态本身，会把要测的效应吸收掉（conditioning on a collider）。
+- **规模（并行支线，GPU 贵、非 Governor++ 关键路径）**：MATH 按 pass-rate 跨难度
+  抽 ~50 题 + AIME 全 30 题，每题 **K≥8**、budget 12k。K 要够大才能在题内拉开
+  consensus_time 分布；N 要够才能让随机效应估得稳、结论泛化。
+
+### 7.5.3 分析（主 = within–between 分解）
+
+**主分析** —— mixed-effects logistic + group-mean centering（Mundlak）：
+
+```
+correct ~ ct_within + ct_problemmean + (1 | problem_id)
+```
+`ct` = consensus_time；`ct_problemmean` = 每题 K 条的均值（难度代理，系数 =
+between/难度效应）；`ct_within` = ct 减题内均值（**难度被锁死的 within 效应**）；
+随机截距吸收题基线难度。读法：`ct_within` 显著为负 → 晚共识固定难度下仍不可靠
+（真轨迹级现象）；≈0 而 `ct_problemmean` 负 → 其实全是难度；两系数之比量化
+"naive 晚共识效应里轨迹级 vs 难度各占多少"。
+
+**支撑分析**：
+1. 两条校准曲线叠加：pooled（复刻 Stage 4，带 confound）vs within（题内 demean 后
+   再 bin）。pooled 陡、within 平 → 难度；都陡 → 真效应。
+2. 难度轴：pass rate vs 平均 consensus_time（量化 confound 强度）；按 pass-rate
+   五分位分层看各层 ct→acc（主分析的可视化交叉验证）。
+3. **两种 "correct" 分开报**：consensus-answer 正确率（共识点停机就交卷对不对，
+   = Governor 直接关心的 `P(correct | 共识形成于 T)`）；final 正确率（反映 recovery，
+   = Analysis 4）。
+4. overthinking 量化：早点已形成**正确**共识、跑到底反而变错的 rollout 数（max
+   budget 会放大，正是早停的价值）。
+5. never-converged / 截断：从未形成共识的 rollout（尤其 AIME）单独报正确率；报
+   max budget 下 finish_naturally 率以验证 budget confound 已去除。
+
+**收尾模型（直接指导 Governor++）**：
+```
+correct ~ consensus_time + 在线可估难度代理(早期 entropy / 早期换答案率 / 题长)
+```
+问：扣掉**在线能拿到的**难度代理后，consensus_time 还有无增量预测力？pass rate
+离线不可用；若 consensus_time 在控制在线代理后仍显著 → Governor 该用它，否则用
+在线难度代理即可。
+
+### 7.5.4 结论 → Governor++ 映射
+
+| 主分析（within 效应）| 对 Governor++ 的含义 |
+|---|---|
+| within 强、负 | consensus-time / stable-run 是独立可靠性信号，gate 在它上面有理（支持 Stage 7 min_tokens/patience）|
+| within≈0、between 强 | 是难度；Governor 该在线估难度来 gate，单看 consensus-time 无用 |
+| 两者都在 | 两个都进 gate |
+
+统计提醒：within-problem 是观测关联、非被操纵因果（没法强迫某 rollout 早收敛），
+但足以回答"Governor 该不该不信晚共识"，不过度声称因果。
+
 ---
 
 # 8. Stage 10 — Governor++
@@ -819,7 +889,50 @@ AND current_answer != single_option_letter_for_non_MC
 
 这只是起点，最终参数由 Stage 7 Pareto sweep 决定。
 
+## 8.2a 排期：规则型 Governor++ ≈ roadmap 第 2 步，不是"等第 2 步"
+
+规则型 Governor++（roadmap 第 4 步）和 accuracy–compute Pareto sweep（第 2 步）
+**几乎是同一个交付物**，不该排成先后等待：
+
+- **组件"过滤无效 probe"现在就能定** —— 来自 Stage 6（single_letter 0% valid、
+  空 probe），不依赖后续。
+- **min_tokens / 稳定期 / 换答案次数就是第 2 步 sweep 的参数轴** —— 第 2 步扫出的
+  获胜配置**本身就是规则型 Governor++**。第 4 步 = 给它套 Stage 6 validity filter
+  + 打包成可跑 controller + held-out/Qwen 验证。
+- **v0 现在即可拼**：Stage 7 的 Conservative 配置（min_tok=1024 + patience=8 +
+  certain → overall 81.0% ≈ vanilla 81.2%）+ Stage 6 validity filter，就是一个
+  能用的 baseline；第 1/2 步是为了做**更好的 v1**（顶破 15–21% 省 token 天花板）。
+- **第 3 步（§7.5）是并行输入**：告诉你 gate 该放 consensus-time 还是难度。
+
 ## 8.3 第二版：Calibrated Governor++
+
+### 8.3.0 何时从规则升级到 calibrator（决策判据）
+
+纪律（Risk 2）：**先证明规则不够，再训。** 训练一个轻量 calibrator 当且仅当以下
+三条**同时**满足：
+
+1. **缺口存在**：第一版最优规则撞了 Pareto 天花板（如 Stage 7 那个断崖——保准确率
+   只能省 15–21% token），且有理由相信更聪明的信号组合能更好。若规则已补回大部分
+   （Stage 7 提示"准确率恢复"基本已解决）→ 别训。
+2. **交互/连续映射重要**：safe-stop 决策依赖信号的**非线性组合**，轴对齐阈值网格
+   抓不住。判断法：第 2 步 Pareto 前沿若被"多信号组合"配置主导、单信号规则明显更差
+   → 交互重要。**最可能的触发场景 = 难度自适应地板**：顶破天花板的关键是"简单题
+   早停多省、难题晚停保安全"的按题自适应 `min_tokens = f(在线难度代理)`，这正是
+   calibrator 擅长的连续多特征映射（第 3 步 §7.5 若判定难度是关键信号则更成立）。
+3. **有训练标签**：safe-stop 标签 = Stage 9 的 `S_t = P(correct 且 terminal)`，
+   已具备（见 §8.3 特征/标签）。
+
+**爬梯子，别一步到位**：规则 → 2 档自适应规则（在线难度代理阈值分两档地板）→
+calibrator。只有爬到上一级仍有缺口，才上下一级。
+
+**让"要不要训"成为干净的检验**：calibrator 必须**轻量 + 与规则同一套特征**
+（logistic/GBM），使它是规则的严格推广（规则 = 轴对齐特例）。于是：
+- calibrator ≈ 最优规则 → 交互不重要 → **发规则**（更简单、更可解释，§17
+  transparent controller 卖点更强）；
+- calibrator ≫ 规则（**held-out + Qwen 上都成立**）→ **发 calibrator**；
+- 只在 train 上赢、held-out/Qwen 掉 → 过拟合，别发。
+
+
 
 使用现有 log 拟合一个轻量分类器，预测：
 
@@ -1323,11 +1436,11 @@ teammate 给出的下一步五步，及讨论后的排期/细化：
    history stability，比较准确率、总 token、触发率、错误停机率。注意这是**扩展
    Stage 7（已有 142 配置，见 §5）**，应在第 1 步选出的 probe 上跑，并加**按难度
    分层**的 breakdown。
-3. **更长 budget（MATH500 + AIME，3k/6k/12k）** — 确认"晚共识更不可靠"是题更难/
-   budget 不够，还是共识时间本身（AIME24 在 3072 下 0% 自然结束，强烈指向 budget
-   饿死）。**与 1/2 独立，降级为 GPU 并行支线，且先跑 targeted 子集**（只挑 3k 下
-   形成晚共识的题加 budget），因为它验证的是诊断性 claim、不在造 Governor++ 的
-   关键路径上。
+3. **晚共识不可靠的因果验证** — 🎯 **实验+分析已设计完（见 §7.5）**。定稿方案不是
+   "跨题分层"而是 **within-problem K-rollout**（同题跑 K≥8 次 + max budget 12k，
+   难度按构造锁死），主分析用 within–between 分解（mixed-effects + Mundlak），正式
+   补 Stage 9 deferred 的 Analysis 3/4。**与 1/2 独立，降级为 GPU 并行支线**（MATH
+   ~50 题跨难度 + AIME 30，非 Governor++ 关键路径）。
 4. **Rule-based Governor++（= Stage 10 v1，§8.1）** — 过滤无效 probe（Stage 6/3）+
    限制最早停止时间（Stage 9/4）+ 更长稳定期（Stage 4/5）+ 历史换答案次数
    （Stage 4 recovery）。依赖第 1、2 步结论。

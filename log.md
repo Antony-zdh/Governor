@@ -34,6 +34,17 @@
 - 待写脚本：`probe_compare/reprobe_paired.py`（改编 run_probe_variants.py）+
   `analyze_2x2.py`；产出 `results/probe_paired_2x2/`。
 - **本轮:更新 plan/log 后 push，启动 vast-5090 GPU + tmux agent 实现并跑起来。**
+- 补充(同日):roadmap 第 3 步"晚共识不可靠的因果验证"也定稿进 plan §7.5 ——
+  方案不是跨题分层而是 **within-problem K-rollout**(同题 K≥8 次 + max budget 12k，
+  难度按构造锁死),主分析 within–between 分解(mixed-effects + Mundlak group-mean
+  centering),正式补 Stage 9 deferred 的 Analysis 3/4;并行支线、非关键路径。
+  难度指标用经验 pass rate(独立),**忌用轨迹派生量(长度/entropy/switches)当难度**
+  (会吸收掉要测的效应)。这条属设计,尚未跑。
+- 补充(同日):第 4/5 步的排期与判据也写进 plan §8.2a / §8.3.0。要点:规则型
+  Governor++(第4步)≈ 第2步 sweep(获胜配置本身就是规则),不用干等,v0 现在就能
+  用 Stage 7 Conservative + Stage 6 validity filter 拼出;**何时训 calibrator(第5步)
+  的三条判据**:规则撞天花板 + 缺口像难度自适应/多信号交互造成 + 轻量同特征
+  calibrator 在 held-out+Qwen 上确实赢过最优规则,三条同时满足才训,否则发规则。
 
 ---
 
