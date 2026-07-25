@@ -6,8 +6,10 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import subprocess
 import time
+import urllib.request
 from pathlib import Path
 
 
@@ -23,12 +25,21 @@ FIELDS = [
     "power_watts",
 ]
 SENSITIVE_ARGUMENTS = {"--api-key"}
+SERVICE_COUNTERS = {
+    "vllm:prefix_cache_queries_total",
+    "vllm:prefix_cache_hits_total",
+}
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--interval", type=float, default=2.0)
+    parser.add_argument(
+        "--metrics-url",
+        default=None,
+        help="optional Prometheus endpoint sampled before and after the command",
+    )
     parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args()
     if args.command and args.command[0] == "--":
@@ -114,6 +125,38 @@ def redact_command(command: list[str]) -> list[str]:
             continue
         redacted.append(value)
     return redacted
+
+
+def scrape_service_counters(url: str | None) -> tuple[dict, str | None]:
+    if not url:
+        return {}, None
+    try:
+        with urllib.request.urlopen(url, timeout=5) as response:
+            payload = response.read().decode("utf-8")
+    except Exception as error:
+        return {}, str(error)
+    counters = {name: 0.0 for name in SERVICE_COUNTERS}
+    pattern = re.compile(
+        r"^(?P<name>[^\s{]+)(?:\{[^}]*\})?\s+"
+        r"(?P<value>[-+0-9.eE]+)$"
+    )
+    for line in payload.splitlines():
+        match = pattern.fullmatch(line.strip())
+        if match and match.group("name") in counters:
+            counters[match.group("name")] += float(match.group("value"))
+    return counters, None
+
+
+def service_metric_delta(before: dict, after: dict) -> dict:
+    delta = {
+        name: float(after[name] - before[name])
+        for name in SERVICE_COUNTERS
+        if name in before and name in after
+    }
+    queries = delta.get("vllm:prefix_cache_queries_total", 0.0)
+    hits = delta.get("vllm:prefix_cache_hits_total", 0.0)
+    delta["prefix_cache_hit_rate"] = hits / queries if queries > 0 else None
+    return delta
 
 
 def next_segment(output: Path) -> int:
@@ -233,6 +276,24 @@ def aggregate_segments(output: Path) -> dict:
         ],
         "per_gpu": per_gpu,
     }
+    service_delta = {
+        name: sum(
+            float(summary.get("service_metrics_delta", {}).get(name, 0.0))
+            for summary in summaries
+        )
+        for name in SERVICE_COUNTERS
+    }
+    queries = service_delta.get("vllm:prefix_cache_queries_total", 0.0)
+    hits = service_delta.get("vllm:prefix_cache_hits_total", 0.0)
+    service_delta["prefix_cache_hit_rate"] = (
+        hits / queries if queries > 0 else None
+    )
+    aggregate["service_metrics_delta"] = service_delta
+    aggregate["service_metric_errors"] = [
+        {"segment": index + 1, **error}
+        for index, summary in enumerate(summaries)
+        for error in summary.get("service_metric_errors", [])
+    ]
     (output / "gpu_summary.json").write_text(
         json.dumps(aggregate, indent=2) + "\n"
     )
@@ -244,6 +305,9 @@ def main() -> None:
     args.output.mkdir(parents=True, exist_ok=True)
     segment = next_segment(args.output)
     segment_name = f"segment_{segment:04d}"
+    metrics_before, metrics_before_error = scrape_service_counters(
+        args.metrics_url
+    )
     started = time.perf_counter()
     process = subprocess.Popen(args.command)
     rows = []
@@ -256,6 +320,9 @@ def main() -> None:
             sample_errors.append({"elapsed": elapsed, "error": str(error)})
         time.sleep(args.interval)
     wall_seconds = time.perf_counter() - started
+    metrics_after, metrics_after_error = scrape_service_counters(
+        args.metrics_url
+    )
     write_samples(args.output / f"gpu_samples.{segment_name}.csv", rows)
     summary = summarize(rows, wall_seconds, args.interval) if rows else {
         "wall_clock_seconds": wall_seconds,
@@ -268,6 +335,20 @@ def main() -> None:
             "command": redact_command(args.command),
             "return_code": process.returncode,
             "sample_errors": sample_errors,
+            "metrics_url": args.metrics_url,
+            "service_metrics_before": metrics_before,
+            "service_metrics_after": metrics_after,
+            "service_metrics_delta": service_metric_delta(
+                metrics_before, metrics_after
+            ),
+            "service_metric_errors": [
+                {"phase": phase, "error": error}
+                for phase, error in [
+                    ("before", metrics_before_error),
+                    ("after", metrics_after_error),
+                ]
+                if error is not None
+            ],
         }
     )
     (args.output / f"gpu_summary.{segment_name}.json").write_text(

@@ -41,6 +41,7 @@ Run each model and seed into a separate directory:
 ```bash
 python benchmark/FalseConsensus/final_eval/run_with_gpu_monitor.py \
   --output benchmark/FalseConsensus/results/final_eval/deepseek7b_math500/seed_43/gpu_accounting \
+  --metrics-url http://localhost:18000/metrics \
   -- \
   python benchmark/FalseConsensus/logging_run.py \
   --dataset math500 --start 0 --end 500 \
@@ -55,7 +56,9 @@ python benchmark/FalseConsensus/final_eval/run_with_gpu_monitor.py \
 The URL above is only the historical Vast configuration. Confirm the current
 port with `/v1/models` and pass the verified URL explicitly. The GPU monitor
 redacts API-key arguments in its saved command metadata and preserves separate
-accounting segments when a trajectory run is resumed.
+accounting segments when a trajectory run is resumed. When `--metrics-url` is
+provided, it also records the run-local prefix-cache query/hit counter deltas
+and hit rate.
 
 Repeat with seeds 44 and 45, then with `Qwen/Qwen3-8B`. The runner is
 resumable by trajectory file. New runs record main/probe decode tokens,
