@@ -2,6 +2,8 @@
 
 This directory freezes the next-step evaluation before any new-seed result is
 inspected. The machine-readable source of truth is `protocol.json`.
+`untouched_protocol.json` separately registers the GSM8K test, and
+`third_model_protocol.json` registers the Llama-8B replication.
 
 ## What is frozen
 
@@ -37,18 +39,48 @@ registered holdout.
 Run each model and seed into a separate directory:
 
 ```bash
-python benchmark/FalseConsensus/logging_run.py \
+python benchmark/FalseConsensus/final_eval/run_with_gpu_monitor.py \
+  --output benchmark/FalseConsensus/results/final_eval/deepseek7b_math500/seed_43/gpu_accounting \
+  -- \
+  python benchmark/FalseConsensus/logging_run.py \
   --dataset math500 --start 0 --end 500 \
   --model deepseek-ai/DeepSeek-R1-Distill-Qwen-7B \
+  --url http://localhost:18000/v1 --api-key token-abc123 \
   --budget 3072 --probe-interval 128 --probe-tokens 32 \
   --probe-suffix-style simple --temperature 0.6 --top-p 0.95 \
   --seed 43 --workers 12 \
   --output benchmark/FalseConsensus/results/final_eval/deepseek7b_math500/seed_43
 ```
 
+The URL above is only the historical Vast configuration. Confirm the current
+port with `/v1/models` and pass the verified URL explicitly. The GPU monitor
+redacts API-key arguments in its saved command metadata and preserves separate
+accounting segments when a trajectory run is resumed.
+
 Repeat with seeds 44 and 45, then with `Qwen/Qwen3-8B`. The runner is
 resumable by trajectory file. New runs record main/probe decode tokens,
 main/probe prompt tokens, per-request latency, and per-trajectory wall-clock.
+The monitor additionally records allocated/active GPU-seconds, peak memory,
+power, and an energy estimate.
+
+After each complete 500-problem run:
+
+```bash
+python benchmark/FalseConsensus/final_eval/evaluate_run.py \
+  --run-dir benchmark/FalseConsensus/results/final_eval/deepseek7b_math500/seed_43
+```
+
+For a 1–3 problem smoke run in a separate temporary directory, pass
+`--allow-partial-smoke` to `evaluate_run.py`. Without that explicit flag the
+evaluator requires the exact registered problem-ID set and refuses partial
+final evaluations.
+
+After all model/seed runs:
+
+```bash
+python benchmark/FalseConsensus/final_eval/aggregate_runs.py \
+  --root benchmark/FalseConsensus/results/final_eval
+```
 
 ## Cost interpretation
 
@@ -70,4 +102,3 @@ utilization must be captured from the serving process when available.
 3. Run Qwen seeds 43–45 with the identical protocol.
 4. Run the one-shot untouched dataset.
 5. Only then aggregate multi-seed estimates and apply the submission gate.
-

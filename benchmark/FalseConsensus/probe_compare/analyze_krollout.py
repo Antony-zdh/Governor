@@ -55,6 +55,8 @@ except ImportError as exc:  # pragma: no cover - environment guidance
 WINDOW = 5
 MIN_VALID = 3
 CONSENSUS_SHARE = 0.8
+SENSITIVITY_WINDOWS = [3, 5, 8]
+SENSITIVITY_SHARES = [0.6, 0.8, 1.0]
 BUDGET = 16384
 CT_BINS = [0, 512, 1024, 2048, 4096, np.inf]
 CT_LABELS = ["<512", "512–1k", "1k–2k", "2k–4k", ">4k"]
@@ -133,9 +135,13 @@ def valid_answer(answer: object, mode: str) -> str:
 def local_window(
     answers: list[str],
     end: int,
+    window: int = WINDOW,
+    minimum_valid: int = MIN_VALID,
 ) -> tuple[float | None, str]:
-    nonempty = [x for x in answers[max(0, end - WINDOW + 1) : end + 1] if x]
-    if len(nonempty) < MIN_VALID:
+    nonempty = [
+        x for x in answers[max(0, end - window + 1) : end + 1] if x
+    ]
+    if len(nonempty) < minimum_valid:
         return None, ""
     counts, representatives = group_answers(nonempty)
     winner = int(np.argmax(counts))
@@ -146,10 +152,14 @@ def first_consensus(
     stream: pd.DataFrame,
     mode: str,
     threshold: float = CONSENSUS_SHARE,
+    window: int = WINDOW,
+    minimum_valid: int = MIN_VALID,
 ) -> dict[str, object]:
     answers = [valid_answer(x, mode) for x in stream["probe_answer"]]
-    for end in range(MIN_VALID - 1, len(stream)):
-        share, dominant = local_window(answers, end)
+    for end in range(minimum_valid - 1, len(stream)):
+        share, dominant = local_window(
+            answers, end, window=window, minimum_valid=minimum_valid
+        )
         if share is not None and share >= threshold:
             row = stream.iloc[end]
             return {
@@ -189,6 +199,15 @@ def build_rollout_frame(input_dir: Path) -> pd.DataFrame:
             int(data["rollout_id"]),
         )
         trajectories[key] = data
+    level_by_problem = {}
+    selection_path = input_dir / "selected_problems.json"
+    if selection_path.exists():
+        selection = json.loads(selection_path.read_text())
+        for level, problem_ids in selection.get("math500", {}).get(
+            "by_level", {}
+        ).items():
+            for problem_id in problem_ids:
+                level_by_problem[("math500", int(problem_id))] = int(level)
 
     rows = []
     group_cols = ["dataset", "problem_id", "rollout_id"]
@@ -198,6 +217,17 @@ def build_rollout_frame(input_dir: Path) -> pd.DataFrame:
         primary = first_consensus(stream, "nonempty")
         schema = first_consensus(stream, "schema")
         relaxed = first_consensus(stream, "nonempty", threshold=0.6)
+        grid = {
+            f"grid_w{window}_s{int(share * 10):02d}_": first_consensus(
+                stream,
+                "nonempty",
+                threshold=share,
+                window=window,
+                minimum_valid=min(3, window),
+            )
+            for window in SENSITIVITY_WINDOWS
+            for share in SENSITIVITY_SHARES
+        }
         early = stream.iloc[:4]
         early_answers = [
             valid_answer(value, "schema") for value in early["probe_answer"]
@@ -210,6 +240,7 @@ def build_rollout_frame(input_dir: Path) -> pd.DataFrame:
             "problem_id": key[1],
             "rollout_id": key[2],
             "problem_key": f"{key[0]}__{key[1]}",
+            "math_level": level_by_problem.get((key[0], key[1]), np.nan),
             "final_correct": bool(trajectory["final_correct"]),
             "final_answer": final_answer,
             "tokens_used": int(trajectory["tokens_used"]),
@@ -229,11 +260,13 @@ def build_rollout_frame(input_dir: Path) -> pd.DataFrame:
             "early_share": float(early["share"].iloc[-1]),
         }
 
-        for prefix, consensus in [
+        consensus_definitions = [
             ("", primary),
             ("schema_", schema),
             ("relaxed_", relaxed),
-        ]:
+            *grid.items(),
+        ]
+        for prefix, consensus in consensus_definitions:
             reached = bool(consensus["reached"])
             answer = str(consensus["answer"])
             row[f"{prefix}reached_consensus"] = reached
@@ -273,7 +306,12 @@ def build_rollout_frame(input_dir: Path) -> pd.DataFrame:
     ):
         raise ValueError("Token-cap and natural-finish flags disagree")
 
-    for prefix in ["", "schema_", "relaxed_"]:
+    sensitivity_prefixes = [
+        f"grid_w{window}_s{int(share * 10):02d}_"
+        for window in SENSITIVITY_WINDOWS
+        for share in SENSITIVITY_SHARES
+    ]
+    for prefix in ["", "schema_", "relaxed_", *sensitivity_prefixes]:
         ct = f"{prefix}consensus_time"
         log_ct = f"{prefix}ct_log2"
         mean_ct = f"{prefix}ct_problemmean"
@@ -281,6 +319,10 @@ def build_rollout_frame(input_dir: Path) -> pd.DataFrame:
         frame[log_ct] = np.log2(frame[ct].astype(float))
         frame[mean_ct] = frame.groupby("problem_key")[log_ct].transform("mean")
         frame[within_ct] = frame[log_ct] - frame[mean_ct]
+        raw_mean = f"{prefix}ct_raw_problemmean"
+        raw_within = f"{prefix}ct_raw_within"
+        frame[raw_mean] = frame.groupby("problem_key")[ct].transform("mean")
+        frame[raw_within] = frame[ct] - frame[raw_mean]
 
     problem_pass = frame.groupby("problem_key")["final_correct"].transform("sum")
     frame["pass_rate"] = problem_pass / 8
@@ -658,6 +700,60 @@ def run_models(frame: pd.DataFrame) -> pd.DataFrame:
                 analysis,
             )
         )
+
+    for window in SENSITIVITY_WINDOWS:
+        for share in SENSITIVITY_SHARES:
+            prefix = f"grid_w{window}_s{int(share * 10):02d}_"
+            grid_reached = frame[
+                frame[f"{prefix}reached_consensus"]
+            ].copy()
+            outcomes = [
+                ("all_final", grid_reached, "final_correct"),
+                (
+                    "natural_final",
+                    grid_reached[grid_reached["finished_naturally"]],
+                    "final_correct",
+                ),
+                (
+                    "all_consensus",
+                    grid_reached,
+                    f"{prefix}consensus_correct",
+                ),
+                ("all_terminal", grid_reached, f"{prefix}terminal"),
+                (
+                    "math_easy_final",
+                    grid_reached[
+                        (grid_reached["dataset"] == "math500")
+                        & (grid_reached["math_level"] <= 3)
+                    ],
+                    "final_correct",
+                ),
+                (
+                    "math_hard_final",
+                    grid_reached[
+                        (grid_reached["dataset"] == "math500")
+                        & (grid_reached["math_level"] >= 4)
+                    ],
+                    "final_correct",
+                ),
+            ]
+            for label, subset, outcome in outcomes:
+                log_rows, _ = fit_gee(
+                    subset,
+                    outcome,
+                    f"{prefix}ct_within",
+                    f"{prefix}ct_problemmean",
+                    f"{prefix}{label}_log2",
+                )
+                rows.extend(log_rows)
+                raw_rows, _ = fit_gee(
+                    subset,
+                    outcome,
+                    f"{prefix}ct_raw_within",
+                    f"{prefix}ct_raw_problemmean",
+                    f"{prefix}{label}_raw",
+                )
+                rows.extend(raw_rows)
     return pd.DataFrame(rows)
 
 
@@ -1206,6 +1302,9 @@ def main() -> None:
     print("Fitting within-between models...")
     models = run_models(frame)
     models.to_csv(args.out_dir / "model_results.csv", index=False)
+    models[
+        models["analysis"].astype(str).str.startswith("grid_")
+    ].to_csv(args.out_dir / "window_threshold_sensitivity.csv", index=False)
 
     print("Building descriptive and sensitivity tables...")
     diagnostics = descriptive_tables(frame, args.out_dir)

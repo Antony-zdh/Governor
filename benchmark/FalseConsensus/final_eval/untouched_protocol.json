@@ -1,0 +1,40 @@
+{
+  "protocol_version": "2026-07-25.gsm8k.1",
+  "status": "registered before first run",
+  "dataset": {
+    "name": "gsm8k",
+    "source": "openai/gsm8k",
+    "config": "main",
+    "split": "test",
+    "examples": "all 1319 test examples"
+  },
+  "generation": {
+    "seeds": [43],
+    "temperature": 0.6,
+    "top_p": 0.95,
+    "max_reasoning_tokens": 3072
+  },
+  "probing": {
+    "suffix_style": "simple",
+    "probe_output_cap": 32,
+    "interval": 128
+  },
+  "models": [
+    "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+    "Qwen/Qwen3-8B"
+  ],
+  "primary_method": "conservative from protocol.json",
+  "secondary_method": {
+    "name": "balanced_general_secondary",
+    "patience": 5,
+    "min_tokens": 1536,
+    "certainty": true,
+    "validity": "numeric task-aware schema"
+  },
+  "prohibitions": [
+    "Do not synthesize MATH levels for GSM8K.",
+    "Do not transfer balanced_math level768/2048.",
+    "Do not tune any threshold after viewing this test."
+  ],
+  "interpretation": "This is an untouched-example generalization test. The secondary general Balanced rule is predeclared but is not a replacement for the frozen MATH primary result."
+}

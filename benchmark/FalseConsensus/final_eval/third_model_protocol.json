@@ -1,0 +1,29 @@
+{
+  "protocol_version": "2026-07-25.llama8b.1",
+  "status": "registered before first run",
+  "model": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+  "model_role": "third base-architecture replication",
+  "qualification": "Llama-family base architecture, but distilled from the same DeepSeek-R1 teacher; this tests base-family transfer, not fully independent training provenance.",
+  "dataset": "math500",
+  "examples": "all 500",
+  "generation": {
+    "seeds": [43],
+    "temperature": 0.6,
+    "top_p": 0.95,
+    "max_reasoning_tokens": 3072
+  },
+  "probing": {
+    "suffix_style": "simple",
+    "probe_output_cap": 32,
+    "interval": 128
+  },
+  "methods": [
+    "full_generation",
+    "naive_agreement",
+    "dynasor_stop_logic_on_simple32",
+    "conservative",
+    "balanced_math"
+  ],
+  "expansion_rule": "Run seeds 44 and 45 only after the registered seed-43 result is reported without parameter changes.",
+  "success_criterion": "The four safeguards retain their qualitative ordering and Conservative does not materially damage accuracy; identical optimal parameters are not required."
+}

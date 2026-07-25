@@ -80,6 +80,30 @@ def _load_gpqa_diamond():
     return rows
 
 
+def _load_gsm8k():
+    import datasets
+
+    rows = [
+        dict(row)
+        for row in datasets.load_dataset(
+            "openai/gsm8k", "main", split="test"
+        )
+    ]
+    for index, row in enumerate(rows):
+        raw_answer = str(row["answer"])
+        final_answer = raw_answer.rsplit("####", 1)[-1].strip()
+        row["problem"] = (
+            "Solve the problem and put only the final numeric answer inside "
+            "\\boxed{}. "
+            + str(row["question"])
+        )
+        row["answer"] = final_answer.replace(",", "")
+        row["subject"] = "GSM8K arithmetic"
+        row["level"] = 0
+        row["unique_id"] = f"gsm8k/test/{index}"
+    return rows
+
+
 def _load_jsonl_dataset(dataset_name):
     data_path = os.path.join(
         os.path.dirname(__file__), f"data/{dataset_name}/test.jsonl"
@@ -92,6 +116,7 @@ def load_dataset(dataset_name):
         "GPQADiamond": _load_gpqa_diamond,
         "amc23": lambda: _load_jsonl_dataset("amc23"),
         "aime24": lambda: _load_jsonl_dataset("aime24"),
+        "gsm8k": _load_gsm8k,
         "math500": lambda: _load_jsonl_dataset("math500"),
     }
 

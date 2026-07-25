@@ -25,7 +25,13 @@ import openai
 
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "TokenDeprivation"))
+REPO_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..")
+)
+sys.path.insert(0, REPO_DIR)
+sys.path.insert(
+    0, os.path.join(os.path.dirname(__file__), "..", "TokenDeprivation")
+)
 from utils import load_dataset  # noqa: E402
 from clients import apply_chat_template  # noqa: E402
 
@@ -49,6 +55,8 @@ UNCERTAIN_WORDS = ["wait", "hold", "but", "okay", "no", "hmm"]
 CSV_FIELDS = [
     "problem_id",
     "dataset",
+    "model",
+    "base_seed",
     "token_position",
     "probe_id",
     "probe_answer",
@@ -67,6 +75,18 @@ CSV_FIELDS = [
     "probe_prompt_tokens",
     "main_latency_seconds",
     "probe_latency_seconds",
+]
+
+RUN_SETTING_KEYS = [
+    "model",
+    "dataset",
+    "budget",
+    "probe_interval",
+    "probe_tokens",
+    "probe_suffix_style",
+    "temperature",
+    "top_p",
+    "base_seed",
 ]
 
 
@@ -125,21 +145,208 @@ def normalized_entropy(counts):
     return h / math.log(n, 2)
 
 
+def expected_run_settings(args):
+    return {
+        "model": args.model,
+        "dataset": args.dataset,
+        "budget": args.budget,
+        "probe_interval": args.probe_interval,
+        "probe_tokens": args.probe_tokens,
+        "probe_suffix_style": args.probe_suffix_style,
+        "temperature": args.temperature,
+        "top_p": args.top_p,
+        "base_seed": args.seed,
+    }
+
+
+def validate_run_settings(actual, expected, source):
+    mismatches = {
+        key: {"expected": expected[key], "actual": actual.get(key)}
+        for key in RUN_SETTING_KEYS
+        if actual.get(key) != expected[key]
+    }
+    if mismatches:
+        raise ValueError(
+            f"{source} does not match the requested run settings: "
+            f"{json.dumps(mismatches, sort_keys=True)}"
+        )
+
+
+def csv_rows_from_trajectory(traj):
+    answers = []
+    rows = []
+    settings = traj.get("run_settings", {})
+    for record in sorted(traj.get("probes", []), key=lambda item: item["probe_id"]):
+        answer = str(record.get("answer", ""))
+        probe_text = str(record.get("probe_text", ""))
+        answers.append(answer)
+        counts, dominant = group_answers(answers)
+        rows.append(
+            {
+                "problem_id": traj["problem_id"],
+                "dataset": traj["dataset"],
+                "model": settings.get("model", ""),
+                "base_seed": settings.get("base_seed", ""),
+                "token_position": record["token_position"],
+                "probe_id": record["probe_id"],
+                "probe_answer": answer,
+                "share": round(max(counts) / sum(counts), 4),
+                "entropy": round(normalized_entropy(counts), 4),
+                "unique_answers": len(counts),
+                "dominant_answer": dominant,
+                "is_certain": not any(
+                    word in probe_text.lower() for word in UNCERTAIN_WORDS
+                ),
+                "reasoning": probe_text,
+                "finished": False,
+                "final_answer": traj.get("final_answer", ""),
+                "final_correct": bool(traj.get("final_correct", False)),
+                "main_out_tokens": record.get("main_out_tokens", ""),
+                "probe_out_tokens": record.get("probe_out_tokens", ""),
+                "main_prompt_tokens": record.get("main_prompt_tokens", ""),
+                "probe_prompt_tokens": record.get("probe_prompt_tokens", ""),
+                "main_latency_seconds": record.get(
+                    "main_latency_seconds", ""
+                ),
+                "probe_latency_seconds": record.get(
+                    "probe_latency_seconds", ""
+                ),
+            }
+        )
+    return rows
+
+
 class Runner:
     def __init__(self, args):
         self.args = args
+        self.run_settings = expected_run_settings(args)
         self.client = openai.OpenAI(api_key=args.api_key, base_url=args.url, timeout=600)
         self.probe_suffix = PROBE_SUFFIXES[args.probe_suffix_style]
         self.lock = threading.Lock()
         os.makedirs(args.output, exist_ok=True)
         os.makedirs(os.path.join(args.output, "traj"), exist_ok=True)
+        self.manifest_path = os.path.join(args.output, "run_manifest.json")
+        self._initialize_manifest()
         self.csv_path = os.path.join(args.output, "probes.csv")
-        new_file = not os.path.exists(self.csv_path)
+        self.rebuild_csv_from_trajectories()
         self.csv_file = open(self.csv_path, "a", newline="", encoding="utf-8")
         self.writer = csv.DictWriter(self.csv_file, fieldnames=CSV_FIELDS)
-        if new_file:
-            self.writer.writeheader()
-            self.csv_file.flush()
+
+    def _trajectory_paths(self):
+        traj_dir = os.path.join(self.args.output, "traj")
+        return sorted(
+            (
+                path
+                for path in os.listdir(traj_dir)
+                if path.startswith("problem_") and path.endswith(".json")
+            ),
+            key=lambda path: int(path.removeprefix("problem_").removesuffix(".json")),
+        )
+
+    def _load_and_validate_trajectory(self, filename):
+        path = os.path.join(self.args.output, "traj", filename)
+        with open(path, encoding="utf-8") as handle:
+            traj = json.load(handle)
+        expected_id = int(
+            filename.removeprefix("problem_").removesuffix(".json")
+        )
+        if int(traj.get("problem_id", -1)) != expected_id:
+            raise ValueError(
+                f"{path} has problem_id={traj.get('problem_id')}, "
+                f"expected {expected_id}"
+            )
+        if traj.get("dataset") != self.args.dataset:
+            raise ValueError(
+                f"{path} has dataset={traj.get('dataset')}, "
+                f"expected {self.args.dataset}"
+            )
+        validate_run_settings(
+            traj.get("run_settings", {}), self.run_settings, path
+        )
+        return traj
+
+    def _initialize_manifest(self):
+        manifest = {
+            "format_version": 1,
+            "run_settings": self.run_settings,
+            "problem_id_range": {
+                "start": self.args.start,
+                "end_exclusive": self.args.end,
+            },
+        }
+        if os.path.exists(self.manifest_path):
+            with open(self.manifest_path, encoding="utf-8") as handle:
+                existing = json.load(handle)
+            validate_run_settings(
+                existing.get("run_settings", {}),
+                self.run_settings,
+                self.manifest_path,
+            )
+            if existing.get("problem_id_range") != manifest["problem_id_range"]:
+                raise ValueError(
+                    f"{self.manifest_path} problem range does not match the "
+                    "requested run"
+                )
+            return
+        for filename in self._trajectory_paths():
+            self._load_and_validate_trajectory(filename)
+        temporary = self.manifest_path + ".tmp"
+        with open(temporary, "w", encoding="utf-8") as handle:
+            json.dump(manifest, handle, ensure_ascii=False, indent=2)
+            handle.write("\n")
+        os.replace(temporary, self.manifest_path)
+
+    def rebuild_csv_from_trajectories(self):
+        trajectories = self._trajectory_paths()
+        if os.path.exists(self.csv_path) and not trajectories:
+            with open(self.csv_path, newline="", encoding="utf-8") as handle:
+                if any(csv.DictReader(handle)):
+                    raise ValueError(
+                        f"{self.csv_path} contains rows but no completed "
+                        "trajectory files; use a new output directory"
+                    )
+        if trajectories and self._csv_matches_trajectories(trajectories):
+            return
+        temporary = self.csv_path + ".tmp"
+        with open(temporary, "w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=CSV_FIELDS)
+            writer.writeheader()
+            for filename in trajectories:
+                writer.writerows(
+                    csv_rows_from_trajectory(
+                        self._load_and_validate_trajectory(filename)
+                    )
+                )
+        os.replace(temporary, self.csv_path)
+
+    def _csv_matches_trajectories(self, trajectories):
+        if not os.path.exists(self.csv_path):
+            return False
+        with open(self.csv_path, newline="", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            if reader.fieldnames != CSV_FIELDS:
+                return False
+            observed = []
+            for row in reader:
+                try:
+                    observed.append(
+                        (int(row["problem_id"]), int(row["probe_id"]))
+                    )
+                except (KeyError, TypeError, ValueError):
+                    return False
+        if len(observed) != len(set(observed)):
+            return False
+        expected = set()
+        for filename in trajectories:
+            traj = self._load_and_validate_trajectory(filename)
+            expected.update(
+                (int(traj["problem_id"]), int(record["probe_id"]))
+                for record in traj.get("probes", [])
+            )
+        return set(observed) == expected
+
+    def close(self):
+        self.csv_file.close()
 
     def complete(self, prompt, max_tokens, seed):
         last_err = None
@@ -161,7 +368,7 @@ class Runner:
                 time.sleep(5 * (attempt + 1))
         raise last_err
 
-    def run_problem(self, problem_id, problem, target):
+    def run_problem(self, problem_id, problem, target, metadata):
         args = self.args
         problem_started = time.perf_counter()
         prompt = apply_template(problem.strip(), args.model)
@@ -175,6 +382,9 @@ class Runner:
             "dataset": args.dataset,
             "problem": problem,
             "target": target,
+            "level": metadata.get("level", 0),
+            "subject": metadata.get("subject", args.dataset),
+            "unique_id": metadata.get("unique_id"),
             "probes": [],
         }
         accounting = {
@@ -230,6 +440,8 @@ class Runner:
                 {
                     "problem_id": problem_id,
                     "dataset": args.dataset,
+                    "model": args.model,
+                    "base_seed": args.seed,
                     "token_position": tokens_used,
                     "probe_id": probe_id,
                     "probe_answer": answer,
@@ -289,27 +501,23 @@ class Runner:
                     ),
                 },
                 "run_settings": {
-                    "model": args.model,
-                    "budget": args.budget,
-                    "probe_interval": args.probe_interval,
-                    "probe_tokens": args.probe_tokens,
-                    "probe_suffix_style": args.probe_suffix_style,
-                    "temperature": args.temperature,
-                    "top_p": args.top_p,
-                    "base_seed": args.seed,
+                    **self.run_settings,
                     "main_seed": args.seed + problem_id,
                     "probe_seed": args.seed,
                 },
             }
         )
 
+        traj_path = os.path.join(args.output, "traj", f"problem_{problem_id}.json")
+        temporary_path = traj_path + ".tmp"
+        with open(temporary_path, "w", encoding="utf-8") as f:
+            json.dump(traj, f, ensure_ascii=False, indent=2)
+            f.write("\n")
+        os.replace(temporary_path, traj_path)
         with self.lock:
             for row in rows:
                 self.writer.writerow(row)
             self.csv_file.flush()
-        traj_path = os.path.join(args.output, "traj", f"problem_{problem_id}.json")
-        with open(traj_path, "w", encoding="utf-8") as f:
-            json.dump(traj, f, ensure_ascii=False, indent=2)
         return problem_id, final_correct, tokens_used, len(rows)
 
 
@@ -324,24 +532,37 @@ def main():
         if os.path.exists(traj_path):
             print(f"[skip] problem {problem_id} already logged")
             continue
-        todo.append((problem_id, item["problem"], strip_string(item["answer"])))
+        todo.append(
+            (
+                problem_id,
+                item["problem"],
+                strip_string(item["answer"]),
+                {
+                    "level": item.get("level", 0),
+                    "subject": item.get("subject", args.dataset),
+                    "unique_id": item.get("unique_id"),
+                },
+            )
+        )
 
     runner = Runner(args)
     print(f"Logging {len(todo)} problems -> {args.output}")
     done = 0
     t0 = time.time()
-    with ThreadPoolExecutor(max_workers=args.workers) as pool:
-        futures = [pool.submit(runner.run_problem, *t) for t in todo]
-        for fut in as_completed(futures):
-            problem_id, correct, tokens, n_probes = fut.result()
-            done += 1
-            print(
-                f"[{done}/{len(todo)}] problem {problem_id}: "
-                f"correct={correct} tokens={tokens} probes={n_probes} "
-                f"({time.time() - t0:.0f}s elapsed)",
-                flush=True,
-            )
-    runner.csv_file.close()
+    try:
+        with ThreadPoolExecutor(max_workers=args.workers) as pool:
+            futures = [pool.submit(runner.run_problem, *t) for t in todo]
+            for fut in as_completed(futures):
+                problem_id, correct, tokens, n_probes = fut.result()
+                done += 1
+                print(
+                    f"[{done}/{len(todo)}] problem {problem_id}: "
+                    f"correct={correct} tokens={tokens} probes={n_probes} "
+                    f"({time.time() - t0:.0f}s elapsed)",
+                    flush=True,
+                )
+    finally:
+        runner.close()
     print("Done. CSV at", runner.csv_path)
 
 
