@@ -230,7 +230,9 @@ class Runner:
         self.csv_path = os.path.join(args.output, "probes.csv")
         self.rebuild_csv_from_trajectories()
         self.csv_file = open(self.csv_path, "a", newline="", encoding="utf-8")
-        self.writer = csv.DictWriter(self.csv_file, fieldnames=CSV_FIELDS)
+        self.writer = csv.DictWriter(
+            self.csv_file, fieldnames=CSV_FIELDS, lineterminator="\n"
+        )
 
     def _trajectory_paths(self):
         traj_dir = os.path.join(self.args.output, "traj")
@@ -309,7 +311,9 @@ class Runner:
             return
         temporary = self.csv_path + ".tmp"
         with open(temporary, "w", newline="", encoding="utf-8") as handle:
-            writer = csv.DictWriter(handle, fieldnames=CSV_FIELDS)
+            writer = csv.DictWriter(
+                handle, fieldnames=CSV_FIELDS, lineterminator="\n"
+            )
             writer.writeheader()
             for filename in trajectories:
                 writer.writerows(
