@@ -61,6 +61,12 @@ CSV_FIELDS = [
     "finished",
     "final_answer",
     "final_correct",
+    "main_out_tokens",
+    "probe_out_tokens",
+    "main_prompt_tokens",
+    "probe_prompt_tokens",
+    "main_latency_seconds",
+    "probe_latency_seconds",
 ]
 
 
@@ -139,7 +145,8 @@ class Runner:
         last_err = None
         for attempt in range(4):
             try:
-                return self.client.completions.create(
+                started = time.perf_counter()
+                response = self.client.completions.create(
                     model=self.args.model,
                     prompt=prompt,
                     max_tokens=max_tokens,
@@ -148,6 +155,7 @@ class Runner:
                     seed=seed,
                     stream=False,
                 )
+                return response, time.perf_counter() - started
             except Exception as e:  # transient server hiccups
                 last_err = e
                 time.sleep(5 * (attempt + 1))
@@ -155,6 +163,7 @@ class Runner:
 
     def run_problem(self, problem_id, problem, target):
         args = self.args
+        problem_started = time.perf_counter()
         prompt = apply_template(problem.strip(), args.model)
         text = ""
         tokens_used = 0
@@ -168,21 +177,49 @@ class Runner:
             "target": target,
             "probes": [],
         }
+        accounting = {
+            "main_decode_tokens": 0,
+            "probe_decode_tokens": 0,
+            "main_prompt_tokens": 0,
+            "probe_prompt_tokens": 0,
+            "main_calls": 0,
+            "probe_calls": 0,
+            "main_wall_clock_seconds": 0.0,
+            "probe_wall_clock_seconds": 0.0,
+        }
 
         n_probes = args.budget // args.probe_interval
         for probe_id in range(1, n_probes + 1):
-            resp = self.complete(prompt + text, args.probe_interval, seed=args.seed + problem_id)
+            resp, main_latency = self.complete(
+                prompt + text, args.probe_interval, seed=args.seed + problem_id
+            )
             chunk = resp.choices[0].text
             finish_reason = resp.choices[0].finish_reason
+            main_out_tokens = int(resp.usage.completion_tokens)
+            main_prompt_tokens = int(resp.usage.prompt_tokens)
             text += chunk
-            tokens_used += resp.usage.completion_tokens
+            tokens_used += main_out_tokens
+            accounting["main_decode_tokens"] += main_out_tokens
+            accounting["main_prompt_tokens"] += main_prompt_tokens
+            accounting["main_calls"] += 1
+            accounting["main_wall_clock_seconds"] += main_latency
             finished = finish_reason != "length"
 
             if finished:
                 break
 
-            probe_resp = self.complete(prompt + text + self.probe_suffix, args.probe_tokens, seed=args.seed)
+            probe_resp, probe_latency = self.complete(
+                prompt + text + self.probe_suffix,
+                args.probe_tokens,
+                seed=args.seed,
+            )
             probe_text = probe_resp.choices[0].text
+            probe_out_tokens = int(probe_resp.usage.completion_tokens)
+            probe_prompt_tokens = int(probe_resp.usage.prompt_tokens)
+            accounting["probe_decode_tokens"] += probe_out_tokens
+            accounting["probe_prompt_tokens"] += probe_prompt_tokens
+            accounting["probe_calls"] += 1
+            accounting["probe_wall_clock_seconds"] += probe_latency
             answer = strip_string(obtain_answer(probe_text))
             is_certain = not any(w in probe_text.lower() for w in UNCERTAIN_WORDS)
             probe_answers.append(answer)
@@ -203,6 +240,12 @@ class Runner:
                     "is_certain": is_certain,
                     "reasoning": probe_text,
                     "finished": False,
+                    "main_out_tokens": main_out_tokens,
+                    "probe_out_tokens": probe_out_tokens,
+                    "main_prompt_tokens": main_prompt_tokens,
+                    "probe_prompt_tokens": probe_prompt_tokens,
+                    "main_latency_seconds": round(main_latency, 6),
+                    "probe_latency_seconds": round(probe_latency, 6),
                 }
             )
             traj["probes"].append(
@@ -211,6 +254,12 @@ class Runner:
                     "token_position": tokens_used,
                     "probe_text": probe_text,
                     "answer": answer,
+                    "main_out_tokens": main_out_tokens,
+                    "probe_out_tokens": probe_out_tokens,
+                    "main_prompt_tokens": main_prompt_tokens,
+                    "probe_prompt_tokens": probe_prompt_tokens,
+                    "main_latency_seconds": main_latency,
+                    "probe_latency_seconds": probe_latency,
                 }
             )
 
@@ -233,6 +282,24 @@ class Runner:
                 "finished_naturally": finished,
                 "final_answer": final_answer,
                 "final_correct": final_correct,
+                "accounting": {
+                    **accounting,
+                    "trajectory_wall_clock_seconds": (
+                        time.perf_counter() - problem_started
+                    ),
+                },
+                "run_settings": {
+                    "model": args.model,
+                    "budget": args.budget,
+                    "probe_interval": args.probe_interval,
+                    "probe_tokens": args.probe_tokens,
+                    "probe_suffix_style": args.probe_suffix_style,
+                    "temperature": args.temperature,
+                    "top_p": args.top_p,
+                    "base_seed": args.seed,
+                    "main_seed": args.seed + problem_id,
+                    "probe_seed": args.seed,
+                },
             }
         )
 
