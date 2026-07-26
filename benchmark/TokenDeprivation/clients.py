@@ -9,9 +9,11 @@ from concurrent.futures import ThreadPoolExecutor
 MODEL_TEMPLATES = {
     model: lambda p: "<｜User｜>" + p + "<｜Assistant｜>"
     for model in [
+        "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
         "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
         "deepseek-ai/DeepSeek-R1-Distill-Qwen-14B",
-        "deepseek-ai/DeepSeek-R1-Distill-Qwen-34B",
+        "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
     ]
 }
 

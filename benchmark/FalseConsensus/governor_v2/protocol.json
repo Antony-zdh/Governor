@@ -1,0 +1,668 @@
+{
+  "protocol_version": "governor-v2-preregistered-2026-07-26.3",
+  "status": "preregistered collection and selection protocol; hardware/model smoke tests remain mandatory before full runs",
+  "data_split": {
+    "ratios": {
+      "train": 0.6,
+      "dev": 0.2,
+      "test": 0.2
+    },
+    "seed": 20260726,
+    "group_unit": "benchmark problem; every model/seed/probe variant follows the problem",
+    "minimum_ratio_benchmark_size": 250,
+    "minimum_desired_dev_problems": 50,
+    "minimum_desired_test_problems": 50,
+    "small_benchmark_policy": "external_stress"
+  },
+  "capture_cap_policy": {
+    "target_truncation_rate_max": 0.05,
+    "criterion": "design target used to choose a cap from prior or pilot evidence; it is not a post-run acceptance requirement",
+    "selection_rule": "choose the smallest candidate reasonably expected to keep truncation near or below 0.05, then freeze it before the main run; never increase it post hoc merely because the realized rate exceeds 0.05",
+    "candidate_caps": [
+      4096,
+      8192,
+      12288,
+      16384,
+      24576,
+      32768
+    ],
+    "test_is_never_used_to_choose_cap": true,
+    "report_binomial_confidence_interval": true
+  },
+  "environments": {
+    "development_seeds": [
+      42,
+      43,
+      44
+    ],
+    "confirmation_seeds": [
+      45,
+      46,
+      47
+    ],
+    "models": [
+      {
+        "id": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+        "family": "qwen-distill",
+        "role": "development",
+        "development_seeds": [
+          42,
+          43,
+          44
+        ],
+        "confirmation_seeds": [
+          45,
+          46,
+          47
+        ],
+        "minimum_bf16_gpus_32gb": 1,
+        "enabled": true
+      },
+      {
+        "id": "Qwen/Qwen3-8B",
+        "family": "qwen",
+        "role": "development",
+        "development_seeds": [
+          42,
+          43,
+          44
+        ],
+        "confirmation_seeds": [
+          45,
+          46,
+          47
+        ],
+        "minimum_bf16_gpus_32gb": 1,
+        "enabled": true
+      },
+      {
+        "id": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+        "family": "llama-distill",
+        "role": "heldout_architecture",
+        "development_seeds": [],
+        "confirmation_seeds": [
+          45
+        ],
+        "minimum_bf16_gpus_32gb": 1,
+        "enabled": true
+      },
+      {
+        "id": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        "family": "qwen-distill",
+        "role": "heldout_scale",
+        "development_seeds": [],
+        "confirmation_seeds": [
+          45
+        ],
+        "minimum_bf16_gpus_32gb": 4,
+        "enabled": true
+      }
+    ],
+    "benchmarks": [
+      {
+        "name": "math500",
+        "enabled": true,
+        "enabled_for_collection": true,
+        "split_policy": "ratio",
+        "capture_cap": 16384,
+        "evaluation_budgets": [
+          3072,
+          8192,
+          16384
+        ],
+        "selection_budget": 16384,
+        "capture_cap_status": "fixed design choice: prior DeepSeek long rollouts observed 15/400 = 3.75% at 16384; new runs report realized rates without post-hoc cap changes",
+        "source": {
+          "format": "jsonl",
+          "path": "benchmark/TokenDeprivation/data/math500/test.jsonl"
+        },
+        "id_field": "unique_id",
+        "text_field": "problem",
+        "stratify_fields": [
+          "level",
+          "subject"
+        ]
+      },
+      {
+        "name": "gsm8k",
+        "enabled": true,
+        "enabled_for_collection": true,
+        "split_policy": "ratio",
+        "capture_cap": 16384,
+        "evaluation_budgets": [
+          3072,
+          8192,
+          16384
+        ],
+        "selection_budget": 16384,
+        "capture_cap_status": "fixed conservative design choice: no local long-horizon GSM8K trajectories yet, so use 16384 rather than rely on an uncertain 8192 estimate",
+        "source": {
+          "format": "jsonl",
+          "path": "benchmark/FalseConsensus/governor_v2/generated/datasets/gsm8k_test.jsonl"
+        },
+        "id_field": "unique_id",
+        "text_field": "problem",
+        "stratify_fields": [
+          "subject"
+        ],
+        "note": "Run materialize_dataset.py --benchmark gsm8k before freezing the split manifest."
+      },
+      {
+        "name": "amc23",
+        "enabled": true,
+        "enabled_for_collection": true,
+        "split_policy": "external_stress",
+        "capture_cap": 16384,
+        "evaluation_budgets": [
+          3072,
+          8192,
+          16384
+        ],
+        "selection_budget": 16384,
+        "capture_cap_status": "fixed conservative design choice: the 3072 pilot is heavily right-censored, so use 16384 and report the realized rate",
+        "source": {
+          "format": "jsonl",
+          "path": "benchmark/TokenDeprivation/data/amc23/test.jsonl"
+        },
+        "id_field": "id",
+        "text_field": "problem",
+        "stratify_fields": []
+      },
+      {
+        "name": "aime24",
+        "enabled": true,
+        "enabled_for_collection": true,
+        "split_policy": "external_stress",
+        "capture_cap": 32768,
+        "evaluation_budgets": [
+          8192,
+          16384,
+          32768
+        ],
+        "selection_budget": 32768,
+        "capture_cap_status": "fixed design choice: prior 16K data are heavily censored, so use the largest cap within the models' common native-context regime; the realized truncation rate may exceed 5% and will be reported without post-hoc cap changes",
+        "source": {
+          "format": "jsonl",
+          "path": "benchmark/TokenDeprivation/data/aime24/test.jsonl"
+        },
+        "id_field": "id",
+        "text_field": "problem",
+        "stratify_fields": []
+      }
+    ]
+  },
+  "collection": {
+    "architecture": "single-request main trajectory followed by dense prefix re-probing",
+    "probe_style": "simple",
+    "probe_output_cap": 32,
+    "dense_probe_interval": 64,
+    "dense_probe_start_token": 64,
+    "temperature": 0.6,
+    "top_p": 0.95,
+    "workers": 12,
+    "url": "http://localhost:18000/v1",
+    "output_root": "benchmark/FalseConsensus/results/governor_v2"
+  },
+  "offline_probe_schedules": [
+    {
+      "kind": "fixed",
+      "start_token": 64,
+      "interval_tokens": 32,
+      "phases": []
+    },
+    {
+      "kind": "fixed",
+      "start_token": 64,
+      "interval_tokens": 64,
+      "phases": []
+    },
+    {
+      "kind": "fixed",
+      "start_token": 128,
+      "interval_tokens": 128,
+      "phases": []
+    },
+    {
+      "kind": "fixed",
+      "start_token": 256,
+      "interval_tokens": 256,
+      "phases": []
+    },
+    {
+      "kind": "agreement_adaptive",
+      "start_token": 256,
+      "interval_tokens": 256,
+      "phases": [
+        [
+          512,
+          256
+        ],
+        [
+          1536,
+          128
+        ]
+      ],
+      "agreement_trigger_count": 2,
+      "agreement_interval_tokens": 64
+    }
+  ],
+  "rule_search": {
+    "uniform_dimensions": [
+      "probe",
+      "validity",
+      "maturity",
+      "evidence",
+      "persistence",
+      "certainty",
+      "history"
+    ],
+    "templates": [
+      {
+        "name": "latest_persistence_fixed_maturity",
+        "base": {
+          "probe": {
+            "style": "simple",
+            "output_cap": 32,
+            "schedule": {
+              "kind": "fixed",
+              "start_token": 128,
+              "interval_tokens": 128,
+              "phases": [],
+              "agreement_trigger_count": null,
+              "agreement_interval_tokens": null
+            }
+          },
+          "validity": {
+            "mode": "schema"
+          },
+          "maturity": {
+            "kind": "fixed_tokens",
+            "minimum_tokens": 512,
+            "minimum_budget_fraction": 0.0,
+            "online_instability_floor_tokens": 0
+          },
+          "evidence": {
+            "family": "latest",
+            "window_probes": 1,
+            "minimum_valid_probes": 1,
+            "dominant_share_threshold": 1.0,
+            "entropy_threshold": null,
+            "entropy_scope": "window"
+          },
+          "persistence": {
+            "minimum_consistent_accepts": 3,
+            "minimum_consensus_span_tokens": 0
+          },
+          "certainty": {
+            "enabled": true,
+            "minimum_certain_fraction": 1.0
+          },
+          "history": {
+            "maximum_switches": null,
+            "switch_window": {
+              "kind": "tokens",
+              "size": 2048
+            },
+            "minimum_stable_span_tokens": 0
+          }
+        },
+        "axes": {
+          "probe.schedule.interval_tokens": [
+            32,
+            64,
+            128,
+            256
+          ],
+          "probe.schedule.start_token": [
+            64,
+            128,
+            256
+          ],
+          "validity.mode": [
+            "nonempty",
+            "schema"
+          ],
+          "maturity.minimum_tokens": [
+            0,
+            512,
+            1024,
+            1536
+          ],
+          "persistence.minimum_consistent_accepts": [
+            2,
+            3,
+            5,
+            8
+          ],
+          "persistence.minimum_consensus_span_tokens": [
+            0,
+            256,
+            512
+          ],
+          "certainty.enabled": [
+            false,
+            true
+          ],
+          "history": [
+            {
+              "maximum_switches": null,
+              "switch_window": {
+                "kind": "tokens",
+                "size": 2048
+              },
+              "minimum_stable_span_tokens": 0
+            },
+            {
+              "maximum_switches": 2,
+              "switch_window": {
+                "kind": "tokens",
+                "size": 2048
+              },
+              "minimum_stable_span_tokens": 0
+            },
+            {
+              "maximum_switches": 2,
+              "switch_window": {
+                "kind": "probes",
+                "size": 16
+              },
+              "minimum_stable_span_tokens": 0
+            }
+          ],
+          "history.minimum_stable_span_tokens": [
+            0,
+            256
+          ]
+        }
+      },
+      {
+        "name": "window_share_budget_fraction",
+        "base": {
+          "probe": {
+            "style": "simple",
+            "output_cap": 32,
+            "schedule": {
+              "kind": "fixed",
+              "start_token": 128,
+              "interval_tokens": 128,
+              "phases": [],
+              "agreement_trigger_count": null,
+              "agreement_interval_tokens": null
+            }
+          },
+          "validity": {
+            "mode": "schema"
+          },
+          "maturity": {
+            "kind": "budget_fraction",
+            "minimum_tokens": 0,
+            "minimum_budget_fraction": 0.25,
+            "online_instability_floor_tokens": 0
+          },
+          "evidence": {
+            "family": "window_share",
+            "window_probes": 5,
+            "minimum_valid_probes": 3,
+            "dominant_share_threshold": 0.8,
+            "entropy_threshold": null,
+            "entropy_scope": "window"
+          },
+          "persistence": {
+            "minimum_consistent_accepts": 1,
+            "minimum_consensus_span_tokens": 0
+          },
+          "certainty": {
+            "enabled": true,
+            "minimum_certain_fraction": 1.0
+          },
+          "history": {
+            "maximum_switches": null,
+            "switch_window": {
+              "kind": "tokens",
+              "size": 2048
+            },
+            "minimum_stable_span_tokens": 0
+          }
+        },
+        "axes": {
+          "probe.schedule.interval_tokens": [
+            32,
+            64,
+            128,
+            256
+          ],
+          "validity.mode": [
+            "nonempty",
+            "schema"
+          ],
+          "maturity.minimum_budget_fraction": [
+            0.125,
+            0.25,
+            0.5
+          ],
+          "evidence.window_probes": [
+            3,
+            5,
+            8
+          ],
+          "evidence.minimum_valid_probes": [
+            1,
+            3
+          ],
+          "evidence.dominant_share_threshold": [
+            0.8,
+            1.0
+          ],
+          "persistence.minimum_consistent_accepts": [
+            1,
+            2,
+            3
+          ],
+          "certainty.enabled": [
+            false,
+            true
+          ]
+        }
+      },
+      {
+        "name": "entropy_budget_fraction",
+        "base": {
+          "probe": {
+            "style": "simple",
+            "output_cap": 32,
+            "schedule": {
+              "kind": "fixed",
+              "start_token": 128,
+              "interval_tokens": 128,
+              "phases": [],
+              "agreement_trigger_count": null,
+              "agreement_interval_tokens": null
+            }
+          },
+          "validity": {
+            "mode": "schema"
+          },
+          "maturity": {
+            "kind": "budget_fraction",
+            "minimum_tokens": 0,
+            "minimum_budget_fraction": 0.25,
+            "online_instability_floor_tokens": 0
+          },
+          "evidence": {
+            "family": "entropy",
+            "window_probes": 5,
+            "minimum_valid_probes": 3,
+            "dominant_share_threshold": 0.5,
+            "entropy_threshold": 0.2,
+            "entropy_scope": "window"
+          },
+          "persistence": {
+            "minimum_consistent_accepts": 1,
+            "minimum_consensus_span_tokens": 0
+          },
+          "certainty": {
+            "enabled": false,
+            "minimum_certain_fraction": 1.0
+          },
+          "history": {
+            "maximum_switches": null,
+            "switch_window": {
+              "kind": "tokens",
+              "size": 2048
+            },
+            "minimum_stable_span_tokens": 0
+          }
+        },
+        "axes": {
+          "probe.schedule.interval_tokens": [
+            32,
+            64,
+            128,
+            256
+          ],
+          "validity.mode": [
+            "nonempty",
+            "schema"
+          ],
+          "maturity.minimum_budget_fraction": [
+            0.125,
+            0.25,
+            0.5
+          ],
+          "evidence.window_probes": [
+            3,
+            5,
+            8
+          ],
+          "evidence.minimum_valid_probes": [
+            1,
+            3
+          ],
+          "evidence.entropy_threshold": [
+            0.1,
+            0.2,
+            0.3,
+            0.4
+          ],
+          "evidence.entropy_scope": [
+            "window",
+            "history"
+          ],
+          "persistence.minimum_consistent_accepts": [
+            1,
+            2,
+            3
+          ],
+          "certainty.enabled": [
+            false,
+            true
+          ]
+        }
+      }
+    ]
+  },
+  "selection": {
+    "environment_unit": "benchmark x model x seed",
+    "pooling": "macro-average environments; never raw-problem micro-average",
+    "development_model_roles": [
+      "development"
+    ],
+    "confirmation_model_roles": [
+      "development",
+      "heldout_architecture",
+      "heldout_scale"
+    ],
+    "conservative_accuracy_drop_pp_max_per_model": 1.5,
+    "conservative_accuracy_drop_pp_max_per_benchmark": 2.0,
+    "balanced_accuracy_drop_pp_max_per_model": 2.5,
+    "balanced_accuracy_drop_pp_max_per_benchmark": 3.0,
+    "minimum_fraction_environments_with_positive_saving": 0.8,
+    "ranking_metric": "20th percentile environment-level total-token saving",
+    "tie_breaker": "lower rule complexity",
+    "test_use": "one pass after rule IDs and operating-point gates are frozen",
+    "heldout_policy": "heldout_architecture and heldout_scale models are never visible to sweep or select; they are evaluated only from a frozen-rule manifest",
+    "phase_policy": {
+      "development": {
+        "model_roles": [
+          "development"
+        ],
+        "splits": [
+          "train",
+          "dev"
+        ],
+        "include_external_stress": false
+      },
+      "confirmation": {
+        "model_roles": [
+          "development",
+          "heldout_architecture",
+          "heldout_scale"
+        ],
+        "splits": [
+          "test"
+        ],
+        "include_external_stress": true
+      }
+    }
+  },
+  "ablation": {
+    "one_at_a_time": true,
+    "full_factorial": true,
+    "factorial_dimensions": [
+      "probe",
+      "validity",
+      "maturity",
+      "evidence",
+      "persistence",
+      "certainty",
+      "history"
+    ],
+    "reference_dimensions": {
+      "probe": {
+        "style": "simple",
+        "output_cap": 32,
+        "schedule": {
+          "kind": "fixed",
+          "start_token": 128,
+          "interval_tokens": 128,
+          "phases": [],
+          "agreement_trigger_count": null,
+          "agreement_interval_tokens": null
+        }
+      },
+      "validity": {
+        "mode": "nonempty"
+      },
+      "maturity": {
+        "kind": "none",
+        "minimum_tokens": 0,
+        "minimum_budget_fraction": 0.0,
+        "online_instability_floor_tokens": 0
+      },
+      "evidence": {
+        "family": "latest",
+        "window_probes": 1,
+        "minimum_valid_probes": 1,
+        "dominant_share_threshold": 1.0,
+        "entropy_threshold": null,
+        "entropy_scope": "window"
+      },
+      "persistence": {
+        "minimum_consistent_accepts": 1,
+        "minimum_consensus_span_tokens": 0
+      },
+      "certainty": {
+        "enabled": false,
+        "minimum_certain_fraction": 0.0
+      },
+      "history": {
+        "maximum_switches": null,
+        "switch_window": {
+          "kind": "tokens",
+          "size": 2048
+        },
+        "minimum_stable_span_tokens": 0
+      }
+    }
+  }
+}

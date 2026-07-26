@@ -2,6 +2,22 @@
 
 Stage 1 (logging) and Stages 2-5 (analysis) from `plan.md`.
 
+## Governor v2 · multi-environment rule development
+
+The next protocol lives in [`governor_v2/`](governor_v2/README.md). It adds:
+
+- deterministic problem-grouped 60/20/20 splits per sufficiently large
+  benchmark, with small benchmarks reserved as external stress tests;
+- probe-independent main trajectories followed by dense simple@32 re-probing;
+- one uniform seven-dimension rule schema, including probe frequency;
+- a parameterized model × benchmark × seed collection matrix;
+- automatic one-at-a-time and full \(2^7\) selected-rule ablations.
+
+The v2 collection and selection protocol is preregistered. Development uses
+DeepSeek-R1-Distill-Qwen-7B and Qwen3-8B; Llama-8B and Distill-Qwen-32B are
+held out for architecture/scale confirmation. Final rule IDs are frozen from
+train/dev before any one-shot test or external-stress evaluation.
+
 ## Stage 1 · Logging mode
 
 Governor does not control the model — no early stop, no upgrade. It only logs

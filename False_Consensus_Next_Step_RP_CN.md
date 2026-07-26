@@ -8,6 +8,103 @@
 
 ---
 
+# 0. 2026-07-26 修订：先建立多环境规则开发协议
+
+本节覆盖后文中“直接冻结当前 conservative/balanced 后做最终测试”的旧顺序。上一轮
+结果说明现有规则能保住准确率，但 token saving 很弱；它们更适合作为 v1 baseline，
+而不应在同一批 MATH500 结果上继续局部调参后直接宣称最优。
+
+下一轮先收集可复用的 **simple@32 dense probe 序列库**，再在题目级独立
+train/dev/test 上开发规则。完整实现和运行命令见
+[`benchmark/FalseConsensus/governor_v2/README.md`](benchmark/FalseConsensus/governor_v2/README.md)。
+
+## 0.1 数据切分
+
+对题量足够的每个 benchmark 分别做 **60/20/20**：
+
+- train：宽搜索和 Pareto 初筛；
+- dev：跨环境门槛、选择 conservative/balanced、冻结规则；
+- test：冻结后只运行一次；
+- AMC23/AIME24 等小数据集不勉强切成不稳定的小块，完整作为
+  `external_stress`，不参与阈值选择。
+
+选择 60/20/20 是本项目的统计功效取舍，不是通用常数。它让 MATH500 有
+300/100/100，而规则搜索所依赖的 dev 和最终 test 各保留 100 题。题目是 group：
+同题的所有 model、seed、probe schedule 和 rule 结果必须跟随同一 split。MATH500
+在题内随机前按 `level × subject` 分层；跨 benchmark 的重复题面也不得跨 split。
+
+由于现有 MATH500 已被反复查看，其 v2 test 只能视为“内部锁定测试”，不能恢复为严格
+untouched。最终确认仍需要新 seed，以及至少一个此前未用于规则开发的数据源。
+
+## 0.2 什么能够被优化
+
+必须严格区分两类变量：
+
+| 类型 | 变量 | 用法 |
+|---|---|---|
+| 环境变量 | model、main seed、benchmark、题目/预先给定难度、budget | 构造多元环境、分层汇报和稳健性门槛；不能直接写入规则分支 |
+| 规则维度 | probe、validity、maturity、evidence、persistence、certainty、history | 可在 train/dev 上优化；只能读取当前时刻可见的通用在线信号 |
+
+其中 `probe` 明确包含 style、output cap、首次 probe 时刻和 interval/phases。因此
+“每 64/128/256 token probe”不再被当作固定采集常数，而是规则本身的一维。difficulty
+标签不能成为运行时捷径；如果需要自适应，应使用截至当前的 invalid rate、切换次数、
+局部 entropy 等通用在线信息。
+
+每条规则均使用同一个七维嵌套 schema。latest、window-share、entropy 等只是
+`evidence.family` 的不同值，不再各自拥有无法统一消融的一套扁平参数。
+`history.maximum_switches` 只统计滑动窗口，例如最近 2,048 token 或最近 16 个
+probe，不能累计整条序列；否则早期超过阈值后规则将永久失去停止机会。
+
+## 0.3 多环境采集
+
+开发环境以 `benchmark × model × seed` 为统计单元。第一版参数矩阵使用：
+
+- development models：DeepSeek-R1-Distill-Qwen-7B、Qwen3-8B；
+- development seeds：42、43、44；
+- confirmation seeds：开发模型使用 45、46、47；
+- held-out architecture：DeepSeek-R1-Distill-Llama-8B，仅 confirmation seed 45；
+- held-out scale：DeepSeek-R1-Distill-Qwen-32B，仅 confirmation seed 45；BF16
+  权重、32K KV cache 与运行开销合计无法可靠放入 2×32GB，正式实验使用
+  4×32GB GPU tensor parallel，不能用其结果参与规则筛选；
+- benchmarks：MATH500、GSM8K；AMC23/AIME24 作为完整外部压力测试；
+- 采集上限与评估 budget 分开。5% 是利用 prior/pilot 选择 cap 时的设计目标，不是
+  主实验结束后的验收门槛；cap 必须预先冻结，实际截断率超过 5% 也不能据此事后修改。
+  test 不参与选择。当前设置为 MATH500 16K、GSM8K 16K、AMC23 16K、AIME24
+  32K；随后从同一长轨迹离线评估预注册的 3K/8K/16K/32K
+  operating budgets。达到采集上限的序列作为 right-censored 单独报告。
+
+主轨迹和 probe 必须解耦：每题只生成一次完整主文本，随后在冻结前缀上每 64 token
+采集 simple@32。基础 pass 覆盖 64/128/192/...；需要检验 interval=32 时补采
+32/96/160/...，两遍合成完整 32-token grid。离线规则再选择 32/64/128/256
+或 adaptive schedule。
+这样改变 probe frequency 不会改变主生成随机轨迹。
+
+## 0.4 选择标准
+
+不把所有题目 micro-pool 成一个平均数，而是在每个
+`benchmark × model × seed` 环境先算 accuracy 和真实总 token：
+
+1. train 上全量搜索并做 Pareto/accuracy gate 初筛；
+2. dev 上检查逐模型、逐 benchmark 的最大允许准确率下降；
+3. 要求至少 80% 环境有正 token saving；
+4. 以环境级 saving 的第 20 百分位为主要排序量，避免规则只靠少数环境拉高均值；
+5. 冻结完整 rule ID 和 conservative/balanced operating point；
+6. test 只评估一次，不因 test 结果回改阈值。
+
+## 0.5 筛选后的七维消融
+
+对每个最终规则都必须做：
+
+- 七个 one-at-a-time reference replacement；
+- 七维 selected/reference 的完整 \(2^7=128\) factorial。
+
+probe 和 evidence 是决策所必需的，不能字面“删除”；它们分别替换为预注册的固定
+simple@32/128 schedule 和 latest evidence。其他维度使用尽可能中性的 reference。
+所有 cell 共用同一批 frozen trajectory 和 probe bank，只离线改变规则，避免重新采样
+造成的比较噪声。
+
+---
+
 # 1. 当前是否已经达到 Main 水平？
 
 ## 1.1 当前判断
@@ -512,45 +609,38 @@ peak_memory
 
 ---
 
-# 10. Experiment G：第三模型与跨家族泛化
+# 10. Experiment G：冻结后的跨架构与跨规模泛化
 
 ## 10.1 目的
 
-当前 DeepSeek-R1-Distill-Qwen-7B 与 Qwen3-8B 都与 Qwen 架构关系较近。Main 论文最好补一个不同家族模型。
+开发模型都与 Qwen 架构关系较近，因此把架构和规模泛化作为严格 held-out
+confirmation，而不是把新模型加入规则搜索扩大选择空间。
 
 ## 10.2 模型选择
 
-优先选一个公开 reasoning model：
+已冻结两个互补模型：
 
-- Llama-family reasoning/distill model；或
-- Phi reasoning model；或
-- Gemma-family reasoning model。
+- `deepseek-ai/DeepSeek-R1-Distill-Llama-8B`：验证不同 backbone architecture；
+- `deepseek-ai/DeepSeek-R1-Distill-Qwen-32B`：验证同 distillation family
+  下的规模泛化。
 
-要求：
-
-- 7B-14B 范围；
-- 可稳定生成长 CoT；
-- 可读取 token-level entropy/logprob；
-- license 允许研究评估。
+二者都不能进入 sweep、Pareto 初筛或 conservative/balanced 的选择；必须先在两个
+development model 的 train/dev 上冻结完整规则与 hash manifest。
 
 ## 10.3 最小实验
 
-第三模型先跑：
+冻结后统一跑：
 
-- MATH500 全部 500 题；
-- 1 seed；
-- simple@32；
-- full / p3 / CertaIndex / Conservative / Balanced；
-- 若方向成立，再补 3 seeds。
+- MATH500/GSM8K 的 test split；
+- AMC23/AIME24 external stress；
+- seed 45；
+- 相同的 frozen main + dense simple@32 架构；
+- conservative、balanced 及预注册的七维消融，不重新挑阈值。
 
 ## 10.4 成功标准
 
-不要求相同最佳参数，但要求四原则仍成立：
-
-- p3 风险显著高；
-- schema 能减少 artifact；
-- patience/min-token 改善 Pareto；
-- conservative rule 至少不过度破坏 accuracy。
+不要求 held-out 模型拥有各自最优参数；恰恰要验证同一冻结规则是否仍满足逐模型
+accuracy gate、是否在大多数环境保持正 token saving，以及七维贡献方向是否一致。
 
 ---
 
