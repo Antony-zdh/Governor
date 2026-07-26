@@ -8,8 +8,32 @@ confirmation、三套规则的全维消融、统计分析、Markdown/PDF 报告�
 GitHub 上传，并验证 GitHub 资产可访问且校验和一致。持续监视本机 tmux、GPU、日志和输出；
 可恢复的故障要主动修复并续跑。只有全部验收项通过后才能宣布完成。
 
-本 goal 所在 Git commit 由协调者在启动时提供为 `TARGET_COMMIT`。必须记录并固定该
-commit；如果协调者没有给出 hash，先向其索取，不能悄悄使用一个不明确的 HEAD。
+本机已具备可用的 Git、tmux，并能访问本项目的 GitHub repository。不要安装或
+重配置 Git/tmux/SSH；需要自行补齐的是 vLLM、Python 实验依赖、模型、分析/PDF
+工具和可能缺失的 GitHub CLI。若启动环境没有显式 `TARGET_COMMIT`，直接把当前
+repository 的初始 `git rev-parse HEAD` 作为 `TARGET_COMMIT`，记录后固定；不要
+因此询问用户。
+
+## 0. 自主执行与阻塞策略
+
+负责人很忙。正常执行期间不要询问偏好、确认命令、选择安装方式或请求逐步批准。
+在科学边界内自行检查环境并采用最保守、可恢复的方案：
+
+1. 普通命令失败先读取完整错误和服务日志，按“参数/版本 → 资源 → 网络 → 数据”
+   顺序定位；指数退避重试最多 4 次。
+2. 一个 venv 污染或依赖不兼容时，新建带编号的干净 venv；不要原地反复覆盖。
+3. OOM/调度压力优先降低 `max-num-seqs`、请求 workers 或 replica 数，不改变模型、
+   dtype、cap、seed、prompt、sampling、题目或 probe 参数。
+4. runner/server 中断时利用原子 per-problem JSON 续跑，不删除有效半成品。
+5. 某一阶段暂时失败时继续所有不依赖它的验证、下载、分析脚本、清单和归档工作。
+6. 将处理过程写入 `STATUS.md` 和 `BLOCKERS.md`，但不要为了汇报状态暂停作业。
+
+只有以下无法由 agent 自行创造的条件才算硬阻塞：八张正式 GPU 不可用、没有足够的
+可写磁盘且找不到其他本机文件系统、公共模型在多种官方 Hugging Face 下载方式下仍
+不可达、GitHub 没有写入/Release 权限，或预注册 Pareto 门槛确实找不到三个互异点。
+遇到硬阻塞时也不要提出开放式问题：完成所有仍可进行的工作，保存可验证产物，然后
+只输出一次合并后的 blocker，逐项写明证据、已尝试方案以及解除阻塞所需的唯一具体
+动作。禁止反复询问或停在“请问下一步怎么办”。
 
 ## 1. 科学边界：不可事后更改
 
@@ -21,7 +45,9 @@ commit；如果协调者没有给出 hash，先向其索取，不能悄悄使用
 - `benchmark/FalseConsensus/governor_v2/generated/confirmation_matrix_base64.jsonl`
 - 本文件及同目录 `README.md`
 
-预期协议为 `governor-v2-preregistered-2026-07-27.10`。若版本不同，停止并报告。
+预期协议为 `governor-v2-preregistered-2026-07-27.10`。若版本不同，不运行正式
+collection；自动保存 commit/config diff、完成可进行的环境诊断，并写入最终 blocker，
+不要询问应使用哪个版本。
 
 不可变设置：
 
@@ -58,16 +84,16 @@ commit；如果协调者没有给出 hash，先向其索取，不能悄悄使用
 主要排序量是 dev 环境总 decode-token saving 的第 20 百分位；另外两个 Pareto
 目标是最小化最差 split-by-model 和 split-by-benchmark accuracy drop。
 `select` 必须返回三个不同 ID。若某 profile 无互异合格点，任务不是成功：保存完整
-前沿和诊断，通知协调者；不得放宽门槛、重复 rule ID 或利用 test 决策。
+前沿和诊断，完成 development 报告和可发布归档，并在最终 blocker 中记录；不得
+放宽门槛、重复 rule ID、利用 test 决策或中途询问如何处理。
 
 ## 2. 建立可审计、可恢复的工作区
 
-不要假设机器已有 Git、Python、vLLM、Hugging Face 模型、Pandoc、LaTeX、`gh`
-或任何 Python 包。先检查，再安装缺失项。推荐目录：
+假设 Git 和 tmux 可用；不要假设 Python 实验环境、vLLM、Hugging Face 模型、
+Pandoc、LaTeX、`gh` 或分析包已经存在。先检查，再自动安装缺失项。推荐目录：
 
 ```bash
 export GOV_WORK=/workspace/governor-v2
-export GOV_REPO="$GOV_WORK/Governor"
 export GOV_ARTIFACTS="$GOV_WORK/artifacts"
 export HF_HOME="$GOV_WORK/huggingface"
 export XDG_CACHE_HOME="$GOV_WORK/cache"
@@ -95,7 +121,8 @@ df -h
 - 有稳定外网，或模型已在一个所有 server 共享的本地 cache；
 - 正式作业期间无其他进程争抢 GPU。
 
-若不满足，先报告具体差异和重新估算，不要自动改变科学配置。
+若不满足，先记录具体差异并继续所有不依赖正式 GPU 的准备；不要自动改变科学配置，
+也不要立刻向用户提问。
 
 把所有长任务放入本机命名清楚的 tmux session；tmux 仅用于本机作业持久化，不是
 用来连接或控制其他 agent。日志写到
@@ -113,18 +140,22 @@ df -h
 
 ## 3. 获取代码和基础设施
 
-若 repo 不存在：
+优先使用启动时所在的 repository；否则使用 `$GOV_WORK/Governor`，仍不存在才自动
+clone。不要为路径或 hash 询问用户：
 
 ```bash
-git clone https://github.com/Antony-zdh/Governor.git "$GOV_REPO"
-```
-
-若本机已经有 repo，直接在该目录核对 commit，不要重复 clone。无需配置 SSH server、
-SSH 端口或远程登录。随后：
-
-```bash
+if git rev-parse --show-toplevel >/dev/null 2>&1; then
+  export GOV_REPO="$(git rev-parse --show-toplevel)"
+elif [ -d "$GOV_WORK/Governor/.git" ]; then
+  export GOV_REPO="$GOV_WORK/Governor"
+else
+  git clone https://github.com/Antony-zdh/Governor.git "$GOV_WORK/Governor"
+  export GOV_REPO="$GOV_WORK/Governor"
+fi
 cd "$GOV_REPO"
+export TARGET_COMMIT="${TARGET_COMMIT:-$(git rev-parse HEAD)}"
 git fetch --all --tags --prune
+git cat-file -e "$TARGET_COMMIT^{commit}"
 git checkout --detach "$TARGET_COMMIT"
 test "$(git rev-parse HEAD)" = "$TARGET_COMMIT"
 git status --short
@@ -162,9 +193,10 @@ PY
 python -m pip freeze > "$GOV_ARTIFACTS/environment/pip-freeze.txt"
 ```
 
-缺少系统工具时，root/apt 环境安装 `git git-lfs curl jq tmux zstd pandoc
-texlive-xetex fonts-noto-cjk gh`；无 root 时用已有 Conda/Mamba 或用户目录的官方
-二进制。不得因为 PDF 工具缺失而省略 PDF。
+缺少附加工具时，有免密 sudo/apt 就安装 `curl jq zstd pandoc texlive-xetex
+fonts-noto-cjk gh`；没有 sudo 时自动使用已有 Conda/Mamba 或下载到用户目录的官方
+二进制。不要询问 root 密码，不要改动系统 Git/tmux，也不得因为 PDF 工具缺失而
+省略 PDF。
 
 检查 GitHub CLI：
 
@@ -173,8 +205,10 @@ gh auth status
 git ls-remote origin HEAD
 ```
 
-认证缺失不会阻止 GPU collection，但必须尽早通知协调者，以免最后才发现无法上传。
-任何 token 只能放在环境/credential store，严禁写进 repo、日志或报告。
+认证缺失不阻止 GPU collection。先检查既有 Git credential、`gh auth` 和 `GH_TOKEN`，
+但不要在对话中索取或打印 secret；继续全部实验和归档工作，仅在最终确实无法 push/
+release 时形成一次性权限 blocker。任何 token 只能放在环境/credential store，
+严禁写进 repo、日志或报告。
 
 ## 4. 一次下载四个模型，共享同一 cache
 
@@ -187,8 +221,10 @@ hf download deepseek-ai/DeepSeek-R1-Distill-Llama-8B
 hf download deepseek-ai/DeepSeek-R1-Distill-Qwen-32B
 ```
 
-公开下载失败时先区分网络、磁盘、Hub rate limit、许可和版本问题；只有确实 gated
-才请求 `HF_TOKEN`。下载后记录每个 snapshot 路径、revision/commit、目录大小，
+公开下载失败时先区分网络、磁盘、Hub rate limit、许可和版本问题，依次尝试 `hf
+download`、`huggingface_hub.snapshot_download` 和断点续传；这些模型是公共模型，
+不要中途询问 `HF_TOKEN`。若官方来源经过 4 次退避重试仍不可达，写入最终网络
+blocker 并继续其他工作。下载后记录每个 snapshot 路径、revision/commit、目录大小，
 并验证 tokenizer/config/weight shard 齐全。所有 vLLM replicas 共用这个 cache，
 不复制四份模型。
 
@@ -214,7 +250,9 @@ git diff --check
 - 状态 `READY_FOR_GPU_SMOKE`。
 
 记录 protocol、split manifest、candidate rules 和三份 matrix 的 SHA-256。若生成出的
-ignored `candidate_rules.jsonl` 不是 17,712 条或 hash 在运行中变化，停止。
+ignored `candidate_rules.jsonl` 不是 17,712 条或 hash 在运行中变化，不运行正式
+collection；自动重做一次干净 expansion 和 preflight，仍不一致则保存 diff/traceback
+至最终 blocker，不要询问如何选择 artifact。
 
 ## 6. vLLM 服务和严格隔离的 smoke
 
@@ -276,6 +314,28 @@ smoke 必须验证：
 
 smoke 失败时不得批量运行。smoke 数据只用于工程验收，永不进入 sweep、confirmation
 或论文数字。
+
+### 6.1 无需询问的 smoke/运行时恢复顺序
+
+按下列顺序自行处理，不改变科学配置：
+
+- 服务起不来：确认端口/PID和完整 traceback → 检查模型 revision/磁盘 →
+  `vllm serve --help` 校正当前版本的非科学 flag → 在新 venv 安装与 driver
+  兼容的官方 vLLM/PyTorch 组合 → 重做同一 smoke。
+- Qwen3 类找不到：确保 `transformers>=4.51` 且 vLLM 支持 Qwen3；新建 venv，
+  不修改模型 config，不启用 YaRN。
+- prompt logprobs/`echo=True` 不工作：先验证 OpenAI completions endpoint 和
+  `--max-logprobs 20` 等当前版本参数；升级到兼容版本后重试。不得把 entropy
+  trigger 静默设为空。
+- CUDA OOM/KV preemption：清理遗留进程 → 降 `max-num-seqs` →
+  降 runner `--workers` → 减少同模型 replicas。不得降 context/cap、改 dtype
+  或量化。
+- timeout/5xx：健康检查后指数退避；服务崩溃则原端口重启，runner 从已有文件续跑。
+- 单题 JSON 损坏：保留原文件为 `.corrupt.<timestamp>` 证据，只重跑该题；不得整批
+  删除。
+- 磁盘紧张：把 cache/results 放到本机最大可写盘；压缩包按 model/phase 顺序生成、
+  校验、上传、验证后再删除该临时 archive，始终保留原始结果。不得未经验证删除 raw
+  JSON。若所有本机盘都无法同时容纳模型和原始结果，才记为硬 blocker。
 
 ## 7. Development collection：先完成后冻结规则
 
@@ -515,7 +575,7 @@ HF cache、venv、临时 socket 或任何 credential。生成：
 
 先随机解压检查并运行 JSON/manifest validator，再上传。创建清楚的 results branch，
 提交时明确列出未纳入普通 Git 的 raw 数据由哪个 release asset 承载。推送 branch，
-打开 PR；除非协调者明确授权，不自行 merge main。
+打开 PR；本 goal 一律不自行 merge main，也不为是否 merge 询问用户。
 
 创建 tag/release 并上传全部 assets。上传后用 `gh release view --json assets` 对比
 本机清单；至少随机下载一个 asset 到本机新目录并校验 SHA-256。检查 GitHub 上：
@@ -528,8 +588,9 @@ HF cache、venv、临时 socket 或任何 credential。生成：
 - 没有 secret。
 
 若 GitHub 单文件/配额限制变化，先查询当前 `gh`/API 返回，继续分片；不要以限制为由
-省略数据。GitHub 认证或仓库写权限确实缺失时，保留校验完成的本机 archives，向协调者
-请求最小所需权限并继续等待，不能把“本机已打包”称作上传完成。
+省略数据。GitHub 认证或仓库写权限确实缺失时，保留校验完成的本机 archives，完成
+其他所有验收项，在最终一次性 blocker 中只写所需权限和可直接重试的上传命令；不要
+中途等待回复，也不能把“本机已打包”称作上传完成。
 
 ## 12. 最终验收与汇报格式
 
@@ -556,7 +617,8 @@ HF cache、venv、临时 socket 或任何 credential。生成：
 - 三个 strategy 名称、rule ID、七维摘要；
 - confirmation 的核心 accuracy/token-saving/CI；
 - report MD/PDF、aggregate 数据、inventory、SHA256SUMS 的路径；
-- 未解决问题（应为空；若不为空，不能标记 goal complete）。
+- 未解决问题（应为空；若不为空，不能标记 goal complete）。若确有硬 blocker，
+  最终消息末尾只给一份合并清单，禁止在执行期间零散提问。
 
 时间目标为模型下载完成后约 8–10 小时；硬件/网络/实际思维长度可能使其延长。
 完整性、泄漏边界和可审计性优先于赶时。不要通过少跑 seed、少跑模型、跳过消融、
