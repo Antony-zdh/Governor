@@ -56,12 +56,12 @@ def main() -> None:
         raise ValueError(f"unexpected split counts: {counts}")
     rules_path = generated / "candidate_rules.jsonl"
     rules = [RuleSpec.from_dict(row) for row in load_jsonl(rules_path)]
-    if len(rules) != 22464 or len({rule.rule_id for rule in rules}) != len(rules):
+    if len(rules) != 16848 or len({rule.rule_id for rule in rules}) != len(rules):
         raise ValueError("candidate rule count/IDs are not frozen as expected")
     expected_matrices = {
-        "development_matrix.jsonl": (36, "development"),
+        "development_matrix.jsonl": (24, "development"),
         "confirmation_matrix_base64.jsonl": (64, "confirmation"),
-        "confirmation_matrix_with32.jsonl": (96, "confirmation"),
+        "confirmation_small_models_base64.jsonl": (56, "confirmation"),
     }
     for filename, (expected_rows, phase) in expected_matrices.items():
         rows = load_jsonl(generated / filename)
@@ -96,12 +96,7 @@ def main() -> None:
         for row in load_jsonl(generated / "confirmation_matrix_base64.jsonl")
         if row["model"] == handoff["model"]
     ]
-    with32_scale_jobs = [
-        row
-        for row in load_jsonl(generated / "confirmation_matrix_with32.jsonl")
-        if row["model"] == handoff["model"]
-    ]
-    if len(base_scale_jobs) != 8 or len(with32_scale_jobs) != 12:
+    if len(base_scale_jobs) != 8:
         raise ValueError("32B handoff matrix must contain 4 environments")
     print(
         json.dumps(

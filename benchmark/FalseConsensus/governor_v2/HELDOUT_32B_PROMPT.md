@@ -15,10 +15,10 @@
    或 external-stress 结果绝不能进入 sweep、select、阈值选择或 cap 修改。
 4. 共运行 434 条主轨迹：MATH500 test 100、GSM8K test 264、AMC23 external 40、
    AIME24 external 30；seed 固定为 45。
-5. 默认从 `confirmation_matrix_base64.jsonl` 运行，并始终传
-   `--model deepseek-ai/DeepSeek-R1-Distill-Qwen-32B`。只有冻结规则或其预注册消融
-   包含 interval=32 时，才改用 `confirmation_matrix_with32.jsonl`。
-6. 顺序为 main → base probe → 必要时 offset probe → frozen-rule evaluate。所有
+5. 从 `confirmation_matrix_base64.jsonl` 运行，并始终传
+   `--model deepseek-ai/DeepSeek-R1-Distill-Qwen-32B`。probe frequency 冻结为
+   64，不补采 32-token offset bank。
+6. 顺序为 main → base probe → frozen-rule evaluate。所有
    runner 必须可恢复；不得删除半成品或覆盖设置不同的目录。
 7. 持续核对题数、cap rate、probe 完整性、token accounting、GPU 信息、commit 与
    manifest hash。完成后同步全部原始 JSON、manifest、日志和评估表，并提交简洁的
@@ -33,7 +33,7 @@ vllm serve deepseek-ai/DeepSeek-R1-Distill-Qwen-32B \
   --gpu-memory-utilization 0.90
 ```
 
-正式 collection（根据冻结规则二选一）：
+正式 collection：
 
 ```bash
 python benchmark/FalseConsensus/governor_v2/run_matrix.py \
@@ -41,15 +41,6 @@ python benchmark/FalseConsensus/governor_v2/run_matrix.py \
   --model deepseek-ai/DeepSeek-R1-Distill-Qwen-32B --execute
 ```
 
-或：
-
-```bash
-python benchmark/FalseConsensus/governor_v2/run_matrix.py \
-  --matrix benchmark/FalseConsensus/governor_v2/generated/confirmation_matrix_with32.jsonl \
-  --model deepseek-ai/DeepSeek-R1-Distill-Qwen-32B --execute
-```
-
-预计耗时：下载与 smoke 约 1–3 小时；base64 collection 约 12–24 小时；若需要完整
-32-grid，约 20–40 小时；离线评估约 0.5–2 小时。实际值主要由平均思维长度、
-vLLM prefix-cache 命中率和 provider 的多卡互联决定。建议分别预留 24 小时或 48
-小时，不要按理论峰值吞吐租极短实例。
+预计耗时：下载与 smoke 通常小于 1 小时；base64 collection 约 12–24 小时；
+离线评估约 0.5–2 小时。实际值主要由平均思维长度、vLLM prefix-cache 命中率和
+provider 的多卡互联决定。建议预留 24 小时，不要按理论峰值吞吐租极短实例。

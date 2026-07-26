@@ -74,9 +74,8 @@ probe，不能累计整条序列；否则早期超过阈值后规则将永久失
   operating budgets。达到采集上限的序列作为 right-censored 单独报告。
 
 主轨迹和 probe 必须解耦：每题只生成一次完整主文本，随后在冻结前缀上每 64 token
-采集 simple@32。基础 pass 覆盖 64/128/192/...；需要检验 interval=32 时补采
-32/96/160/...，两遍合成完整 32-token grid。离线规则再选择 32/64/128/256
-或 adaptive schedule。
+采集 simple@32。正式 dense bank 覆盖 64/128/192/...；离线规则再下采样为
+64/128/256 或 adaptive schedule。当前单卡执行不补采 32-token offset bank。
 这样改变 probe frequency 不会改变主生成随机轨迹。
 
 ## 0.4 选择标准

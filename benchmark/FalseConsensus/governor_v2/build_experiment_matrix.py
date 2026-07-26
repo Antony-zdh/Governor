@@ -46,6 +46,12 @@ def parse_args() -> argparse.Namespace:
             "benchmark/FalseConsensus/governor_v2/generated/problem_ids"
         ),
     )
+    parser.add_argument(
+        "--exclude-model-role",
+        action="append",
+        default=[],
+        help="omit a model role from the generated matrix; repeatable",
+    )
     return parser.parse_args()
 
 
@@ -62,6 +68,7 @@ def build_matrix(
     *,
     include_32_grid: bool = False,
     phase: str = "development",
+    excluded_model_roles: tuple[str, ...] = (),
     problem_ids_dir: Path = Path(
         "benchmark/FalseConsensus/governor_v2/generated/problem_ids"
     ),
@@ -74,6 +81,7 @@ def build_matrix(
     collect_main = "benchmark/FalseConsensus/governor_v2/collect_main.py"
     dense_probe = "benchmark/FalseConsensus/governor_v2/dense_probe.py"
     jobs = []
+    excluded_roles = set(excluded_model_roles)
     phases = (
         ("development", "confirmation") if phase == "all" else (phase,)
     )
@@ -111,6 +119,8 @@ def build_matrix(
                 continue
             model_role = str(model.get("role", "development"))
             if model_role not in allowed_roles:
+                continue
+            if model_role in excluded_roles:
                 continue
             model_id = str(model["id"])
             environment_slug = f"{slug(model_id)}__{slug(benchmark_name)}"
@@ -270,6 +280,7 @@ def main() -> None:
         protocol,
         include_32_grid=bool(args.include_32_grid),
         phase=args.phase,
+        excluded_model_roles=tuple(args.exclude_model_role),
         problem_ids_dir=args.problem_ids_dir,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)

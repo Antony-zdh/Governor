@@ -141,32 +141,25 @@ python benchmark/FalseConsensus/governor_v2/materialize_dataset.py \
 python benchmark/FalseConsensus/governor_v2/make_splits.py
 python benchmark/FalseConsensus/governor_v2/prepare_rules.py expand
 python benchmark/FalseConsensus/governor_v2/build_experiment_matrix.py \
-  --phase development --include-32-grid \
+  --phase development \
   --output benchmark/FalseConsensus/governor_v2/generated/development_matrix.jsonl
 python benchmark/FalseConsensus/governor_v2/build_experiment_matrix.py \
   --phase confirmation \
   --output benchmark/FalseConsensus/governor_v2/generated/confirmation_matrix_base64.jsonl
+python benchmark/FalseConsensus/governor_v2/build_experiment_matrix.py \
+  --phase confirmation --exclude-model-role heldout_scale \
+  --output benchmark/FalseConsensus/governor_v2/generated/confirmation_small_models_base64.jsonl
 ```
 
 开发矩阵仅含 2 个开发模型 × 2 个 ratio benchmark × 3 seeds = 12 个环境；
-完整 32-grid 对应 12 个 main、12 个 base probe、12 个 offset probe，共 36 行。
-确认矩阵含开发模型的 3 个新 seeds 和两个 held-out 模型的单 seed，并覆盖
-test 与 AMC/AIME external stress，共 32 个环境；base64 为 64 行，若冻结规则用
-interval=32，则改用 96 行的 `confirmation_matrix_with32.jsonl`。矩阵只生成命令，
+对应 12 个 main 和 12 个 interval-64 base probe，共 24 行。完整 confirmation
+矩阵为 64 行；当前单 RTX 5090 队列排除 32B，只运行两个开发模型和 Llama-8B，
+使用 `confirmation_small_models_base64.jsonl`，共 56 行。矩阵只生成命令，
 不自动提交 GPU 作业。
 
-基础 dense bank 取 `64,128,192,...`。如果 train/dev 结果需要比较 32-token
-interval，再生成互补的 `32,96,160,...` pass：
-
-```bash
-python benchmark/FalseConsensus/governor_v2/build_experiment_matrix.py \
-  --include-32-grid
-```
-
-两遍合并后得到完整的 32-token grid，同时第一遍 64-grid 不会浪费。开发阶段必须带
-该选项，因为 interval 是被优化的规则维度。确认阶段默认不补 offset；只有冻结规则
-或其预注册消融确实需要 interval=32 时，才运行
-`confirmation_matrix_with32.jsonl`，不能提前用 test 判断是否值得补采。
+正式 dense bank 冻结为 `64,128,192,...`。probe frequency 仍然是规则维度，但
+可优化范围是从该 bank 无损下采样得到的 64/128/256，而不是无法由数据支持的 32。
+本轮不生成互补 offset pass。
 
 ## 4. 规则搜索和选择
 
@@ -174,12 +167,12 @@ python benchmark/FalseConsensus/governor_v2/build_experiment_matrix.py \
 python benchmark/FalseConsensus/governor_v2/prepare_rules.py expand
 ```
 
-完整 32-grid 可用时，当前宽搜索空间共有 22,464 条规则：
+interval-64 dense bank 下，当前宽搜索空间共有 16,848 条规则：
 
-- latest + persistence + fixed maturity：13,824（无限制、最近 2,048
+- latest + persistence + fixed maturity：10,368（无限制、最近 2,048
   token、最近 16 probes 三种 history switch 配置）；
-- window share + budget-fraction maturity：1,728；
-- entropy + budget-fraction maturity：6,912。
+- window share + budget-fraction maturity：1,296；
+- entropy + budget-fraction maturity：5,184。
 
 执行时采用 funnel，而不是让 test 参与筛选。回放可按规则分片并行：
 

@@ -52,7 +52,8 @@ vllm serve deepseek-ai/DeepSeek-R1-Distill-Qwen-32B \
   --gpu-memory-utilization 0.90
 ```
 
-先检查 `/v1/models`，再从相应 matrix 复制一条 main 命令，临时加
+目标是每个模型的下载、启动和 smoke 合计控制在 15–30 分钟。先检查
+`/v1/models`，再从相应 matrix 复制一条 main 命令，临时加
 `--start 0 --end 3` 并改到独立 smoke 输出目录；随后对这 3 条跑 dense probe。
 验收条件：
 
@@ -65,8 +66,8 @@ smoke 不通过时不得批量启动。
 
 ## 3. 正式执行顺序
 
-1. 按 `generated/development_matrix.jsonl` 依赖顺序跑 main → base probe →
-   offset probe。命令可重入，已有同配置结果会跳过。
+1. 按 `generated/development_matrix.jsonl` 跑两个开发模型的 main → interval-64
+   base probe。优先 DeepSeek-7B，然后 Qwen3-8B；命令可重入。
 
    ```bash
    python benchmark/FalseConsensus/governor_v2/run_matrix.py \
@@ -75,12 +76,13 @@ smoke 不通过时不得批量启动。
    ```
 2. 检查 12 个环境目录的轨迹数是否分别等于 problem-id 文件行数，并检查所有
    probe manifest 完整。
-3. 将 22,464 条规则分成 8 个 CPU shard 跑 `replay_rules.py sweep`，随后
-   `select` 生成 `frozen_rules.json`。
-4. 记录 frozen manifest SHA-256。到此之前不要启动 confirmation。
-5. 若冻结规则/消融含 interval=32，使用 `confirmation_matrix_with32.jsonl`；
-   否则使用 `confirmation_matrix_base64.jsonl`。
-6. 跑 `replay_rules.py evaluate`。该命令只接受 frozen manifest，并校验 protocol
+3. 把 development 结果同步回本地。CPU 工作不占 Vast：本地将 16,848 条规则分成
+   8 个 shard 跑 `replay_rules.py sweep`，再 `select` 生成 `frozen_rules.json`。
+4. 记录 frozen manifest SHA-256 并同步回 Vast。到此之前不要启动 confirmation。
+5. 在单 5090 上使用 `confirmation_small_models_base64.jsonl`，只运行
+   DeepSeek-7B、Qwen3-8B 和 Llama-8B；明确排除 32B。
+6. 把 confirmation 结果同步回本地，再运行 `replay_rules.py evaluate`。该命令
+   只接受 frozen manifest，并校验 protocol
    与 split hash；失败时先定位不一致，不能重选规则。
 
 ## 4. 进度、恢复与结果核对
@@ -88,7 +90,7 @@ smoke 不通过时不得批量启动。
 每完成一个环境，至少记录：
 
 - main 题数、自然结束数、cap 数和 realized cap rate；
-- base/offset probe 文件数、总 probe 数；
+- base probe 文件数、总 probe 数；
 - 失败/重试题号；
 - 模型、seed、capture cap、协议版本及 git commit。
 
@@ -102,3 +104,15 @@ smoke 不通过时不得批量启动。
 - split manifest、candidate rules、sweep shards；
 - frozen rules 与 confirmation metrics；
 - 服务启动命令、GPU 信息、代码 commit 和异常日志。
+
+## 5. 24–36 小时调度目标
+
+- 0–0.5h：环境检查、下载缺失模型、三个 3-question smoke。
+- 0.5–14h：DeepSeek-7B development main + base probe。
+- 14–28h：Qwen3-8B development main + base probe。
+- development 完成即同步回本地进行 CPU sweep/select。
+- 若 28h 前拿到 frozen rules，剩余时间开始 small-model confirmation，顺序为
+  DeepSeek-7B → Qwen3-8B → Llama-8B。
+- 36h 是 timebox，不以跳过题目或减少 seed 换取“完成”。若开发阶段在 36h 内尚未
+  完整结束，继续补齐两个开发模型；若开发已完整但 confirmation 未完，安全保留可恢复
+  目录，下一时段从未完成环境继续。

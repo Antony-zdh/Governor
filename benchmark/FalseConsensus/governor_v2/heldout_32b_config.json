@@ -1,6 +1,6 @@
 {
   "schema_version": "governor-v2-heldout-scale-handoff-1",
-  "protocol_version": "governor-v2-preregistered-2026-07-26.3",
+  "protocol_version": "governor-v2-preregistered-2026-07-26.4",
   "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
   "model_role": "heldout_scale",
   "phase": "confirmation",
@@ -25,8 +25,6 @@
     "probe_output_cap": 32,
     "base_probe_interval": 64,
     "base_probe_start_token": 64,
-    "offset_probe_interval": 64,
-    "offset_probe_start_token": 32,
     "benchmarks": [
       {
         "name": "math500",
@@ -59,20 +57,18 @@
     ],
     "total_problems": 434,
     "maximum_main_decode_tokens": 7602176,
-    "base64_matrix": "benchmark/FalseConsensus/governor_v2/generated/confirmation_matrix_base64.jsonl",
-    "with32_matrix": "benchmark/FalseConsensus/governor_v2/generated/confirmation_matrix_with32.jsonl"
+    "base64_matrix": "benchmark/FalseConsensus/governor_v2/generated/confirmation_matrix_base64.jsonl"
   },
   "execution_policy": {
-    "use_with32_matrix_only_if_frozen_rules_or_preregistered_ablations_require_interval_32": true,
+    "probe_frequency_is_frozen_at_64": true,
     "never_use_confirmation_results_to_change_rule_or_cap": true,
     "run_preflight_and_three_problem_smoke_first": true,
     "runner_model_filter": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"
   },
   "time_estimate_4x_rtx5090": {
-    "model_download_and_smoke_hours": [1, 3],
+    "model_download_and_smoke_hours": [0.25, 1],
     "base64_collection_hours": [12, 24],
-    "with32_collection_hours": [20, 40],
     "offline_evaluation_hours": [0.5, 2],
-    "planning_recommendation": "reserve 24 hours for base64 or 48 hours when the offset probe bank is required"
+    "planning_recommendation": "reserve 24 hours for the frozen 64-token probe bank"
   }
 }

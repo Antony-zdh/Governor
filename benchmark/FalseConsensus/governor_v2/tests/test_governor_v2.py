@@ -224,6 +224,16 @@ class CollectionPreparationTests(unittest.TestCase):
         self.assertTrue(
             all(job["minimum_bf16_gpus_32gb"] == 4 for job in scale_jobs)
         )
+        small_models = build_matrix(
+            protocol,
+            phase="confirmation",
+            excluded_model_roles=("heldout_scale",),
+        )
+        self.assertEqual(len(small_models), 56)
+        self.assertNotIn(
+            "heldout_scale",
+            {job["model_role"] for job in small_models},
+        )
 
 
 class ReplayTests(unittest.TestCase):
