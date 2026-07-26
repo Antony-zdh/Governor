@@ -109,12 +109,13 @@ def atomic_write_json(path: Path, payload: Dict[str, Any]) -> None:
 class MainCollector:
     def __init__(self, args: argparse.Namespace):
         from clients import apply_chat_template
-        from dynasor.core.evaluator import extract_answer, math_equal, strip_string
+        from dynasor.core.evaluator import extract_answer, strip_string
+        from grading import robust_answers_equal
 
         self.args = args
         self.apply_chat_template = apply_chat_template
         self.extract_answer = extract_answer
-        self.math_equal = math_equal
+        self.answers_equal = robust_answers_equal
         self.strip_string = strip_string
         self.client = openai.OpenAI(
             api_key=args.api_key,
@@ -200,7 +201,10 @@ class MainCollector:
         output_path = self.traj_dir / f"problem_{problem_id}.json"
         if output_path.exists():
             existing = json.loads(output_path.read_text(encoding="utf-8"))
-            if existing.get("run_settings") != self.settings:
+            existing_settings = dict(existing.get("run_settings") or {})
+            # per-problem derived seed; not part of the shared run settings
+            existing_settings.pop("main_seed", None)
+            if existing_settings != self.settings:
                 raise ValueError(
                     f"{output_path} has incompatible run settings"
                 )
@@ -229,7 +233,7 @@ class MainCollector:
             "finished_naturally": finish_reason != "length",
             "finish_reason": finish_reason,
             "final_answer": final_answer,
-            "final_correct": bool(self.math_equal(final_answer, target)),
+            "final_correct": bool(self.answers_equal(final_answer, target)),
             "accounting": {
                 "main_decode_tokens": completion_tokens,
                 "main_prompt_tokens": prompt_tokens,

@@ -4,6 +4,48 @@
 
 ---
 
+## 2026-07-26 · Governor v2 development collection 启动（8×A100 服务器）+ 两个采集代码 bug 修复
+
+### 环境与门禁
+
+- 服务器 `34.182.235.113`：全新 clone `~/Governor_v2`，TARGET_COMMIT=`70a5576`；
+  venv 复用 `~/fc-venv`（vllm 0.25.1）；Qwen3-8B 已下载。17 单元测试通过、
+  17,712 条候选规则展开、preflight `READY_FOR_GPU_SMOKE`。
+- GPU 竞争激烈（共享机）：一度只剩 GPU1 可用；GPU0 释放后被我们抢下。
+  当前拓扑：GPU1 = 7B 服务(:18000)，GPU0 = Qwen3-8B 服务(:18003)。
+  两模型 smoke（3 题 main→dense→adaptive）均通过，熵打分 echo=True 可用。
+
+### 修复 bug 1：collect_main 断点续跑必炸
+
+traj 的 `run_settings` 含每题派生的 `main_seed`，续跑校验却与全局 settings 做
+全等比较 → 第一次 resume 就抛 "incompatible run settings"。修复：比较时弹出
+`main_seed`（其余字段仍全量校验）。
+
+### 修复 bug 2：v2 判分拿未 strip 的 target 喂 math_equal（系统性误判）
+
+`collect_main` 的 `final_correct` 和 `replay_rules.answers_equal` 都直接
+`math_equal(answer, raw_target)`：`\left(...\right)`、`\text{...}`、`x\in`
+前缀等格式全部误判为错（两个模型 smoke 的 P0 均中招，答案正确被标 False）。
+这会污染 baseline 准确率与全部规则选择。修复：
+
+- 新增 `governor_v2/grading.py::robust_answers_equal`（raw/stripped/deprefix/
+  text-unwrap 多形态匹配，移植自 Stage 2-5 analyze.py 的修正逻辑）；
+- `collect_main` 与 `replay_rules` 统一走该函数；replay 的 baseline 改为从
+  `final_answer` 现场重算，不信任采集时的 flag；
+- 新增 `fix_final_correct.py`：对已采 traj 批量重算 flag（带审计输出，幂等），
+  在采集完成后执行；
+- 注意：sweep/select 必须在装有 dynasor 的服务器上跑（本地无 dynasor 时
+  replay 会静默退化到弱数值判分）。
+
+### 状态
+
+7B（GPU1）与 Qwen3-8B（GPU0）各自的 9 环境 development 采集进行中
+（各 27 个任务：main→dense→adaptive）。后续：采集完 → fix_final_correct →
+CPU sweep（17,712 规则×8 shard，服务器上跑）→ dev 选三点冻结 → confirmation
+（需再凑 2 张空卡给 32B TP2）。
+
+---
+
 ## 2026-07-24 · 下一阶段 roadmap 讨论 + paired re-probe 2×2 实验设计（仅 plan，未跑）
 
 和 teammate 对齐了下一阶段五步，写进 plan.md §19；重点把第 1 步的实验设计定死，

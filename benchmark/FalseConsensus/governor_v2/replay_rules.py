@@ -95,11 +95,16 @@ def valid_answer(answer: str, benchmark: str, mode: str) -> bool:
 
 
 def answers_equal(left: Any, right: Any) -> bool:
-    """Use the project evaluator when installed, with a numeric-safe fallback."""
-    try:
-        from dynasor.core.evaluator import math_equal
+    """Use the project evaluator when installed, with a numeric-safe fallback.
 
-        return bool(math_equal(left, right))
+    `right` is the reference answer: it is tried in raw and stripped forms
+    (grading.robust_answers_equal) so that formatting-only differences such
+    as `\\left( ... \\right)` do not read as wrong answers.
+    """
+    try:
+        from grading import robust_answers_equal
+
+        return robust_answers_equal(left, right)
     except ModuleNotFoundError:
         left_text = normalize_answer(left).replace(",", "")
         right_text = normalize_answer(right).replace(",", "")
@@ -352,7 +357,17 @@ def replay_one(
         probes_are_scheduled=probes_are_scheduled,
     )
     baseline_complete = bool(trajectory["finished_naturally"]) and token_count <= budget
-    baseline_correct = bool(trajectory["final_correct"]) if baseline_complete else False
+    # Recompute from the stored answer rather than trusting the collected
+    # flag: early collections graded against the unstripped reference and
+    # misread formatting-only differences as wrong answers.
+    if not baseline_complete:
+        baseline_correct = False
+    elif "final_answer" in trajectory:
+        baseline_correct = answers_equal(
+            trajectory["final_answer"], trajectory["target"]
+        )
+    else:
+        baseline_correct = bool(trajectory["final_correct"])
     baseline_tokens = min(token_count, budget)
     if stop is None:
         correct = baseline_correct
