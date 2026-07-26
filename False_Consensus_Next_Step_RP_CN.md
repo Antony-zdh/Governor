@@ -8,25 +8,27 @@
 
 ---
 
-# 0. 2026-07-26 修订：先建立多环境规则开发协议
+# 0. 2026-07-27 修订：多环境规则开发与 adaptive probing
 
 本节覆盖后文中“直接冻结当前 conservative/balanced 后做最终测试”的旧顺序。上一轮
 结果说明现有规则能保住准确率，但 token saving 很弱；它们更适合作为 v1 baseline，
 而不应在同一批 MATH500 结果上继续局部调参后直接宣称最优。
 
-下一轮先收集可复用的 **simple@32 dense probe 序列库**，再在题目级独立
-train/dev/test 上开发规则。完整实现和运行命令见
+下一轮先收集可复用的 **simple@32 dense + event-adaptive probe 序列库**，再在
+题目级独立 train/dev/test 上开发规则。完整实现和运行命令见
 [`benchmark/FalseConsensus/governor_v2/README.md`](benchmark/FalseConsensus/governor_v2/README.md)。
 
 ## 0.1 数据切分
 
-对题量足够的每个 benchmark 分别做 **60/20/20**：
+对三个 active benchmark 分别做题目级 **60/20/20**：
 
 - train：宽搜索和 Pareto 初筛；
-- dev：跨环境门槛、选择 conservative/balanced、冻结规则；
+- dev：跨环境门槛、选择 conservative/balanced/token-efficient 三个互异
+  Pareto 点并冻结规则；
 - test：冻结后只运行一次；
-- AMC23/AIME24 等小数据集不勉强切成不稳定的小块，完整作为
-  `external_stress`，不参与阈值选择。
+- MATH500、AMC23、AIME24 都按题目级 60/20/20 切分。对应数量分别为
+  300/100/100、24/8/8、18/6/6；后两者显式覆盖默认“小数据集只做
+  external stress”的策略，以便在 train/dev 阶段开发针对难题的规则。
 
 选择 60/20/20 是本项目的统计功效取舍，不是通用常数。它让 MATH500 有
 300/100/100，而规则搜索所依赖的 dev 和最终 test 各保留 100 题。题目是 group：
@@ -45,10 +47,24 @@ untouched。最终确认仍需要新 seed，以及至少一个此前未用于规
 | 环境变量 | model、main seed、benchmark、题目/预先给定难度、budget | 构造多元环境、分层汇报和稳健性门槛；不能直接写入规则分支 |
 | 规则维度 | probe、validity、maturity、evidence、persistence、certainty、history | 可在 train/dev 上优化；只能读取当前时刻可见的通用在线信号 |
 
-其中 `probe` 明确包含 style、output cap、首次 probe 时刻和 interval/phases。因此
-“每 64/128/256 token probe”不再被当作固定采集常数，而是规则本身的一维。difficulty
-标签不能成为运行时捷径；如果需要自适应，应使用截至当前的 invalid rate、切换次数、
-局部 entropy 等通用在线信息。
+其中 `probe` 明确包含 style、output cap、首次 probe 时刻、interval/phases，以及
+event trigger、阈值、alignment、cooldown 和 periodic fallback。因此“每
+64/128/256 token probe”和“在某类在线事件后 probe”都是同一个规则维度的不同值，
+不是新增环境变量。difficulty 标签不能成为运行时捷径；如果需要自适应，应使用截至
+当前可见的局部 entropy、语言转折或答案候选等通用信息。
+
+本轮预注册四类 event trigger：
+
+- `conclusion_marker`：therefore、thus、hence、consequently、conclude 等
+  strict marker；
+- `entropy_drop`：冻结序列上 teacher-forced top-k entropy 的局部突降；
+- `reflection_transition`：wait、however、alternatively、check 等重新审视信号；
+- `answer_candidate`：boxed、final answer、answer is 等答案候选信号。
+
+还包括上述事件的 hybrid。匹配位置向后对齐到最近的 step boundary，并设
+64/128-token cooldown，防止标点或短语簇产生 probe storm。entropy 是对已经生成的
+完整 frozen trajectory 做 teacher-forced scoring；它只决定 probe 位置，不重采样、
+不改写原序列。周期 fallback 来自已有 dense-64 bank。
 
 每条规则均使用同一个七维嵌套 schema。latest、window-share、entropy 等只是
 `evidence.family` 的不同值，不再各自拥有无法统一消融的一套扁平参数。
@@ -63,20 +79,30 @@ probe，不能累计整条序列；否则早期超过阈值后规则将永久失
 - development seeds：42、43、44；
 - confirmation seeds：开发模型使用 45、46、47；
 - held-out architecture：DeepSeek-R1-Distill-Llama-8B，仅 confirmation seed 45；
-- held-out scale：DeepSeek-R1-Distill-Qwen-32B，仅 confirmation seed 45；BF16
-  权重、32K KV cache 与运行开销合计无法可靠放入 2×32GB，正式实验使用
-  4×32GB GPU tensor parallel，不能用其结果参与规则筛选；
-- benchmarks：MATH500、GSM8K；AMC23/AIME24 作为完整外部压力测试；
+- held-out scale：DeepSeek-R1-Distill-Qwen-32B，仅 confirmation seed 45；正式
+  实验在 2×A100-80GB 上使用 tensor parallel 2，不能用其结果参与规则筛选；
+- benchmarks：MATH500、AMC23、AIME24 都用于题目级 train/dev/test。
+  GSM8K 已从本轮 development 与 confirmation 中移除；
 - 采集上限与评估 budget 分开。5% 是利用 prior/pilot 选择 cap 时的设计目标，不是
   主实验结束后的验收门槛；cap 必须预先冻结，实际截断率超过 5% 也不能据此事后修改。
-  test 不参与选择。当前设置为 MATH500 16K、GSM8K 16K、AMC23 16K、AIME24
-  32K；随后从同一长轨迹离线评估预注册的 3K/8K/16K/32K
+  test 不参与选择。当前设置为 MATH500 16K、AMC23 16K、AIME24 32K；随后从
+  同一长轨迹离线评估预注册的 3K/8K/16K/32K
   operating budgets。达到采集上限的序列作为 right-censored 单独报告。
 
-主轨迹和 probe 必须解耦：每题只生成一次完整主文本，随后在冻结前缀上每 64 token
-采集 simple@32。正式 dense bank 覆盖 64/128/192/...；离线规则再下采样为
-64/128/256 或 adaptive schedule。当前单卡执行不补采 32-token offset bank。
-这样改变 probe frequency 不会改变主生成随机轨迹。
+主轨迹和 probe 必须解耦：每题只生成一次完整主文本。随后先在冻结前缀上每 64 token
+采集 simple@32，再做一次 teacher-forced entropy scoring，并仅在 event candidate
+中 dense bank 尚未覆盖的位置补采 simple@32。正式 dense bank 覆盖
+64/128/192/...；离线规则从两个 bank 的并集中选择 fixed、phased、
+agreement-adaptive 或 event-adaptive schedule。当前不补采 32-token offset bank。
+同一 event position 若恰好落在 dense-64 网格上，直接复用已有 probe，不重复请求。
+因此改变 probe frequency 或 adaptive trigger 都不会改变主生成随机轨迹。
+
+宽搜索由原 16,848 条固定/聚合规则增加 864 条 adaptive-event 规则，共
+17,712 条。adaptive 模板只保留 4 个 schedule：conclusion、entropy drop、
+reflection+answer、hybrid；再与 validity、
+maturity、evidence、persistence、certainty、history 的紧凑网格组合。筛选后仍对
+统一七维做 one-at-a-time 和 \(2^7\) factorial；若 winner 使用 adaptive schedule，
+`probe` 消融会整体替换触发类型、阈值、cooldown 和 fallback。
 
 ## 0.4 选择标准
 
@@ -87,8 +113,13 @@ probe，不能累计整条序列；否则早期超过阈值后规则将永久失
 2. dev 上检查逐模型、逐 benchmark 的最大允许准确率下降；
 3. 要求至少 80% 环境有正 token saving；
 4. 以环境级 saving 的第 20 百分位为主要排序量，避免规则只靠少数环境拉高均值；
-5. 冻结完整 rule ID 和 conservative/balanced operating point；
-6. test 只评估一次，不因 test 结果回改阈值。
+5. 在“最大化 dev saving 第 20 百分位、最小化最差逐模型/逐 benchmark
+   accuracy drop”三个目标上构造非支配前沿，依次冻结 conservative、balanced、
+   token-efficient 三个互异 rule ID；门槛分别为 1.5/2.0pp + 80%、
+   2.5/3.0pp + 80%、4.0/5.0pp + 70%；
+6. select 必须验证全部 17,712 条规则、36 个 development 环境均完整且无重复；
+   任一 profile 找不到互异非支配点就失败，不能重复同一个 rule ID；
+7. test 只评估一次，不因 test 结果回改阈值。
 
 ## 0.5 筛选后的七维消融
 
@@ -101,6 +132,22 @@ probe 和 evidence 是决策所必需的，不能字面“删除”；它们分�
 simple@32/128 schedule 和 latest evidence。其他维度使用尽可能中性的 reference。
 所有 cell 共用同一批 frozen trajectory 和 probe bank，只离线改变规则，避免重新采样
 造成的比较噪声。
+
+## 0.6 8×A100 执行预算
+
+全部预注册实验包含 4 个模型、所有 seed 和 3 个 benchmark，共 3,648 条 main
+trajectory；development/confirmation 矩阵分别为 54/72 个 stage。若模型已经缓存，
+机器为 8×A100-80GB + NVLink、无共享排队且启用 prefix caching，预计：
+
+- main generation：1.2–2.0 小时；
+- dense-64 simple@32 bank：2.0–3.2 小时；
+- entropy scoring + event-only probe：0.5–1.0 小时；
+- 启动、smoke、重试及与本地 CPU sweep 重叠后的总墙钟：**4.5–7.0 小时**。
+
+32B 使用 2×A100-80GB tensor parallel，其余卡运行独立 7B/8B replica。上述范围以
+每模型三题 smoke 校准为前提，并含约 10–15% 重试余量。若是 A100-40GB，32B 约需
+4 卡且并发下降，总时间预计 6.5–9.5 小时。CGRS/TALE 等需要
+重生成主轨迹的 related-work 复现不计入此预算。
 
 ---
 
@@ -131,7 +178,7 @@ simple@32/128 schedule 和 latest evidence。其他维度使用尽可能中性�
 
 论文至少需要同时满足：
 
-1. **冻结两个 operating points**：一个 conservative，一个 balanced；
+1. **冻结三个互异 operating points**：conservative、balanced、token-efficient；
 2. 在新 seed / untouched evaluation 上，两个模型均显示稳定 Pareto 改善；
 3. 与原始 CertaIndex、naive consensus、fixed-budget、entropy baseline 同协议公平比较；
 4. 证明四个设计成分至少有三个是可复现必要的，而不是偶然 sweep 赢家；
@@ -596,15 +643,20 @@ peak_memory
 2. **Total generated-token saving**：main + probe decode；
 3. **Wall-clock / GPU-time saving**：最终主结论。
 
-## 9.4 Adaptive Probing 可选增强
+## 9.4 Adaptive Probing（本轮必做）
 
-如果 probe 成本较高，测试：
+除 phased/agreement-adaptive schedule 外，加入 conclusion marker、entropy drop、
+reflection transition、answer candidate 及 hybrid event schedule。比较对象包括：
 
-- 0-512 tokens：每 256 tokens probe；
-- 512-1536：每 128 tokens probe；
-- 出现两次相同答案后：每 64 tokens probe。
+- fixed 64/128/256；
+- strict conclusion-marker probing；
+- 单一中等阈值的 entropy-drop probing；
+- reflection+answer probing；
+- hybrid event probing。
 
-比较固定 128 interval 与 adaptive interval 的 Pareto。
+所有 event rule 带 cooldown 和 dense-bank periodic fallback。报告同时给 probe
+调用数、probe decode token、prompt prefill、entropy-scoring GPU time 与总墙钟，
+并把 adaptive winner 的整个 `probe` 维度纳入统一消融。
 
 ---
 
@@ -623,18 +675,18 @@ confirmation，而不是把新模型加入规则搜索扩大选择空间。
 - `deepseek-ai/DeepSeek-R1-Distill-Qwen-32B`：验证同 distillation family
   下的规模泛化。
 
-二者都不能进入 sweep、Pareto 初筛或 conservative/balanced 的选择；必须先在两个
+二者都不能进入 sweep、Pareto 初筛或三个 operating point 的选择；必须先在两个
 development model 的 train/dev 上冻结完整规则与 hash manifest。
 
 ## 10.3 最小实验
 
 冻结后统一跑：
 
-- MATH500/GSM8K 的 test split；
-- AMC23/AIME24 external stress；
+- MATH500 的 test split；
+- AMC23/AIME24 test split；
 - seed 45；
-- 相同的 frozen main + dense simple@32 架构；
-- conservative、balanced 及预注册的七维消融，不重新挑阈值。
+- 相同的 frozen main + dense/event-adaptive simple@32 架构；
+- conservative、balanced、token-efficient 及预注册的七维消融，不重新挑阈值。
 
 ## 10.4 成功标准
 
@@ -647,23 +699,13 @@ accuracy gate、是否在大多数环境保持正 token saving，以及七维贡
 
 ## 11.1 优先顺序
 
-1. **GSM8K**：简单数学，验证难度效应；
-2. **GPQA-Diamond**：多选科学推理，验证 schema 需任务感知；
-3. **AIME24/25**：继续作为能力边界压力测试。
+1. **GPQA-Diamond**：多选科学推理，验证 schema 需任务感知；
+2. **AIME24/25**：继续作为能力边界压力测试。
 
 ## 11.2 GSM8K
 
-目的：
-
-- 检验简单题是否更早形成 terminal consensus；
-- Conservative 是否过于保守；
-- fixed1024 是否应缩短。
-
-由于答案通常是短数字，可以重点测：
-
-```text
-p3/p5/p8 × min_tokens {256, 512, 1024}
-```
+本轮取消，不进入 development、confirmation、规则筛选或主结果。现有物化数据和
+split 文件只作为历史 artifact 保留，不触发 GPU 作业。
 
 ## 11.3 GPQA-Diamond
 

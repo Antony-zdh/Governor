@@ -27,10 +27,87 @@ RULE_DIMENSIONS: Tuple[str, ...] = (
     "history",
 )
 
+ADAPTIVE_TRIGGER_TYPES: Tuple[str, ...] = (
+    "conclusion_marker",
+    "entropy_drop",
+    "reflection_transition",
+    "answer_candidate",
+)
+
 
 def _require(condition: bool, message: str) -> None:
     if not condition:
         raise ValueError(message)
+
+
+@dataclass(frozen=True)
+class EntropyTriggerSpec:
+    metric: str = "teacher_forced_topk_entropy"
+    top_k: int = 20
+    smooth_window_tokens: int = 16
+    reference_window_tokens: int = 64
+    minimum_drop: float = 0.2
+    minimum_z: float = 1.0
+
+    def validate(self) -> None:
+        _require(
+            self.metric == "teacher_forced_topk_entropy",
+            f"unsupported entropy trigger metric: {self.metric}",
+        )
+        _require(self.top_k >= 2, "entropy trigger top_k must be >= 2")
+        _require(
+            self.smooth_window_tokens >= 1,
+            "entropy smooth window must be positive",
+        )
+        _require(
+            self.reference_window_tokens >= self.smooth_window_tokens,
+            "entropy reference window must be at least the smooth window",
+        )
+        _require(
+            0.0 <= self.minimum_drop <= 1.0,
+            "entropy minimum_drop must lie in [0, 1]",
+        )
+        _require(self.minimum_z >= 0.0, "entropy minimum_z cannot be negative")
+
+
+@dataclass(frozen=True)
+class EventTriggerSpec:
+    trigger_types: Tuple[str, ...] = ()
+    marker_profile: str = "none"
+    entropy: EntropyTriggerSpec = field(default_factory=EntropyTriggerSpec)
+    alignment: str = "next_step_boundary"
+    alignment_lookahead_tokens: int = 32
+    minimum_gap_tokens: int = 64
+    fallback_interval_tokens: Optional[int] = None
+
+    def validate(self) -> None:
+        unknown = set(self.trigger_types) - set(ADAPTIVE_TRIGGER_TYPES)
+        _require(not unknown, f"unsupported adaptive trigger types: {sorted(unknown)}")
+        _require(
+            self.marker_profile
+            in {"none", "conclusion_strict", "conclusion_broad"},
+            f"unsupported marker profile: {self.marker_profile}",
+        )
+        if "conclusion_marker" in self.trigger_types:
+            _require(
+                self.marker_profile != "none",
+                "conclusion_marker requires a non-empty marker profile",
+            )
+        _require(
+            self.alignment in {"exact", "next_step_boundary"},
+            f"unsupported event alignment: {self.alignment}",
+        )
+        _require(
+            self.alignment_lookahead_tokens >= 0,
+            "alignment lookahead cannot be negative",
+        )
+        _require(self.minimum_gap_tokens >= 1, "minimum event gap must be positive")
+        _require(
+            self.fallback_interval_tokens is None
+            or self.fallback_interval_tokens >= self.minimum_gap_tokens,
+            "fallback interval must be null or at least the minimum event gap",
+        )
+        self.entropy.validate()
 
 
 @dataclass(frozen=True)
@@ -41,10 +118,12 @@ class ProbeSchedule:
     phases: Tuple[Tuple[int, int], ...] = ()
     agreement_trigger_count: Optional[int] = None
     agreement_interval_tokens: Optional[int] = None
+    event: EventTriggerSpec = field(default_factory=EventTriggerSpec)
 
     def validate(self) -> None:
         _require(
-            self.kind in {"fixed", "phased", "agreement_adaptive"},
+            self.kind
+            in {"fixed", "phased", "agreement_adaptive", "event_adaptive"},
             f"unsupported probe schedule kind: {self.kind}",
         )
         _require(self.start_token > 0, "probe start_token must be positive")
@@ -71,6 +150,13 @@ class ProbeSchedule:
                 and self.agreement_interval_tokens > 0,
                 "agreement_adaptive requires a positive agreement interval",
             )
+        if self.kind == "event_adaptive":
+            _require(
+                bool(self.event.trigger_types)
+                or self.event.fallback_interval_tokens is not None,
+                "event_adaptive requires an event trigger or periodic fallback",
+            )
+        self.event.validate()
 
 
 @dataclass(frozen=True)
@@ -275,6 +361,40 @@ class RuleSpec:
             ),
             agreement_interval_tokens=schedule_data.get(
                 "agreement_interval_tokens"
+            ),
+            event=EventTriggerSpec(
+                trigger_types=tuple(
+                    str(value)
+                    for value in schedule_data.get("event", {}).get(
+                        "trigger_types", []
+                    )
+                ),
+                marker_profile=str(
+                    schedule_data.get("event", {}).get(
+                        "marker_profile", "none"
+                    )
+                ),
+                entropy=EntropyTriggerSpec(
+                    **schedule_data.get("event", {}).get("entropy", {})
+                ),
+                alignment=str(
+                    schedule_data.get("event", {}).get(
+                        "alignment", "next_step_boundary"
+                    )
+                ),
+                alignment_lookahead_tokens=int(
+                    schedule_data.get("event", {}).get(
+                        "alignment_lookahead_tokens", 32
+                    )
+                ),
+                minimum_gap_tokens=int(
+                    schedule_data.get("event", {}).get(
+                        "minimum_gap_tokens", 64
+                    )
+                ),
+                fallback_interval_tokens=schedule_data.get("event", {}).get(
+                    "fallback_interval_tokens"
+                ),
             ),
         )
         rule = cls(

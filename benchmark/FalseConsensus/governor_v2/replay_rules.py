@@ -127,6 +127,51 @@ def scheduled_probes(
     previous = None
     for probe in sorted(available, key=lambda item: int(item["token_position"])):
         position = int(probe["token_position"])
+        if schedule.kind == "event_adaptive":
+            event = schedule.event
+            recorded_types = {
+                str(value) for value in probe.get("trigger_types", [])
+            }
+            eligible = False
+            if "conclusion_marker" in event.trigger_types:
+                marker_profiles = {
+                    str(value) for value in probe.get("marker_profiles", [])
+                }
+                eligible = event.marker_profile in marker_profiles
+            for trigger_type in (
+                "reflection_transition",
+                "answer_candidate",
+            ):
+                if (
+                    trigger_type in event.trigger_types
+                    and trigger_type in recorded_types
+                ):
+                    eligible = True
+            if (
+                "entropy_drop" in event.trigger_types
+                and "entropy_drop" in recorded_types
+                and float(probe.get("entropy_drop", 0.0))
+                >= event.entropy.minimum_drop
+                and float(probe.get("entropy_z", 0.0))
+                >= event.entropy.minimum_z
+            ):
+                eligible = True
+            fallback = event.fallback_interval_tokens
+            if (
+                fallback is not None
+                and (position - schedule.start_token) % int(fallback) == 0
+            ):
+                eligible = True
+            if not eligible:
+                continue
+            if (
+                selected
+                and position - int(selected[-1]["token_position"])
+                < event.minimum_gap_tokens
+            ):
+                continue
+            selected.append(probe)
+            continue
         interval = schedule.interval_tokens
         if schedule.kind == "phased":
             for until, phase_interval in schedule.phases:
@@ -348,13 +393,28 @@ def load_probes(main_run: Path, problem_id: int) -> list[dict[str, Any]]:
     for directory in (
         main_run.parent / "dense_simple32",
         main_run.parent / "dense_simple32_offset32_stride64",
+        main_run.parent / "adaptive_simple32",
     ):
         path = directory / "probes" / f"problem_{problem_id}.json"
         if not path.exists():
             continue
         payload = json.loads(path.read_text(encoding="utf-8"))
         for probe in payload.get("probes", []):
-            records[int(probe["token_position"])] = dict(probe)
+            position = int(probe["token_position"])
+            if position not in records:
+                records[position] = dict(probe)
+                continue
+            merged = records[position]
+            for key, value in probe.items():
+                if key in {"trigger_types", "marker_profiles", "matched_markers"}:
+                    existing = list(merged.get(key, []))
+                    merged[key] = list(dict.fromkeys(existing + list(value)))
+                elif (
+                    key not in merged
+                    or merged.get(key) is None
+                    or merged.get(key) == ""
+                ):
+                    merged[key] = value
     return [records[position] for position in sorted(records)]
 
 
@@ -457,6 +517,7 @@ def sweep_rows(
                         schedule.phases,
                         schedule.agreement_trigger_count,
                         schedule.agreement_interval_tokens,
+                        schedule.event,
                     )
                     values = []
                     for example in examples:
@@ -503,27 +564,118 @@ def percentile(values: Sequence[float], q: float) -> float:
     return ordered[low] * (high - index) + ordered[high] * (index - low)
 
 
-def select_rule(
+def selection_environment_key(row: Mapping[str, Any]) -> tuple[Any, ...]:
+    return (
+        str(row["split"]),
+        str(row["model"]),
+        str(row["benchmark"]),
+        int(row["seed"]),
+        int(row["budget"]),
+    )
+
+
+def expected_development_environment_keys(
+    protocol: Mapping[str, Any],
+) -> set[tuple[Any, ...]]:
+    keys = set()
+    benchmarks = [
+        benchmark
+        for benchmark in protocol["environments"]["benchmarks"]
+        if benchmark.get("enabled", True)
+        and benchmark.get("enabled_for_collection", True)
+    ]
+    for model in protocol["environments"]["models"]:
+        if not model.get("enabled", True) or model["role"] != "development":
+            continue
+        for seed in model["development_seeds"]:
+            for benchmark in benchmarks:
+                for split in ("train", "dev"):
+                    keys.add(
+                        (
+                            split,
+                            str(model["id"]),
+                            str(benchmark["name"]),
+                            int(seed),
+                            int(benchmark["selection_budget"]),
+                        )
+                    )
+    return keys
+
+
+def rule_complexity(rule: RuleSpec) -> int:
+    if rule.probe.schedule.kind == "event_adaptive":
+        event = rule.probe.schedule.event
+        probe_complexity = (
+            1
+            + len(event.trigger_types)
+            + int(event.marker_profile == "conclusion_broad")
+            + int(event.fallback_interval_tokens is not None)
+        )
+    else:
+        probe_complexity = 256 // min(
+            rule.probe.schedule.interval_tokens, 256
+        )
+    return (
+        probe_complexity
+        + rule.evidence.window_probes
+        + rule.persistence.minimum_consistent_accepts
+        + int(rule.certainty.enabled)
+        + int(rule.history.maximum_switches is not None)
+        + int(rule.history.minimum_stable_span_tokens > 0)
+    )
+
+
+def selection_candidates(
     rows: Sequence[Mapping[str, Any]],
     rules: Mapping[str, RuleSpec],
     *,
-    model_drop: float,
-    benchmark_drop: float,
-    positive_fraction: float,
-) -> tuple[RuleSpec, dict[str, Any]]:
+    expected_environments: set[tuple[Any, ...]] | None = None,
+) -> list[dict[str, Any]]:
     by_rule: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
+    seen = set()
     for row in rows:
         if row["phase"] != "development" or row["split"] not in {"train", "dev"}:
             raise ValueError("selection input may contain only development train/dev")
-        by_rule[str(row["rule_id"])].append(row)
-    eligible = []
-    for rule_id, environments in by_rule.items():
+        rule_id = str(row["rule_id"])
         if rule_id not in rules:
-            continue
+            raise ValueError(f"selection metrics contain unknown rule: {rule_id}")
+        environment = selection_environment_key(row)
+        identity = (rule_id, environment)
+        if identity in seen:
+            raise ValueError(
+                f"duplicate selection metric row: {rule_id}/{environment}"
+            )
+        seen.add(identity)
+        by_rule[rule_id].append(row)
+    missing_rules = set(rules) - set(by_rule)
+    if missing_rules:
+        sample = sorted(missing_rules)[:3]
+        raise ValueError(
+            f"selection metrics omit {len(missing_rules)} candidate rules; "
+            f"examples: {sample}"
+        )
+    if expected_environments is None:
+        reference_rule = min(by_rule)
+        expected_environments = {
+            selection_environment_key(row) for row in by_rule[reference_rule]
+        }
+    for rule_id, environments in by_rule.items():
+        observed = {selection_environment_key(row) for row in environments}
+        if observed != expected_environments:
+            missing = sorted(expected_environments - observed)[:3]
+            extra = sorted(observed - expected_environments)[:3]
+            raise ValueError(
+                f"incomplete/contaminated metrics for {rule_id}: "
+                f"expected={len(expected_environments)} observed={len(observed)} "
+                f"missing={missing} extra={extra}"
+            )
+    candidates = []
+    for rule_id, environments in by_rule.items():
         model_groups: dict[tuple[str, str], list[float]] = defaultdict(list)
         benchmark_groups: dict[tuple[str, str], list[float]] = defaultdict(list)
         savings = []
         dev_savings = []
+        train_savings = []
         for row in environments:
             drop = float(row["accuracy_drop_pp"])
             split = str(row["split"])
@@ -532,42 +684,127 @@ def select_rule(
             savings.append(float(row["saving_fraction"]))
             if split == "dev":
                 dev_savings.append(float(row["saving_fraction"]))
+            else:
+                train_savings.append(float(row["saving_fraction"]))
         max_model = max(statistics.fmean(values) for values in model_groups.values())
         max_benchmark = max(
             statistics.fmean(values) for values in benchmark_groups.values()
         )
         positive = sum(value > 0 for value in savings) / len(savings)
-        if (
-            max_model <= model_drop
-            and max_benchmark <= benchmark_drop
-            and positive >= positive_fraction
-        ):
-            rule = rules[rule_id]
-            complexity = (
-                (256 // min(rule.probe.schedule.interval_tokens, 256))
-                + rule.evidence.window_probes
-                + rule.persistence.minimum_consistent_accepts
-                + int(rule.certainty.enabled)
-                + int(rule.history.maximum_switches is not None)
-                + int(rule.history.minimum_stable_span_tokens > 0)
+        candidates.append(
+            {
+                "rule_id": rule_id,
+                "dev_q20_saving_fraction": percentile(dev_savings, 0.2),
+                "train_q20_saving_fraction": percentile(train_savings, 0.2),
+                "mean_dev_saving_fraction": statistics.fmean(dev_savings),
+                "positive_saving_fraction": positive,
+                "max_model_accuracy_drop_pp": max_model,
+                "max_benchmark_accuracy_drop_pp": max_benchmark,
+                "complexity": rule_complexity(rules[rule_id]),
+                "environment_count": len(environments),
+            }
+        )
+    return candidates
+
+
+def pareto_frontier(
+    candidates: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    """Return one representative per non-dominated metric tuple.
+
+    Saving is maximized; both worst-case accuracy-drop axes are minimized.
+    Metric-identical rules are represented by the least-complex rule.
+    """
+    model_values = sorted(
+        {float(row["max_model_accuracy_drop_pp"]) for row in candidates}
+    )
+    model_index = {value: index + 1 for index, value in enumerate(model_values)}
+    tree = [float("inf")] * (len(model_values) + 1)
+
+    def query(index: int) -> float:
+        result = float("inf")
+        while index:
+            result = min(result, tree[index])
+            index -= index & -index
+        return result
+
+    def update(index: int, value: float) -> None:
+        while index < len(tree):
+            tree[index] = min(tree[index], value)
+            index += index & -index
+
+    ordered = sorted(
+        candidates,
+        key=lambda row: (
+            -float(row["dev_q20_saving_fraction"]),
+            float(row["max_model_accuracy_drop_pp"]),
+            float(row["max_benchmark_accuracy_drop_pp"]),
+            int(row["complexity"]),
+            str(row["rule_id"]),
+        ),
+    )
+    frontier = []
+    for row in ordered:
+        model_drop = float(row["max_model_accuracy_drop_pp"])
+        benchmark_drop = float(row["max_benchmark_accuracy_drop_pp"])
+        index = model_index[model_drop]
+        if query(index) <= benchmark_drop:
+            continue
+        frontier.append(dict(row))
+        update(index, benchmark_drop)
+    return frontier
+
+
+def select_operating_points(
+    candidates: Sequence[Mapping[str, Any]],
+    rules: Mapping[str, RuleSpec],
+    profiles: Sequence[Mapping[str, Any]],
+    *,
+    minimum_distinct: int,
+) -> tuple[dict[str, RuleSpec], dict[str, dict[str, Any]], list[dict[str, Any]]]:
+    frontier = pareto_frontier(candidates)
+    chosen: dict[str, RuleSpec] = {}
+    diagnostics: dict[str, dict[str, Any]] = {}
+    selected_ids = set()
+    for profile in profiles:
+        name = str(profile["name"])
+        eligible = [
+            row
+            for row in frontier
+            if float(row["max_model_accuracy_drop_pp"])
+            <= float(profile["accuracy_drop_pp_max_per_model"])
+            and float(row["max_benchmark_accuracy_drop_pp"])
+            <= float(profile["accuracy_drop_pp_max_per_benchmark"])
+            and float(row["positive_saving_fraction"])
+            >= float(profile["minimum_fraction_environments_with_positive_saving"])
+            and str(row["rule_id"]) not in selected_ids
+        ]
+        eligible.sort(
+            key=lambda row: (
+                -float(row["dev_q20_saving_fraction"]),
+                -float(row["positive_saving_fraction"]),
+                int(row["complexity"]),
+                str(row["rule_id"]),
             )
-            eligible.append(
-                (
-                    percentile(dev_savings, 0.2),
-                    -complexity,
-                    rule_id,
-                    {
-                        "dev_q20_saving_fraction": percentile(dev_savings, 0.2),
-                        "positive_saving_fraction": positive,
-                        "max_model_accuracy_drop_pp": max_model,
-                        "max_benchmark_accuracy_drop_pp": max_benchmark,
-                    },
-                )
+        )
+        if not eligible:
+            raise RuntimeError(
+                f"no distinct Pareto rule passes the preregistered {name} gates"
             )
-    if not eligible:
-        raise RuntimeError("no rule passes the preregistered operating-point gates")
-    _, _, rule_id, diagnostics = max(eligible)
-    return rules[rule_id], diagnostics
+        selected = eligible[0]
+        rule_id = str(selected["rule_id"])
+        chosen[name] = rules[rule_id]
+        diagnostics[name] = {
+            **selected,
+            "profile_gates": dict(profile),
+        }
+        selected_ids.add(rule_id)
+    if len(selected_ids) < minimum_distinct:
+        raise RuntimeError(
+            f"selected only {len(selected_ids)} distinct rules; "
+            f"protocol requires at least {minimum_distinct}"
+        )
+    return chosen, diagnostics, frontier
 
 
 def parse_args() -> argparse.Namespace:
@@ -637,31 +874,22 @@ def main() -> None:
             row for path in args.metrics for row in load_jsonl(path)
         ]
         selection = protocol["selection"]
-        chosen = {}
-        diagnostics = {}
-        for name, model_gate, benchmark_gate in (
-            (
-                "conservative",
-                selection["conservative_accuracy_drop_pp_max_per_model"],
-                selection["conservative_accuracy_drop_pp_max_per_benchmark"],
+        candidates = selection_candidates(
+            metrics,
+            rules,
+            expected_environments=expected_development_environment_keys(
+                protocol
             ),
-            (
-                "balanced",
-                selection["balanced_accuracy_drop_pp_max_per_model"],
-                selection["balanced_accuracy_drop_pp_max_per_benchmark"],
-            ),
-        ):
-            rule, diagnostic = select_rule(
-                metrics,
-                rules,
-                model_drop=float(model_gate),
-                benchmark_drop=float(benchmark_gate),
-                positive_fraction=float(
-                    selection["minimum_fraction_environments_with_positive_saving"]
-                ),
-            )
-            chosen[name] = rule.to_dict()
-            diagnostics[name] = diagnostic
+        )
+        selected, diagnostics, frontier = select_operating_points(
+            candidates,
+            rules,
+            selection["operating_points"],
+            minimum_distinct=int(selection["minimum_distinct_selected_rules"]),
+        )
+        chosen = {
+            name: rule.to_dict() for name, rule in selected.items()
+        }
         ablations = {}
         for name, rule_payload in chosen.items():
             rule = RuleSpec.from_dict(rule_payload)
@@ -677,7 +905,7 @@ def main() -> None:
         atomic_json(
             args.output,
             {
-                "schema_version": "governor-v2-frozen-rules-1",
+                "schema_version": "governor-v2-frozen-rules-2",
                 "protocol_version": protocol["protocol_version"],
                 "protocol_sha256": sha256_file(args.protocol),
                 "split_manifest_sha256": sha256_file(args.split_manifest),
@@ -687,6 +915,16 @@ def main() -> None:
                 },
                 "selected_rules": chosen,
                 "selection_diagnostics": diagnostics,
+                "pareto_frontier": frontier,
+                "selection_summary": {
+                    "candidate_rule_count": len(candidates),
+                    "pareto_frontier_size": len(frontier),
+                    "selected_rule_count": len(chosen),
+                    "selected_rule_ids_are_distinct": (
+                        len({rule["rule_id"] for rule in chosen.values()})
+                        == len(chosen)
+                    ),
+                },
                 "confirmation_ablations": ablations,
             },
         )

@@ -1,6 +1,6 @@
 {
   "schema_version": "governor-v2-heldout-scale-handoff-1",
-  "protocol_version": "governor-v2-preregistered-2026-07-26.4",
+  "protocol_version": "governor-v2-preregistered-2026-07-27.10",
   "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
   "model_role": "heldout_scale",
   "phase": "confirmation",
@@ -9,12 +9,12 @@
   "requires_frozen_rule_manifest": true,
   "hardware": {
     "dtype": "bfloat16",
-    "minimum_gpu_count": 4,
-    "gpu_memory_gib_each": 32,
-    "tensor_parallel_size": 4,
+    "minimum_gpu_count": 2,
+    "gpu_memory_gib_each": 80,
+    "tensor_parallel_size": 2,
     "maximum_model_length": 49152,
     "minimum_system_ram_gib": 128,
-    "minimum_free_disk_gib": 200,
+    "minimum_free_disk_gib": 500,
     "quantization_allowed_for_formal_result": false,
     "cpu_offload_allowed_for_formal_result": false
   },
@@ -25,6 +25,19 @@
     "probe_output_cap": 32,
     "base_probe_interval": 64,
     "base_probe_start_token": 64,
+    "adaptive_probe": {
+      "trigger_types": [
+        "conclusion_marker",
+        "entropy_drop",
+        "reflection_transition",
+        "answer_candidate"
+      ],
+      "entropy_metric": "teacher_forced_topk_entropy",
+      "entropy_top_k": 20,
+      "candidate_min_gap_tokens": 32,
+      "max_candidate_probes": 128,
+      "reuse_matching_dense_prefixes": true
+    },
     "benchmarks": [
       {
         "name": "math500",
@@ -34,41 +47,35 @@
         "evaluation_budgets": [3072, 8192, 16384]
       },
       {
-        "name": "gsm8k",
-        "split": "test",
-        "problems": 264,
-        "capture_cap": 16384,
-        "evaluation_budgets": [3072, 8192, 16384]
-      },
-      {
         "name": "amc23",
-        "split": "external_stress",
-        "problems": 40,
+        "split": "test",
+        "problems": 8,
         "capture_cap": 16384,
         "evaluation_budgets": [3072, 8192, 16384]
       },
       {
         "name": "aime24",
-        "split": "external_stress",
-        "problems": 30,
+        "split": "test",
+        "problems": 6,
         "capture_cap": 32768,
         "evaluation_budgets": [8192, 16384, 32768]
       }
     ],
-    "total_problems": 434,
-    "maximum_main_decode_tokens": 7602176,
+    "total_problems": 114,
+    "maximum_main_decode_tokens": 1966080,
     "base64_matrix": "benchmark/FalseConsensus/governor_v2/generated/confirmation_matrix_base64.jsonl"
   },
   "execution_policy": {
-    "probe_frequency_is_frozen_at_64": true,
+    "base_probe_frequency_is_frozen_at_64": true,
+    "adaptive_probe_bank_is_required": true,
     "never_use_confirmation_results_to_change_rule_or_cap": true,
     "run_preflight_and_three_problem_smoke_first": true,
     "runner_model_filter": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"
   },
-  "time_estimate_4x_rtx5090": {
-    "model_download_and_smoke_hours": [0.25, 1],
-    "base64_collection_hours": [12, 24],
-    "offline_evaluation_hours": [0.5, 2],
-    "planning_recommendation": "reserve 24 hours for the frozen 64-token probe bank"
+  "time_estimate_2x_a100_80gb": {
+    "cached_model_startup_and_smoke_hours": [0.2, 0.4],
+    "dense_and_adaptive_collection_hours": [1.5, 3],
+    "offline_evaluation_hours": [0.3, 0.8],
+    "planning_recommendation": "reserve 3.5 hours for the held-out 32B confirmation"
   }
 }

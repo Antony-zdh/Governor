@@ -80,6 +80,7 @@ def build_matrix(
     output_root = Path(str(collection["output_root"]))
     collect_main = "benchmark/FalseConsensus/governor_v2/collect_main.py"
     dense_probe = "benchmark/FalseConsensus/governor_v2/dense_probe.py"
+    adaptive_probe = "benchmark/FalseConsensus/governor_v2/adaptive_probe.py"
     jobs = []
     excluded_roles = set(excluded_model_roles)
     phases = (
@@ -138,6 +139,7 @@ def build_matrix(
                 )
                 main_output = output_root / run_slug / "main"
                 probe_output = output_root / run_slug / "dense_simple32"
+                adaptive_output = output_root / run_slug / "adaptive_simple32"
                 main_job_id = f"main__{run_slug}"
                 main_command = [
                     "python",
@@ -193,6 +195,39 @@ def build_matrix(
                     "--workers",
                     str(collection["workers"]),
                 ]
+                adaptive = collection["adaptive_probe"]
+                adaptive_command = [
+                    "python",
+                    adaptive_probe,
+                    "--main-run",
+                    str(main_output),
+                    "--dense-probe-bank",
+                    str(probe_output),
+                    "--output",
+                    str(adaptive_output),
+                    "--url",
+                    str(collection["url"]),
+                    "--start-token",
+                    str(adaptive["start_token"]),
+                    "--probe-tokens",
+                    str(collection["probe_output_cap"]),
+                    "--workers",
+                    str(collection["workers"]),
+                    "--alignment-lookahead-tokens",
+                    str(adaptive["alignment_lookahead_tokens"]),
+                    "--entropy-top-k",
+                    str(adaptive["entropy_top_k"]),
+                    "--entropy-smooth-window",
+                    str(adaptive["entropy_smooth_window_tokens"]),
+                    "--entropy-reference-window",
+                    str(adaptive["entropy_reference_window_tokens"]),
+                    "--entropy-candidate-min-drop",
+                    str(adaptive["entropy_candidate_min_drop"]),
+                    "--candidate-min-gap",
+                    str(adaptive["candidate_min_gap_tokens"]),
+                    "--max-candidate-probes",
+                    str(adaptive["max_candidate_probes"]),
+                ]
                 common = {
                     "model": model_id,
                     "model_family": model.get("family", "unknown"),
@@ -208,6 +243,12 @@ def build_matrix(
                     "minimum_bf16_gpus_32gb": int(
                         model.get("minimum_bf16_gpus_32gb", 1)
                     ),
+                    "target_a100_80gb_gpus": int(
+                        model.get("target_a100_80gb_gpus", 1)
+                    ),
+                    "maximum_model_length": int(
+                        model["maximum_model_length"]
+                    ),
                     "capture_cap": budget,
                     "evaluation_budgets": list(
                         benchmark.get("evaluation_budgets", [])
@@ -221,6 +262,29 @@ def build_matrix(
                         "output": str(main_output),
                         "command": main_command,
                         "command_shell": command_text(main_command),
+                        **common,
+                    }
+                )
+                dense_job_id = f"probe__{run_slug}"
+                jobs.append(
+                    {
+                        "job_id": dense_job_id,
+                        "stage": "dense_probe",
+                        "depends_on": main_job_id,
+                        "output": str(probe_output),
+                        "command": probe_command,
+                        "command_shell": command_text(probe_command),
+                        **common,
+                    }
+                )
+                jobs.append(
+                    {
+                        "job_id": f"adaptive_probe__{run_slug}",
+                        "stage": "adaptive_probe",
+                        "depends_on": dense_job_id,
+                        "output": str(adaptive_output),
+                        "command": adaptive_command,
+                        "command_shell": command_text(adaptive_command),
                         **common,
                     }
                 )
@@ -259,17 +323,6 @@ def build_matrix(
                             **common,
                         }
                     )
-                jobs.append(
-                    {
-                        "job_id": f"probe__{run_slug}",
-                        "stage": "dense_probe",
-                        "depends_on": main_job_id,
-                        "output": str(probe_output),
-                        "command": probe_command,
-                        "command_shell": command_text(probe_command),
-                        **common,
-                    }
-                )
     return jobs
 
 

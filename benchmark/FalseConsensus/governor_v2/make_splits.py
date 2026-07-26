@@ -230,7 +230,10 @@ def assign_benchmark(
 ) -> None:
     minimum_size = int(split_config["minimum_ratio_benchmark_size"])
     policy = str(benchmark.get("split_policy", "ratio"))
-    if policy == "external_stress" or len(rows) < minimum_size:
+    force_ratio = bool(benchmark.get("force_ratio_split", False))
+    if policy == "external_stress" or (
+        len(rows) < minimum_size and not force_ratio
+    ):
         for row in rows:
             row["split"] = "external_stress"
         return

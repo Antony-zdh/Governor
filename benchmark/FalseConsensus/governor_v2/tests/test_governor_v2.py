@@ -9,6 +9,10 @@ from pathlib import Path
 from benchmark.FalseConsensus.governor_v2.build_experiment_matrix import (
     build_matrix,
 )
+from benchmark.FalseConsensus.governor_v2.adaptive_probe import (
+    entropy_events,
+    normalized_topk_entropy,
+)
 from benchmark.FalseConsensus.governor_v2.dense_probe import (
     checkpoint_positions,
 )
@@ -26,8 +30,12 @@ from benchmark.FalseConsensus.governor_v2.rule_schema import (
 )
 from benchmark.FalseConsensus.governor_v2.replay_rules import (
     replay_one,
+    scheduled_probes,
+    select_operating_points,
+    selection_candidates,
     window_switches,
 )
+from benchmark.FalseConsensus.governor_v2.run_matrix import override_url
 
 
 HERE = Path(__file__).resolve().parents[1]
@@ -98,6 +106,35 @@ class SplitTests(unittest.TestCase):
         )
         self.assertEqual({row["split"] for row in rows}, {"external_stress"})
 
+    def test_preregistered_small_benchmark_can_force_ratio_split(self) -> None:
+        rows = [
+            {
+                "benchmark": "small",
+                "problem_id": str(index),
+                "content_hash": f"forced-small-{index}",
+                "stratum": "all",
+                "strata": {},
+            }
+            for index in range(30)
+        ]
+        assign_benchmark(
+            {
+                "name": "small",
+                "split_policy": "ratio",
+                "force_ratio_split": True,
+            },
+            rows,
+            {
+                "ratios": {"train": 0.6, "dev": 0.2, "test": 0.2},
+                "seed": 1,
+                "minimum_ratio_benchmark_size": 250,
+            },
+        )
+        self.assertEqual(
+            Counter(row["split"] for row in rows),
+            {"train": 18, "dev": 6, "test": 6},
+        )
+
 
 class RuleSchemaTests(unittest.TestCase):
     @classmethod
@@ -118,6 +155,25 @@ class RuleSchemaTests(unittest.TestCase):
                 set(RULE_DIMENSIONS),
                 set(rule.to_dict()) - {"rule_id", "metadata"},
             )
+        adaptive = [
+            rule
+            for rule in self.rules
+            if rule.probe.schedule.kind == "event_adaptive"
+        ]
+        self.assertEqual(len(adaptive), 864)
+        self.assertEqual(
+            {
+                trigger
+                for rule in adaptive
+                for trigger in rule.probe.schedule.event.trigger_types
+            },
+            {
+                "conclusion_marker",
+                "entropy_drop",
+                "reflection_transition",
+                "answer_candidate",
+            },
+        )
 
     def test_round_trip(self) -> None:
         rule = self.rules[0]
@@ -145,8 +201,121 @@ class RuleSchemaTests(unittest.TestCase):
             set(RULE_DIMENSIONS),
         )
 
+    def test_three_distinct_pareto_operating_points(self) -> None:
+        selected_rules = {
+            rule.rule_id: rule for rule in self.rules[:4]
+        }
+        rule_ids = list(selected_rules)
+        candidates = [
+            {
+                "rule_id": rule_ids[0],
+                "dev_q20_saving_fraction": 0.10,
+                "positive_saving_fraction": 0.90,
+                "max_model_accuracy_drop_pp": 1.0,
+                "max_benchmark_accuracy_drop_pp": 1.5,
+                "complexity": 3,
+            },
+            {
+                "rule_id": rule_ids[1],
+                "dev_q20_saving_fraction": 0.20,
+                "positive_saving_fraction": 0.85,
+                "max_model_accuracy_drop_pp": 2.0,
+                "max_benchmark_accuracy_drop_pp": 2.5,
+                "complexity": 4,
+            },
+            {
+                "rule_id": rule_ids[2],
+                "dev_q20_saving_fraction": 0.30,
+                "positive_saving_fraction": 0.75,
+                "max_model_accuracy_drop_pp": 3.5,
+                "max_benchmark_accuracy_drop_pp": 4.5,
+                "complexity": 5,
+            },
+            {
+                "rule_id": rule_ids[3],
+                "dev_q20_saving_fraction": 0.05,
+                "positive_saving_fraction": 0.60,
+                "max_model_accuracy_drop_pp": 5.0,
+                "max_benchmark_accuracy_drop_pp": 6.0,
+                "complexity": 6,
+            },
+        ]
+        profiles = [
+            {
+                "name": "conservative",
+                "accuracy_drop_pp_max_per_model": 1.5,
+                "accuracy_drop_pp_max_per_benchmark": 2.0,
+                "minimum_fraction_environments_with_positive_saving": 0.8,
+            },
+            {
+                "name": "balanced",
+                "accuracy_drop_pp_max_per_model": 2.5,
+                "accuracy_drop_pp_max_per_benchmark": 3.0,
+                "minimum_fraction_environments_with_positive_saving": 0.8,
+            },
+            {
+                "name": "token_efficient",
+                "accuracy_drop_pp_max_per_model": 4.0,
+                "accuracy_drop_pp_max_per_benchmark": 5.0,
+                "minimum_fraction_environments_with_positive_saving": 0.7,
+            },
+        ]
+        chosen, _, frontier = select_operating_points(
+            candidates,
+            selected_rules,
+            profiles,
+            minimum_distinct=3,
+        )
+        self.assertEqual(len(frontier), 3)
+        self.assertEqual(
+            [chosen[name].rule_id for name in chosen],
+            rule_ids[:3],
+        )
+        self.assertEqual(len({rule.rule_id for rule in chosen.values()}), 3)
+
+    def test_selection_rejects_duplicate_metric_rows(self) -> None:
+        rule = self.rules[0]
+        row = {
+            "rule_id": rule.rule_id,
+            "phase": "development",
+            "split": "dev",
+            "model": "synthetic",
+            "benchmark": "synthetic",
+            "seed": 1,
+            "budget": 1024,
+            "accuracy_drop_pp": 0.0,
+            "saving_fraction": 0.1,
+        }
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            selection_candidates(
+                [row, dict(row)],
+                {rule.rule_id: rule},
+            )
+
 
 class CollectionPreparationTests(unittest.TestCase):
+    def test_replica_url_override_is_local_to_runner(self) -> None:
+        command = ["python", "collector.py", "--url", "http://old/v1"]
+        self.assertEqual(
+            override_url(command, "http://replica:18001/v1")[-1],
+            "http://replica:18001/v1",
+        )
+        self.assertEqual(command[-1], "http://old/v1")
+
+    def test_entropy_trigger_is_teacher_forced_signal(self) -> None:
+        self.assertAlmostEqual(
+            normalized_topk_entropy({"a": 0.0}), 0.0
+        )
+        events = entropy_events(
+            [0.9] * 64 + [0.2] * 16,
+            [80],
+            smooth_window=16,
+            reference_window=64,
+            minimum_drop=0.1,
+        )
+        self.assertGreater(events[80]["entropy_drop"], 0.6)
+        self.assertGreater(events[80]["entropy_z"], 0.0)
+
     def test_checkpoint_endpoint_policy(self) -> None:
         self.assertEqual(
             checkpoint_positions(
@@ -177,35 +346,36 @@ class CollectionPreparationTests(unittest.TestCase):
             for job in jobs
             if job["stage"] == "main_generation"
         }
-        self.assertEqual(len(jobs), 24)
-        self.assertEqual(len(main_ids), 12)
+        self.assertEqual(len(jobs), 54)
+        self.assertEqual(len(main_ids), 18)
+        dense_ids = {
+            job["job_id"]
+            for job in jobs
+            if job["stage"] == "dense_probe"
+        }
         for job in jobs:
             if job["stage"] == "dense_probe":
                 self.assertIn(job["depends_on"], main_ids)
+            elif job["stage"] == "adaptive_probe":
+                self.assertIn(job["depends_on"], dense_ids)
             else:
                 self.assertIsNone(job["depends_on"])
-        gsm_main = next(
-            job
-            for job in jobs
-            if job["stage"] == "main_generation"
-            and job["benchmark"] == "gsm8k"
-        )
-        self.assertIn("--dataset-path", gsm_main["command"])
+        self.assertNotIn("gsm8k", {job["benchmark"] for job in jobs})
         dense32_jobs = build_matrix(protocol, include_32_grid=True)
-        self.assertEqual(len(dense32_jobs), 36)
+        self.assertEqual(len(dense32_jobs), 72)
         self.assertEqual(
             sum(
                 job["stage"] == "dense_probe_32_offset"
                 for job in dense32_jobs
             ),
-            12,
+            18,
         )
         confirmation = build_matrix(protocol, phase="confirmation")
         confirmation_main = [
             job for job in confirmation if job["stage"] == "main_generation"
         ]
-        self.assertEqual(len(confirmation), 64)
-        self.assertEqual(len(confirmation_main), 32)
+        self.assertEqual(len(confirmation), 72)
+        self.assertEqual(len(confirmation_main), 24)
         self.assertTrue(
             all(job["phase"] == "confirmation" for job in confirmation)
         )
@@ -224,12 +394,31 @@ class CollectionPreparationTests(unittest.TestCase):
         self.assertTrue(
             all(job["minimum_bf16_gpus_32gb"] == 4 for job in scale_jobs)
         )
+        self.assertTrue(
+            all(job["target_a100_80gb_gpus"] == 2 for job in scale_jobs)
+        )
+        qwen3_jobs = [
+            job
+            for job in jobs
+            if job["model"] == "Qwen/Qwen3-8B"
+        ]
+        self.assertTrue(qwen3_jobs)
+        self.assertTrue(
+            all(job["maximum_model_length"] == 40960 for job in qwen3_jobs)
+        )
+        self.assertTrue(
+            all(
+                job["maximum_model_length"] == 49152
+                for job in jobs
+                if job["model"] != "Qwen/Qwen3-8B"
+            )
+        )
         small_models = build_matrix(
             protocol,
             phase="confirmation",
             excluded_model_roles=("heldout_scale",),
         )
-        self.assertEqual(len(small_models), 56)
+        self.assertEqual(len(small_models), 63)
         self.assertNotIn(
             "heldout_scale",
             {job["model_role"] for job in small_models},
@@ -237,6 +426,96 @@ class CollectionPreparationTests(unittest.TestCase):
 
 
 class ReplayTests(unittest.TestCase):
+    def test_event_adaptive_schedule_filters_the_union_bank(self) -> None:
+        base = {
+            "rule_id": "adaptive-synthetic",
+            "probe": {
+                "style": "simple",
+                "output_cap": 32,
+                "schedule": {
+                    "kind": "event_adaptive",
+                    "start_token": 256,
+                    "interval_tokens": 256,
+                    "phases": [],
+                    "agreement_trigger_count": None,
+                    "agreement_interval_tokens": None,
+                    "event": {
+                        "trigger_types": [
+                            "conclusion_marker",
+                            "entropy_drop",
+                        ],
+                        "marker_profile": "conclusion_strict",
+                        "entropy": {
+                            "metric": "teacher_forced_topk_entropy",
+                            "top_k": 20,
+                            "smooth_window_tokens": 16,
+                            "reference_window_tokens": 64,
+                            "minimum_drop": 0.15,
+                            "minimum_z": 1.0,
+                        },
+                        "alignment": "next_step_boundary",
+                        "alignment_lookahead_tokens": 32,
+                        "minimum_gap_tokens": 64,
+                        "fallback_interval_tokens": 512,
+                    },
+                },
+            },
+            "validity": {"mode": "schema"},
+            "maturity": {
+                "kind": "none",
+                "minimum_tokens": 0,
+                "minimum_budget_fraction": 0.0,
+                "online_instability_floor_tokens": 0,
+            },
+            "evidence": {
+                "family": "latest",
+                "window_probes": 1,
+                "minimum_valid_probes": 1,
+                "dominant_share_threshold": 1.0,
+                "entropy_threshold": None,
+                "entropy_scope": "window",
+            },
+            "persistence": {
+                "minimum_consistent_accepts": 1,
+                "minimum_consensus_span_tokens": 0,
+            },
+            "certainty": {
+                "enabled": False,
+                "minimum_certain_fraction": 0.0,
+            },
+            "history": {
+                "maximum_switches": None,
+                "switch_window": {"kind": "tokens", "size": 2048},
+                "minimum_stable_span_tokens": 0,
+            },
+        }
+        rule = RuleSpec.from_dict(base)
+        probes = [
+            {
+                "token_position": 256,
+                "trigger_types": ["conclusion_marker"],
+                "marker_profiles": ["conclusion_strict"],
+            },
+            {
+                "token_position": 320,
+                "trigger_types": ["entropy_drop"],
+                "entropy_drop": 0.2,
+                "entropy_z": 1.2,
+            },
+            {
+                "token_position": 384,
+                "trigger_types": ["reflection_transition"],
+            },
+            {"token_position": 768},
+        ]
+        self.assertEqual(
+            [
+                probe["token_position"]
+                for probe in scheduled_probes(probes, rule, 1024)
+            ],
+            [256, 320, 768],
+        )
+
     def test_switch_count_uses_bounded_window(self) -> None:
         history = [(64, "1"), (128, "2"), (192, "1"), (4096, "1")]
         self.assertEqual(window_switches(history, kind="tokens", size=2048), 0)
@@ -303,7 +582,7 @@ class ReplayTests(unittest.TestCase):
             }
             for position in (64, 128, 192)
         ]
-        result = replay_one(trajectory, probes, rule, "gsm8k", 512)
+        result = replay_one(trajectory, probes, rule, "math500", 512)
         self.assertTrue(result["correct"])
         self.assertTrue(result["stopped"])
         self.assertEqual(result["main_decode_tokens"], 128)
