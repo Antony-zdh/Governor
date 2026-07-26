@@ -213,13 +213,18 @@ def stop_decision(
     rule: RuleSpec,
     benchmark: str,
     budget: int,
+    *,
+    probes_are_scheduled: bool = False,
 ) -> tuple[int | None, str | None, int, int]:
     history: list[dict[str, Any]] = []
     valid_history: list[tuple[int, str]] = []
     accepted: list[tuple[int, str]] = []
     probe_decode = 0
     probe_prompt = 0
-    for raw in scheduled_probes(probes, rule, budget):
+    stream = list(probes) if probes_are_scheduled else scheduled_probes(
+        probes, rule, budget
+    )
+    for raw in stream:
         probe = dict(raw)
         position = int(probe["token_position"])
         probe_decode += int(probe.get("probe_out_tokens", 0))
@@ -289,10 +294,17 @@ def replay_one(
     rule: RuleSpec,
     benchmark: str,
     budget: int,
+    *,
+    probes_are_scheduled: bool = False,
+    answer_correctness: Mapping[str, bool] | None = None,
 ) -> dict[str, Any]:
     token_count = int(trajectory["tokens_used"])
     stop, answer, probe_decode, probe_prompt = stop_decision(
-        probes, rule, benchmark, budget
+        probes,
+        rule,
+        benchmark,
+        budget,
+        probes_are_scheduled=probes_are_scheduled,
     )
     baseline_complete = bool(trajectory["finished_naturally"]) and token_count <= budget
     baseline_correct = bool(trajectory["final_correct"]) if baseline_complete else False
@@ -301,7 +313,11 @@ def replay_one(
         correct = baseline_correct
         main_tokens = baseline_tokens
     else:
-        correct = answers_equal(answer, trajectory["target"])
+        normalized = normalize_answer(answer)
+        if answer_correctness is not None and normalized in answer_correctness:
+            correct = bool(answer_correctness[normalized])
+        else:
+            correct = answers_equal(answer, trajectory["target"])
         main_tokens = stop
     total_tokens = main_tokens + probe_decode
     return {
@@ -403,7 +419,7 @@ def sweep_rows(
             if phase == "development"
             else [int(value) for value in benchmark_spec["evaluation_budgets"]]
         )
-        grouped: dict[str, list[tuple[dict[str, Any], list[dict[str, Any]]]]] = defaultdict(list)
+        grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
         for trajectory_path in sorted((main_run / "traj").glob("problem_*.json")):
             trajectory = json.loads(trajectory_path.read_text(encoding="utf-8"))
             problem_id = int(trajectory["problem_id"])
@@ -413,16 +429,55 @@ def sweep_rows(
                     f"{phase} encountered forbidden/unassigned split {split}: "
                     f"{benchmark}/{problem_id}"
                 )
+            probes = load_probes(main_run, problem_id)
+            correctness = {}
+            for probe in probes:
+                answer = normalize_answer(probe.get("probe_answer"))
+                if answer and answer not in correctness:
+                    correctness[answer] = answers_equal(
+                        answer, trajectory["target"]
+                    )
             grouped[split].append(
-                (trajectory, load_probes(main_run, problem_id))
+                {
+                    "trajectory": trajectory,
+                    "probes": probes,
+                    "answer_correctness": correctness,
+                    "schedule_cache": {},
+                }
             )
         for split, examples in sorted(grouped.items()):
             for budget in budgets:
                 for rule in rules:
-                    values = [
-                        replay_one(trajectory, probes, rule, benchmark, budget)
-                        for trajectory, probes in examples
-                    ]
+                    schedule = rule.probe.schedule
+                    schedule_key = (
+                        budget,
+                        schedule.kind,
+                        schedule.start_token,
+                        schedule.interval_tokens,
+                        schedule.phases,
+                        schedule.agreement_trigger_count,
+                        schedule.agreement_interval_tokens,
+                    )
+                    values = []
+                    for example in examples:
+                        cache = example["schedule_cache"]
+                        if schedule_key not in cache:
+                            cache[schedule_key] = scheduled_probes(
+                                example["probes"], rule, budget
+                            )
+                        values.append(
+                            replay_one(
+                                example["trajectory"],
+                                cache[schedule_key],
+                                rule,
+                                benchmark,
+                                budget,
+                                probes_are_scheduled=True,
+                                answer_correctness=example[
+                                    "answer_correctness"
+                                ],
+                            )
+                        )
                     yield {
                         "rule_id": rule.rule_id,
                         "phase": phase,
