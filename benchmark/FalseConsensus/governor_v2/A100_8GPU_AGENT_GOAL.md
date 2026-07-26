@@ -1,9 +1,11 @@
 # Goal：在 8×A100-80GB 上完整执行 Governor v2、冻结三个 Pareto 策略并发布全部结果
 
-你是本轮 Governor v2 实验的唯一远端负责人。你的终点不是“启动作业”，而是完成
+你就运行在这台 8×A100-80GB 实验机上，并直接负责本机的全部实验。不存在需要
+SSH 登录、控制另一台机器、驱动远程 tmux agent 或把任务转交给其他 agent 的步骤。
+你的终点不是“启动作业”，而是完成
 环境搭建、模型获取、smoke、development collection、Pareto sweep/selection、
 confirmation、三套规则的全维消融、统计分析、Markdown/PDF 报告、原始数据归档和
-GitHub 上传，并验证远端资产可访问且校验和一致。持续监视 tmux、GPU、日志和输出；
+GitHub 上传，并验证 GitHub 资产可访问且校验和一致。持续监视本机 tmux、GPU、日志和输出；
 可恢复的故障要主动修复并续跑。只有全部验收项通过后才能宣布完成。
 
 本 goal 所在 Git commit 由协调者在启动时提供为 `TARGET_COMMIT`。必须记录并固定该
@@ -95,7 +97,8 @@ df -h
 
 若不满足，先报告具体差异和重新估算，不要自动改变科学配置。
 
-把所有长任务放入命名清楚的 tmux session；日志写到
+把所有长任务放入本机命名清楚的 tmux session；tmux 仅用于本机作业持久化，不是
+用来连接或控制其他 agent。日志写到
 `$GOV_ARTIFACTS/logs/`，同时维护 `STATUS.md`，记录开始/结束时间、PID、GPU、
 端口、命令、return code、重试和异常。不要删除半成品。每 10–15 分钟检查：
 
@@ -113,10 +116,11 @@ df -h
 若 repo 不存在：
 
 ```bash
-git clone git@github.com:Antony-zdh/Governor.git "$GOV_REPO"
+git clone https://github.com/Antony-zdh/Governor.git "$GOV_REPO"
 ```
 
-SSH 不可用而仓库允许 HTTPS 时可改用 HTTPS。随后：
+若本机已经有 repo，直接在该目录核对 commit，不要重复 clone。无需配置 SSH server、
+SSH 端口或远程登录。随后：
 
 ```bash
 cd "$GOV_REPO"
@@ -188,7 +192,7 @@ hf download deepseek-ai/DeepSeek-R1-Distill-Qwen-32B
 并验证 tokenizer/config/weight shard 齐全。所有 vLLM replicas 共用这个 cache，
 不复制四份模型。
 
-## 5. 本地协议门禁
+## 5. 本机协议门禁
 
 在任何 GPU 正式任务前：
 
@@ -514,18 +518,18 @@ HF cache、venv、临时 socket 或任何 credential。生成：
 打开 PR；除非协调者明确授权，不自行 merge main。
 
 创建 tag/release 并上传全部 assets。上传后用 `gh release view --json assets` 对比
-本地清单；至少随机下载一个 asset 到新目录并校验 SHA-256。检查 GitHub 上：
+本机清单；至少随机下载一个 asset 到本机新目录并校验 SHA-256。检查 GitHub 上：
 
 - branch commit 可见；
 - PR 可打开；
 - Markdown/PDF/图/汇总数据存在；
-- release 的 asset 数量、名称、大小与本地一致；
+- release 的 asset 数量、名称、大小与本机清单一致；
 - 所有 raw 文件都能由 inventory 映射到某个已上传 archive；
 - 没有 secret。
 
 若 GitHub 单文件/配额限制变化，先查询当前 `gh`/API 返回，继续分片；不要以限制为由
-省略数据。认证或远端权限确实缺失时，保留校验完成的本地 archives，向协调者请求最小
-所需权限并继续等待，不能把“本地已打包”称作上传完成。
+省略数据。GitHub 认证或仓库写权限确实缺失时，保留校验完成的本机 archives，向协调者
+请求最小所需权限并继续等待，不能把“本机已打包”称作上传完成。
 
 ## 12. 最终验收与汇报格式
 
