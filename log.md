@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-07-27 (深夜) · sweep 完成 → select 触发预注册硬阻塞（重要负结果）
+
+- sweep 8 shard 全部完成：637,632 行指标（17,712 规则 × 36 环境×budget 组合），
+  归档为 `generated/sweep_*.jsonl.gz` + SHA-256 清单。
+- **select 失败（按协议属预期路径）**：conservative 门槛（≤1.5pp/≤2.0pp/psf≥0.8）
+  无任何规则通过。诊断（复用原始聚合函数）：全空间最小逐模型降幅 1.85pp
+  （负节省）；任何"≥3 互异规则 + 正 q20 节省"的组合最低需 4.87pp 降幅
+  （psf 放宽到 0.5 结论不变）；降幅≈0 的规则为 0 条；中位降幅 20pp。
+- 已排除：续跑 bug（已修）、判分误判（robust grader + flag 修正）、采集不完整
+  （逐环境核对）、聚合实现分歧（直接调用 selection_candidates/pareto_frontier）。
+- **科学解读**：与 Stage 1-5 False Consensus 结论自洽——预注册规则空间内不存在
+  "安全且省钱"的停机点；dense@64×32token 的 probe 税（≈主轨迹 50%）让保守
+  规则节省转负。本身是可发表的负结果。
+- 按协议：未放宽门槛、未查看 test、confirmation 未启动。三个解除方案
+  （接受负结果 / 修订门槛重新预注册 / 扩展规则空间重新预注册）写在
+  `governor_v2/BLOCKERS.md`，等负责人决策。
+
+---
+
 ## 2026-07-27 · Governor v2 development collection 完成（18/18 环境）+ sweep 启动
 
 - **采集验收通过**：2 模型 × 3 benchmark × 3 seeds = 18 环境，main/dense/adaptive
