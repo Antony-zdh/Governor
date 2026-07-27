@@ -35,6 +35,11 @@ from benchmark.FalseConsensus.governor_v2.replay_rules import (
     selection_candidates,
     window_switches,
 )
+from benchmark.FalseConsensus.governor_v2.replay_certaindex import (
+    find_certaindex_stop,
+    mutually_equivalent,
+    replay_problem,
+)
 from benchmark.FalseConsensus.governor_v2.run_matrix import override_url
 
 
@@ -426,6 +431,65 @@ class CollectionPreparationTests(unittest.TestCase):
 
 
 class ReplayTests(unittest.TestCase):
+    def test_certaindex_equivalence_preserves_argument_order(self) -> None:
+        self.assertTrue(mutually_equivalent(["1/2", "0.5", "\\frac{1}{2}"]))
+
+    def test_certaindex_adapter_uses_math_equivalence_and_three_certain_probes(
+        self,
+    ) -> None:
+        probes = [
+            {
+                "token_position": position,
+                "probe_answer": answer,
+                "is_certain": certain,
+                "probe_out_tokens": 4,
+                "probe_prompt_tokens": 100,
+            }
+            for position, answer, certain in [
+                (64, "1/2", True),
+                (128, "0.5", True),
+                (192, "\\frac{1}{2}", False),
+                (256, "0.5", True),
+                (320, "\\frac{1}{2}", True),
+                (384, "1/2", True),
+            ]
+        ]
+        stop, answer, decode, prompt, calls = find_certaindex_stop(
+            probes, budget=512
+        )
+        self.assertEqual(stop, 384)
+        self.assertEqual(answer, "1/2")
+        self.assertEqual(decode, 24)
+        self.assertEqual(prompt, 600)
+        self.assertEqual(calls, 6)
+
+    def test_certaindex_adapter_counts_probe_cost_and_falls_back_to_full(
+        self,
+    ) -> None:
+        trajectory = {
+            "tokens_used": 256,
+            "finished_naturally": True,
+            "final_answer": "7",
+            "target": "7",
+            "final_correct": True,
+        }
+        probes = [
+            {
+                "token_position": position,
+                "probe_answer": answer,
+                "is_certain": True,
+                "probe_out_tokens": 5,
+                "probe_prompt_tokens": 90,
+            }
+            for position, answer in [(64, "1"), (128, "2"), (192, "3")]
+        ]
+        outcome = replay_problem(trajectory, probes, budget=512)
+        self.assertFalse(outcome["stopped"])
+        self.assertTrue(outcome["delivered_correct"])
+        self.assertEqual(outcome["main_decode_tokens"], 256)
+        self.assertEqual(outcome["probe_decode_tokens"], 15)
+        self.assertEqual(outcome["total_decode_tokens"], 271)
+
     def test_event_adaptive_schedule_filters_the_union_bank(self) -> None:
         base = {
             "rule_id": "adaptive-synthetic",
@@ -588,6 +652,22 @@ class ReplayTests(unittest.TestCase):
         self.assertEqual(result["main_decode_tokens"], 128)
         self.assertEqual(result["probe_decode_tokens"], 8)
         self.assertEqual(result["total_decode_tokens"], 136)
+
+        cached_baseline = replay_one(
+            {
+                "tokens_used": 512,
+                "finished_naturally": True,
+                "final_answer": "intentionally-not-regraded",
+                "target": "7",
+            },
+            [],
+            rule,
+            "math500",
+            512,
+            baseline_answer_correctness=True,
+        )
+        self.assertTrue(cached_baseline["baseline_correct"])
+        self.assertTrue(cached_baseline["correct"])
 
 
 if __name__ == "__main__":

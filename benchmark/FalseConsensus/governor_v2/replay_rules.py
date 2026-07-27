@@ -347,6 +347,7 @@ def replay_one(
     *,
     probes_are_scheduled: bool = False,
     answer_correctness: Mapping[str, bool] | None = None,
+    baseline_answer_correctness: bool | None = None,
 ) -> dict[str, Any]:
     token_count = int(trajectory["tokens_used"])
     stop, answer, probe_decode, probe_prompt = stop_decision(
@@ -362,6 +363,8 @@ def replay_one(
     # misread formatting-only differences as wrong answers.
     if not baseline_complete:
         baseline_correct = False
+    elif baseline_answer_correctness is not None:
+        baseline_correct = bool(baseline_answer_correctness)
     elif "final_answer" in trajectory:
         baseline_correct = answers_equal(
             trajectory["final_answer"], trajectory["target"]
@@ -517,6 +520,14 @@ def sweep_rows(
                     "trajectory": trajectory,
                     "probes": probes,
                     "answer_correctness": correctness,
+                    "baseline_answer_correctness": (
+                        answers_equal(
+                            trajectory["final_answer"],
+                            trajectory["target"],
+                        )
+                        if "final_answer" in trajectory
+                        else bool(trajectory["final_correct"])
+                    ),
                     "schedule_cache": {},
                 }
             )
@@ -551,6 +562,9 @@ def sweep_rows(
                                 probes_are_scheduled=True,
                                 answer_correctness=example[
                                     "answer_correctness"
+                                ],
+                                baseline_answer_correctness=example[
+                                    "baseline_answer_correctness"
                                 ],
                             )
                         )

@@ -239,7 +239,30 @@ split-by-benchmark accuracy drop。指标完全相同的规则只保留复杂度
 环境的统计单元是 `benchmark × model × seed`。这样大 benchmark 不会仅凭题目多就压过
 其他环境，也会暴露“平均省 token、但某一模型系统性退化”的规则。
 
-## 5. 每一维都必须消融
+## 5. Related-work baseline：CertaIndex
+
+已有的 interval-64 `simple@32` bank 可以在本地直接回放公开 Dynasor
+`effort_level("mid")` 的停止逻辑：
+
+```bash
+PYTHONHASHSEED=0 python \
+  benchmark/FalseConsensus/governor_v2/replay_certaindex.py
+```
+
+该命令遍历全部 development train+dev 轨迹，产出逐题结果、环境汇总、成对
+hierarchical bootstrap 区间、输入 hash 与简洁报告。它不进行模型调用，也拒绝读取
+test。正式回放要求完整 Dynasor evaluator 依赖；缺少 `latex2sympy2` 等依赖时会
+直接失败，不能静默退化为弱数值判分。
+
+结果必须称为 `certaindex_mid_stop_logic_on_simple32` 或
+**prompt-adapted CertaIndex**：停止条件（interval 64、patience 3、非空、全窗口
+certain、数学等价）与公开 `mid` 实现一致，但 probe 是现有 `simple@32`。原实现的
+CertaIndex 顿悟式 suffix 与 output cap 20 仍需要独立 GPU re-probe 才能作为
+end-to-end faithful reproduction。这里还复用单请求 frozen main trajectory，
+checkpoint 表示生成后 64/128/192… token 的前缀；它与公开 streaming
+实现的逐 chunk 调用时序不应混称为完全 faithful。
+
+## 6. 每一维都必须消融
 
 把冻结后的规则保存为一个 JSON/JSONL 后执行：
 
@@ -262,7 +285,7 @@ python benchmark/FalseConsensus/governor_v2/prepare_rules.py ablate \
 split；只允许离线替换规则维度，不重新采样主轨迹。对 adaptive winner 替换整个
 `probe` reference 时，会同时消融触发类型、阈值、cooldown 与 fallback。
 
-## 6. 8×A100 时间预算
+## 7. 8×A100 时间预算
 
 以下是“全部 4 个模型、全部预注册 seed、全部 3 个 benchmark”的 Governor v2
 collection 与离线选择，不包含需要重新生成主轨迹的 related-work 方法。总计
@@ -296,7 +319,7 @@ scaling，避免为了统一 server flag 改变模型行为。
 development 阶段建议 4 卡服务 DeepSeek-7B、4 卡服务 Qwen3-8B；规则冻结后再重排
 confirmation，其中 32B 占 2×A100-80GB。
 
-## 7. 验证
+## 8. 验证
 
 ```bash
 python -m unittest \
