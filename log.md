@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-07-27 · Governor v2 development collection 完成（18/18 环境）+ sweep 启动
+
+- **采集验收通过**：2 模型 × 3 benchmark × 3 seeds = 18 环境，main/dense/adaptive
+  文件数与题数精确匹配（MATH500 400、AMC23 32、AIME24 24），manifest 齐全，
+  零失败。数据在 `results/governor_v2/`（188MB）。
+- 执行拓扑几经调整（共享机 GPU 竞争）：Qwen3-8B 单卡先毕业（轨迹短probe少）；
+  7B 先 1 卡 → 2 卡分片 → 其他用户退场后 6 卡并行（每 runner 带 5 次重试），
+  期间 GPU1 上的 vLLM 被外力关停一次（runner 重试机制 + 逐题原子续跑兜住）。
+- **判分 flag 修正落地**：`fix_final_correct.py` 实际执行，2,736 条轨迹修正 62 条
+  （集中在 grading 补丁前采集的两个 MATH500 seed42 环境，~7%），审计在
+  `results/governor_v2/final_correct_fix_audit.json`。
+- 采集完成后 GPU 全部释放；**17,712 规则 × 8 shard CPU sweep 进行中**（96 核，
+  tmux sweep_0..7）。下一步：select 冻结三个 Pareto 操作点 → confirmation。
+- 推送约定：每个里程碑 commit+push 一次（采集数据 → sweep 产物 → frozen rules →
+  confirmation），原始数据归档在 repo 的 `results/governor_v2/`。
+
+---
+
 ## 2026-07-26 · Governor v2 development collection 启动（8×A100 服务器）+ 两个采集代码 bug 修复
 
 ### 环境与门禁
