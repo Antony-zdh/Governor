@@ -6,22 +6,24 @@ attractive way to cut inference cost. A popular family of methods
 its current answer and stops once probes \emph{agree}, betting that
 intermediate consensus signals termination. We show this bet is unsafe, and
 that the failure is not repaired by tuning the stopping rule within this family.
-First, on \textsc{MATH}500 we document \emph{false consensus}: even a unanimous
-window of recent probes is correct only $93.5\%$ of the time, and a naive
-consensus stop loses $16.4$ percentage points (pp) of accuracy
-($85.6\%\!\rightarrow\!69.2\%$) because continued reasoning frequently
-overturns the intermediate answer. Second, we run a \emph{preregistered} search
-over a seven-dimensional rule schema ($17{,}712$ candidate rules) on frozen
-reasoning trajectories from two models and three math benchmarks, with
-problem-grouped train/dev/test splits and stopping gates fixed in advance. On
-the development set (held-out confirmation pending), \emph{no rule clears the
-preregistered safety bar}: the safest stop still costs $1.85\pp$ per model.
-Separately, under our dense-probe accounting, any rule with positive \emph{net}
-token savings costs at least $4.87\pp$, and---counterintuitively---adaptive,
-event-triggered probing is dominated by simple window consensus. We decompose
-the cost into an intrinsic \emph{accuracy tax} (independent of probing) and a
-\emph{probe tax} (a function of probe density), and argue only the accuracy tax
-is probe-invariant. Our results suggest that safe early exit for reasoning
-models likely requires a different termination signal, not a better-tuned
-confidence threshold on probe agreement.
+On \textsc{MATH}500 we document \emph{false consensus}: even a unanimous window
+of recent probes is correct only $93.5\%$ of the time, and a naive consensus
+stop loses $16.4$ percentage points (pp) of accuracy
+($85.6\%\!\rightarrow\!69.2\%$) because continued reasoning frequently overturns
+the intermediate answer. We then run a \emph{preregistered} search over a
+seven-dimensional consensus-rule schema ($17{,}712$ rules) on frozen reasoning
+trajectories from two models and three benchmarks, with problem-grouped splits
+and stopping gates fixed in advance. On the development set, no rule clears the
+safety bar (the safest stop still costs $1.85\pp$), and a faithful
+Certaindex reproduction on the same trajectories collapses by $56$--$70\pp$.
+\emph{The failure is specific to the consensus signal, not to early exit.}
+A different signal---model confidence at reasoning-boundary tokens, with a
+retained verification branch (in the spirit of DEER)---does far better: on the
+same models it stays within $\sim\!1\pp$ of full accuracy while saving tokens,
+and an online deployment saves $\sim\!44\%$ of tokens at essentially neutral
+accuracy ($+2.8\pp$ on one model). We separate an intrinsic \emph{accuracy tax}
+from a \emph{probe tax} to explain why consensus stalls, and conclude that safe
+early exit for reasoning needs a signal about the trajectory's future, not the
+recent past's agreement. (The boundary-confidence results are exploratory,
+single-seed, and outside the preregistered sweep.)
 \end{abstract}

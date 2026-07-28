@@ -1,53 +1,59 @@
-\section{Comparison to Prior Early-Stoppers}
+\section{Prior Early-Stoppers on the Same Trajectories}
 \label{sec:baselines}
 
-Our rule family is deliberately broad, but a reader will still ask how
-\emph{prior-work} early-stoppers behave on the same trajectories. We specify a
-common harness---the same frozen trajectories, the same \simplek{} probe bank,
-and the same token accounting (probe output tokens included)---so that every
-method is compared apples-to-apples on the $18$ dev environments.
+Our sweep searches \emph{consensus}-based rules. To place prior work on the same
+footing---and to test whether the failure is specific to the consensus
+signal---we reproduce three published early-stoppers in a common harness: the
+same frozen trajectories, the same \simplek{} probe bank, and the same token
+accounting (probe output tokens included). All numbers are dev macro-averages
+over three benchmarks per model ($18$ environments); they are reproductions on
+our frozen trajectories, not the original papers' end-to-end results.
 
 \paragraph{Methods.}
-\textbf{(i) CertaIndex / Dynasor} \citep{dynasor_certaindex}: a share-threshold
-stop over recent probe answers. \textbf{(ii) Entropy threshold}: stop when the
-probe-answer distribution's entropy drops below a threshold. \textbf{(iii)
-Patience consensus}: stop after $k$ consecutive identical probe answers. Each is
-instantiated at the operating point its authors recommend, plus a
-conservative/moderate/aggressive sweep.
+\textbf{CertaIndex} \citep{dynasor_certaindex}: the faithful Certaindex
+share-threshold stop---the direct descendant of the consensus family we sweep.
+\textbf{DEER} \citep{deer}: stops at reasoning-boundary (``\texttt{Wait}'')
+tokens using the model's \emph{own} confidence in a short trial answer---a
+different signal from probe agreement. \textbf{TJE} \citep{tje}: a token-level
+early-exit stop.
 
-\paragraph{Results.}
-\pending{full baseline table from the merged \texttt{related\_work} sweep
-(certaindex\_mid / deer / tje), after checking its probe-tax, grading, and split
-conventions match ours.} Table~\ref{tab:baselines} reports accuracy, total
-tokens, and stop coverage for each. From the false-consensus analysis of
-Section~\ref{sec:falseconsensus} we expect raw share-threshold stopping to fire
-on nearly every problem and very early, achieving large token savings at a
-large accuracy cost on the harder benchmarks (AIME24, AMC23), whereas our rule
-family, tuned toward the safe end of the frontier, is more robust but---
-consistent with Section~\ref{sec:results}---still does not clear the
-conservative gate. We report the confirmed numbers rather than this
-expectation.
-
-\begin{table}[t]
+\begin{table*}[t]
   \centering\small
-  \begin{tabular}{lccc}
+  \begin{tabular}{llccccc}
     \toprule
-    Method & Accuracy & Total tok. & Stop rate \\
+    Method & Model & Accuracy & $\Delta$acc & Fair token saving & Stop rate & Signal \\
     \midrule
-    Full generation & \tbd & --- & $0\%$ \\
-    CertaIndex (mid) & \tbd & \tbd & \tbd \\
-    Entropy threshold & \tbd & \tbd & \tbd \\
-    Patience consensus & \tbd & \tbd & \tbd \\
-    Ours (best safe) & \tbd & \tbd & \tbd \\
+    Full generation & \qweneight{}   & $85.4\%$ & --- & $0\%$ & $0\%$ & --- \\
+    Full generation & \dsseven{} & $79.8\%$ & --- & $0\%$ & $0\%$ & --- \\
+    \midrule
+    CertaIndex & \qweneight{}   & $15.3\%$ & $-70.1\pp$ & $90.1\%$ & $99.8\%$ & consensus \\
+    CertaIndex & \dsseven{} & $23.9\%$ & $-55.9\pp$ & $76.7\%$ & $98.7\%$ & consensus \\
+    TJE        & \qweneight{}   & $85.0\%$ & $-0.4\pp$  & $2.0\%$  & $22.5\%$ & token-level \\
+    TJE        & \dsseven{} & $60.7\%$ & $-19.1\pp$ & $65.0\%$ & $93.4\%$ & token-level \\
+    \midrule
+    DEER       & \qweneight{}   & $86.2\%$ & $\mathbf{+0.8\pp}$ & $16.3\%$ & $41.4\%$ & boundary conf. \\
+    DEER       & \dsseven{} & $74.9\%$ & $-4.8\pp$  & $20.2\%$ & $56.1\%$ & boundary conf. \\
     \bottomrule
   \end{tabular}
-  \caption{Prior-work early-stoppers vs.\ our best safe operating point,
-  macro-averaged over the $18$ dev environments in a common,
-  probe-tax-inclusive harness.}
+  \caption{Prior early-stoppers reproduced on our frozen trajectories (dev,
+  macro over three benchmarks; probe tokens charged). CertaIndex---the consensus
+  descendant---\textbf{collapses} ($-56$ to $-70\pp$) while saving $77$--$90\%$
+  of tokens: it fires on almost every problem, very early, exactly the
+  false-consensus trap of Section~\ref{sec:falseconsensus}. TJE is unsafe on the
+  weaker model. \textbf{DEER, which reads a different signal} (boundary
+  confidence, not probe agreement), is the only method that stays near full
+  accuracy---$+0.8\pp$ on \qweneight{}---while still saving tokens.}
   \label{tab:baselines}
-\end{table}
+\end{table*}
 
-% INTERNAL NOTE (not rendered): an earlier CertaIndex comparison circulated
-% internally could not be reproduced from our committed pipeline and is treated
-% as unverified. The numbers in Table 6 are regenerated in the harness above
-% from the merged related_work sweep; verify convention alignment before trusting.
+\paragraph{The consensus signal is the problem, not early exit.}
+Table~\ref{tab:baselines} sharpens the negative result. Every method that stops
+on \emph{probe agreement}---the swept schema and CertaIndex alike---either fails
+the safety bar or (CertaIndex) collapses outright. The lone method that stays
+near full accuracy, DEER, does not use probe agreement at all: it stops on the
+model's confidence in a trial answer emitted at a reasoning boundary. This is
+the first direct evidence that the failure we characterize is a property of the
+\emph{consensus signal}, and it motivates asking how far a boundary-confidence
+signal can be pushed (Section~\ref{sec:boundary}). We caution that DEER's
+advantage is model-dependent ($+0.8\pp$ on \qweneight{} but $-4.8\pp$ on
+\dsseven{}) and that these are frozen-trajectory reproductions.

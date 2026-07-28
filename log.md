@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-07-28 (续2) · 分支结论盘点 → paper 升级为"负→正"两幕
+
+- **盘点所有 GitHub 分支**:除 `deer-inspired-online-dev-vast-20260728`(2 commit
+  未合并)外全部已并入 main。逐个读结论文件,按"对方向的影响"归类:
+  - **强化负结果**:related_work `CertaIndex mid` 在 dev 崩塌 −56~−70pp(省 77~90%)
+    —— 正是"consensus/share 早停不安全"的实锤;Stage 11-12 跨模型/数据集/probe
+    措辞复现 False Consensus。
+  - **更新方向(正面)**:related_work `DEER`(冻结回放,不同信号=边界置信度)
+    Qwen3 **+0.78pp / 省 16%**;未合并分支的 **DEER-inspired 在线控制器**
+    (fast-path commit + 保留式 verification branch)456 题:宏 **ΔAcc −0.36% / 省 44%**,
+    Qwen3 **+2.78% / 省 46%**,配对比官方 DEER 多省 15.3%(CI[+7.3,+22.9])。
+    机制洞察:DEER confidence 测 trial answer 却交付另一条 readout(15% 不一致、
+    readout 无净增益),fast-path + verification branch 修掉。
+  - 进行中:Governor-v2 confirmation(test,seed45/46/47)数据已推,尚无聚合。
+- **paper 两幕重构**(用户拍板):retitle Confidence-→Consensus-Based;摘要/intro
+  加 Finding 4 + C5;**§7 用 related_work 真实数字填实**(CertaIndex/DEER/TJE 对照表,
+  含 Signal 列);**新增 §8 "A Signal That Works"**(在线 DEER-inspired 结果 + 机制 +
+  预注册分离声明);discussion/conclusion 改"换信号已有正面证据";limitations 加
+  boundary-confidence 的 exploratory caveat(单 seed/模型依赖/invalid 21.7%/无 test)。
+- 编译 12 页,0 undefined;修了 Table 7 长模型名溢出。
+- 诚实边界:DEER 结果 exploratory、在预注册 sweep 之外,作为"正面信号"而非已确认方法。
+
+---
+
 ## 2026-07-28 (续) · paper ACL 审稿 R1 + 修订
 
 - 3 个 subagent 扮演 ACL 审稿人（方法/统计、novelty/related、清晰度），**只读

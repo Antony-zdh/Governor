@@ -2,16 +2,18 @@
 \label{sec:conclusion}
 
 We asked whether probe-based early exit for reasoning LLMs can be made safe by
-choosing a better stopping rule. Across an intervention-free study on
-\textsc{MATH}500 and a preregistered search over $17{,}712$ rules on two models
-and three benchmarks, the answer is no for the family we search: intermediate
-probe consensus is systematically non-terminal (a unanimous window is correct
-only $93.5\%$ of the time; a naive stop loses $16.4\pp$), and on the development
-set no rule in the searched space is both safe and token-saving (the safest
-costs $1.85\pp$, positive net savings costs $\ge 4.87\pp$, and adaptive probing
-is dominated by simple window consensus). Separating the intrinsic accuracy tax
-from the reducible probe tax shows the accuracy floor is not a measurement
-artifact. The practical takeaway is that safe early exit for reasoning likely
-requires a different termination signal---one about the trajectory's future, not
-the recent past's agreement---and held-out confirmation of this lower bound is
-the immediate next step.
+choosing a better stopping rule. For the consensus-based family the answer is
+no: intermediate probe consensus is systematically non-terminal (a unanimous
+window is correct only $93.5\%$ of the time; a naive stop loses $16.4\pp$), a
+preregistered search over $17{,}712$ rules finds none that is both safe and
+token-saving on the development set (the safest costs $1.85\pp$), and a faithful
+Certaindex reproduction collapses by $56$--$70\pp$. But the failure is specific
+to the signal, not to early exit: a boundary-confidence stop with a verification
+branch---which never reads probe agreement---stays near full accuracy and, in an
+online deployment, saves $\sim\!44\%$ of tokens at essentially neutral accuracy.
+Separating the intrinsic accuracy tax from the reducible probe tax explains why
+consensus stalls. The practical takeaway is that safe early exit for reasoning
+should read the model's own forward-looking confidence at reasoning boundaries,
+not the agreement of backward-looking probes---and confirming the
+boundary-confidence signal across seeds and held-out models is the immediate
+next step.

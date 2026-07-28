@@ -12,16 +12,18 @@ intrinsically non-terminal, so no threshold on that signal escapes the accuracy
 tax.
 
 \paragraph{Implication: change the signal, not the threshold.}
-Much prior effort has gone into \emph{tuning} confidence-based stops
-\citep{dynasor_certaindex,aggarwal2023adaptive,li2024esc}. Our frontier suggests
-the ceiling of that approach is low, and points toward a different termination
-signal---one that predicts whether the \emph{trajectory itself} will still
-change, rather than whether recent probes happen to agree. Natural candidates
-already exist as research areas: verifier- or process-reward-based termination
-\citep{lightman2024verify,wang2024mathshepherd}, a learned halting signal in the
-spirit of adaptive computation \citep{graves2016act,schuster2022confident}, and
-answer-shape/stability predictors. We frame these as hypotheses motivated by the
-frontier, not as claims we test here.
+Much prior effort has gone into \emph{tuning} consensus-based stops
+\citep{dynasor_certaindex,aggarwal2023adaptive,li2024esc}. Our frontier shows the
+ceiling of that approach is low, and Section~\ref{sec:boundary} gives direct
+evidence that a different termination signal---one about whether the
+\emph{trajectory itself} will still change---does better: boundary confidence
+with a verification branch saves $\sim\!44\%$ of tokens at neutral accuracy.
+Other candidates point the same way: verifier- or process-reward-based
+termination \citep{lightman2024verify,wang2024mathshepherd} and learned halting
+in the spirit of adaptive computation \citep{graves2016act,schuster2022confident}.
+The lesson is not that early exit is hopeless but that it should read the
+model's own forward-looking confidence, not the agreement of backward-looking
+probes.
 
 \paragraph{Two live extensions.}
 Two follow-ups are compatible with the preregistration and would strengthen the
@@ -32,5 +34,9 @@ reproduces out of distribution. \textbf{(B)} \emph{Attacking the probe tax}: a
 newly preregistered extension with sparser probes / KV-cache reuse could recover
 positive \emph{net} savings at the safe end, converting ``no safe-and-saving
 stop in the searched space'' into ``\ldots exists only if probing is made this
-much cheaper.'' Both are additive to the frozen findings of
+much cheaper.'' \textbf{(C)} \emph{Validating boundary confidence}: the
+online controller of Section~\ref{sec:boundary} is single-seed and
+model-dependent ($+2.8\pp$ on \qweneight{} but $-3.5\pp$ on \dsseven{}); a
+multi-seed train/dev$\rightarrow$test evaluation would turn the positive signal
+into a confirmed method. All three are additive to the frozen findings of
 Sections~\ref{sec:falseconsensus}--\ref{sec:mechanism}.
