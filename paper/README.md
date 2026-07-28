@@ -14,7 +14,7 @@ pdflatex -interaction=nonstopmode acl_latex.tex
 pdflatex -interaction=nonstopmode acl_latex.tex
 ```
 
-Produces `acl_latex.pdf` (currently 9 pages). Requires the `multirow` package to
+Produces `acl_latex.pdf` (currently 12 pages). Requires the `multirow` package to
 be **absent** or the preamble line removed (it is not used). Tested with TeX Live
 2025 `pdflatex` + `bibtex`.
 
