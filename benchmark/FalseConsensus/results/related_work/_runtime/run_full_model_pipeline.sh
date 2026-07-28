@@ -9,18 +9,39 @@
 # 42/43/44) for that model, then runs CertaIndex (9 envs) -> TJE (9 envs) -> DEER
 # (9 envs) with workers=4 and the exact collector arguments.
 #
-# Properties: location-independent (cd to REPO); safely restartable (collectors
-# skip complete per-problem files); fails loudly (set -euo pipefail); captures
-# the real collector exit code; verifies the manifest completion block after each
-# run (complete=true, observed=expected, missing=0, failures=0); uses absolute
-# /localdata/dzhaoah/Governor paths; never selects/resets/touches GPUs or other
-# processes; writes per-method/environment logs + atomic machine-readable
-# status_<key>.json / progress_<key>.json under the full-results runtime area.
-# --dry-run is genuinely non-mutating (validates and prints only; no mkdir/status).
+# Properties: location-independent (derives REPO from script location or git
+# top-level); safely restartable (collectors skip complete per-problem files);
+# fails loudly (set -euo pipefail); captures the real collector exit code;
+# verifies the manifest completion block after each run (complete=true,
+# observed=expected, missing=0, failures=0); uses absolute paths; never
+# selects/resets/touches GPUs or other processes; writes per-method/environment
+# logs + atomic machine-readable status_<key>.json / progress_<key>.json under
+# the full-results runtime area. --dry-run is genuinely non-mutating (validates
+# and prints only; no mkdir/status). Portable dry-run validates files/commands
+# without requiring a live endpoint; full runs require endpoint readiness.
 set -euo pipefail
 
-REPO=/localdata/dzhaoah/Governor
-PY=/localdata/dzhaoah/miniforge3/envs/gov/bin/python
+# --- derive REPO from script location (portable); fall back to git top-level ---
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# The script lives under <REPO>/benchmark/FalseConsensus/results/related_work/_runtime/
+# Walk up 5 parents to reach the repo root.
+REPO="$SCRIPT_DIR"
+for _ in 1 2 3 4 5; do
+    REPO="$(dirname "$REPO")"
+done
+# Verify we found the repo root (must contain benchmark/ and dynasor/)
+if [[ ! -d "$REPO/benchmark" || ! -d "$REPO/dynasor" ]]; then
+    # Fall back: try git top-level from the script location
+    REPO="$(cd "$SCRIPT_DIR" && git rev-parse --show-toplevel 2>/dev/null)" || {
+        echo "FAIL: cannot determine repository root from $SCRIPT_DIR" >&2
+        exit 2
+    }
+fi
+# Allow override via GOV_REPO env var (preserves /localdata/dzhaoah/Governor for remote)
+if [[ -n "${GOV_REPO:-}" ]]; then
+    REPO="$GOV_REPO"
+fi
+PY="${GOV_PY:-/localdata/dzhaoah/miniforge3/envs/gov/bin/python}"
 SPLIT_MANIFEST="$REPO/benchmark/FalseConsensus/governor_v2/generated/split_manifest.json"
 BANK_ROOT="$REPO/benchmark/FalseConsensus/results/governor_v2"
 RESULTS_ROOT="$REPO/benchmark/FalseConsensus/results/related_work/full"
@@ -112,12 +133,15 @@ verify_manifest() {
     return $vrc
 }
 
-# --- validation (read-only; safe in dry-run) ---
+# --- validation (read-only; safe in dry-run; endpoint check skipped in dry-run) ---
 validate() {
     local errors=0
-    if ! curl -sS --max-time 8 "$URL/models" -H "Authorization: Bearer token-abc123" >/dev/null 2>&1; then
-        echo "FAIL: endpoint $URL not ready (model server for $KEY not up on GPU $GPU_VAL)" >&2
-        errors=$((errors+1))
+    # Endpoint readiness: required for full runs, skipped for --dry-run (portable)
+    if [[ $DRY_RUN -eq 0 ]]; then
+        if ! curl -sS --max-time 8 "$URL/models" -H "Authorization: Bearer token-abc123" >/dev/null 2>&1; then
+            echo "FAIL: endpoint $URL not ready (model server for $KEY not up on GPU $GPU_VAL)" >&2
+            errors=$((errors+1))
+        fi
     fi
     if [[ ! -f "$SPLIT_MANIFEST" ]]; then
         echo "FAIL: split manifest not found: $SPLIT_MANIFEST" >&2
