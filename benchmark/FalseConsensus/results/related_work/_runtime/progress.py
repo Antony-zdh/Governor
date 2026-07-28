@@ -41,9 +41,11 @@ SCHEMA_VERSIONS = {
 def _validate_problem_file(path: Path, method: str, model_id: str,
                            bench: str, seed: int) -> bool:
     """True iff the file is identity-valid, schema-valid, error-free, and has no
-    invalid readout. A present readout with readout_valid is False is invalid; a
-    missing readout is legitimate (no-trigger TJE/DEER case). The problem_id must
-    match the problem_<id>.json filename."""
+    corrupt readout. A present readout with finish_reason stop/length, no error,
+    no context overflow/budget -- is a COMPLETE method outcome even when
+    readout_valid is False (capped/natural invalid). Only null finish_reason,
+    request errors, context overflow/budget, corrupt identity, and malformed
+    rows make the file invalid. A missing readout is valid (no-stop/no-exit)."""
     # verify problem_id matches the filename
     fname = path.stem  # e.g. "problem_430"
     try:
@@ -67,21 +69,32 @@ def _validate_problem_file(path: Path, method: str, model_id: str,
         return False
     if d.get("base_seed") != seed:
         return False
-    # error-free records
+    # error-free records: reject non-dict rows and any row with "error" key
     sub = RECORD_KEYS[method]
     rows = d.get(sub) or []
     if not isinstance(rows, list):
         return False
     for r in rows:
-        if isinstance(r, dict) and r.get("error"):
+        if not isinstance(r, dict):
             return False
-    # readout: present + readout_valid is False -> invalid; absent -> fine
+        if "error" in r:
+            return False
+    # readout: reject present non-dict; a fully recorded readout with
+    # finish_reason stop/length, no error, no overflow/budget is a complete
+    # method outcome even if readout_valid is False. Missing readout is valid.
     ro = d.get("readout")
-    if isinstance(ro, dict):
-        if ro.get("error"):
+    if ro is not None:
+        if not isinstance(ro, dict):
+            return False  # present non-dict = malformed
+        if "error" in ro:
             return False
-        if ro.get("readout_valid") is False:
+        if ro.get("readout_context_overflow"):
             return False
+        if ro.get("readout_context_budget_exceeded"):
+            return False
+        fr = ro.get("readout_finish_reason")
+        if fr not in ("stop", "length"):
+            return False  # finish must be exactly stop or length
     return True
 
 

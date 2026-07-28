@@ -516,10 +516,30 @@ class DEERCollector:
                 }
                 trial_rows = existing.get("trials")
                 readout_row = existing.get("readout")
+                # A fully recorded readout with finish_reason stop/length, no
+                # error, no context overflow/budget -- is a COMPLETE method
+                # outcome even when readout_valid is False. Only null finish,
+                # request errors, context overflow/budget, corrupt identity,
+                # and malformed rows are hard failures.
+                def _readout_is_corrupt(ro):
+                    if ro is None:
+                        return False  # missing readout = valid no-stop/no-exit
+                    if not isinstance(ro, dict):
+                        return True  # present non-dict = malformed
+                    if "error" in ro:
+                        return True
+                    if ro.get("readout_context_overflow"):
+                        return True
+                    if ro.get("readout_context_budget_exceeded"):
+                        return True
+                    fr = ro.get("readout_finish_reason")
+                    if fr not in ("stop", "length"):
+                        return True  # finish must be exactly stop or length
+                    return False
                 has_errors = (
                     any("error" in row for row in trial_rows)
                     if isinstance(trial_rows, list) else True
-                ) or (isinstance(readout_row, dict) and ("error" in readout_row or readout_row.get("readout_valid") is False))
+                ) or _readout_is_corrupt(readout_row)
                 if all(existing.get(k) == v for k, v in required.items()) and isinstance(
                     trial_rows, list
                 ) and not has_errors:

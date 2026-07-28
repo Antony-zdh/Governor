@@ -333,10 +333,20 @@ class ProgressValidationTests(unittest.TestCase):
         p.write_text(json.dumps(d), encoding="utf-8")
         return p
 
-    def test_readout_valid_false_is_invalid(self):
+    def test_readout_valid_false_with_stop_is_valid(self):
+        """readout_valid=False with finish_reason=stop is a complete method outcome."""
         with tempfile.TemporaryDirectory() as td:
             p = self._write(td, 430, self._tje_record(
                 readout={"readout_valid": False, "readout_answer": "", "readout_finish_reason": "length"}))
+            self.assertTrue(self.progress._validate_problem_file(
+                p, "tje", "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B", "math500", 42))
+
+    def test_readout_valid_false_with_error_is_invalid(self):
+        """readout with error key is corrupt regardless of readout_valid."""
+        with tempfile.TemporaryDirectory() as td:
+            p = self._write(td, 430, self._tje_record(
+                readout={"readout_valid": False, "readout_answer": "",
+                         "readout_finish_reason": "stop", "error": "timeout"}))
             self.assertFalse(self.progress._validate_problem_file(
                 p, "tje", "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B", "math500", 42))
 
