@@ -449,13 +449,19 @@ class CertaIndexMidCollector:
                     "retry_count": retry_count,
                 }
             )
-            if decide_stop(
-                records,
-                patience=self.patience,
-                answers_equal_fn=answers_equal_fn,
-                count_not_empty_fn=count_not_empty_fn,
-            ) is not None:
-                break
+            # Online optimization (faithful to dynasor cot.py which checks
+            # probe_answers[-threshold:] at each step): evaluate ONLY the latest
+            # patience-length window once per new probe, not the full history.
+            # Earlier windows were already checked and did not fire (or the
+            # collector would have stopped). decide_stop() full-scan semantics
+            # are unchanged for offline replay.
+            if len(records) >= self.patience:
+                window = records[-self.patience:]
+                answers = [p["probe_answer"] for p in window]
+                if (count_not_empty_fn(answers) == self.patience
+                        and answers_equal_fn(answers)
+                        and sum(1 for p in window if p["is_certain"]) == self.patience):
+                    break
         payload = {
             "schema_version": self.PROBE_SCHEMA,
             "method": METHOD,

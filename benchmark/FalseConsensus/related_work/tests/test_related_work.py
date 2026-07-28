@@ -240,10 +240,13 @@ class CertaIndexStopTests(unittest.TestCase):
 
     def test_collector_source_breaks_at_first_stop(self):
         # Regression guard: the live collector must not continue issuing all
-        # frozen-prefix probes after the stop rule fires.
+        # frozen-prefix probes after the stop rule fires.  Match Dynasor's
+        # online behavior by checking only the latest patience-sized window;
+        # earlier windows were already checked on prior iterations.
         source = Path(certaindex_mid.__file__).read_text(encoding="utf-8")
-        self.assertIn("if decide_stop(", source)
-        self.assertIn("count_not_empty_fn=count_not_empty_fn", source)
+        self.assertIn("window = records[-self.patience:]", source)
+        self.assertIn("answers_equal_fn(answers)", source)
+        self.assertIn("count_not_empty_fn(answers) == self.patience", source)
 
 
 # --------------------------------------------------------------------------- #
