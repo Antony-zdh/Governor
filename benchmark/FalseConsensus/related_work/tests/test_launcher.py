@@ -226,11 +226,11 @@ class ManifestCheckTests(unittest.TestCase):
 
 
 class ManifestInvalidReadoutsTests(unittest.TestCase):
-    """manifest_check treats invalid_readouts as a diagnostic (not a hard
-    failure -- these are deterministic method-level outcomes where the model
-    claimed Almost certain but couldn't deliver a boxed readout; replay handles
-    them as empty/incorrect). truncated_readouts > 0 IS a hard failure
-    (infrastructure blocker: context overflow, server truncation)."""
+    """manifest_check: both invalid_readouts and truncated_readouts are DIAGNOSTIC
+    method outcomes (not hard failures). Only recorded_failures (request errors),
+    noncoverage (missing/observed mismatch), and complete=false are hard failures.
+    A capped readout at readout_cap=8192 with no completed boxed is a complete
+    per-problem record (replay delivers empty/incorrect)."""
 
     def _write_manifest(self, tmpdir, completion):
         p = Path(tmpdir) / "probe_manifest.json"
@@ -250,36 +250,60 @@ class ManifestInvalidReadoutsTests(unittest.TestCase):
             self.assertTrue(ok)
             self.assertEqual(reason, "ok")
 
-    def test_invalid_readouts_zero_passes(self):
-        from benchmark.FalseConsensus.related_work import manifest_check
-        with tempfile.TemporaryDirectory() as td:
-            p = self._write_manifest(td, {"complete": True, "expected_problem_count": 400,
-                                          "observed_problem_count": 400, "missing_problem_count": 0,
-                                          "recorded_failures": 0, "invalid_readouts": 0})
-            ok, _ = manifest_check.check_manifest(p, 400)
-            self.assertTrue(ok)
-
-    def test_truncated_readouts_nonzero_fails(self):
-        """truncated_readouts > 0 IS a hard failure (infrastructure blocker)."""
+    def test_truncated_readouts_nonzero_passes(self):
+        """truncated_readouts > 0 (capped at readout_cap=8192) is a diagnostic,
+        NOT a hard failure."""
         from benchmark.FalseConsensus.related_work import manifest_check
         with tempfile.TemporaryDirectory() as td:
             p = self._write_manifest(td, {"complete": True, "expected_problem_count": 400,
                                           "observed_problem_count": 400, "missing_problem_count": 0,
                                           "recorded_failures": 0, "invalid_readouts": 0,
-                                          "truncated_readouts": 3})
+                                          "truncated_readouts": 34})
             ok, reason = manifest_check.check_manifest(p, 400)
-            self.assertFalse(ok)
-            self.assertIn("truncated_readouts=3", reason)
+            self.assertTrue(ok)
+            self.assertEqual(reason, "ok")
 
-    def test_truncated_readouts_zero_passes(self):
+    def test_both_invalid_and_truncated_nonzero_passes(self):
+        """Both diagnostics nonzero -- still passes."""
         from benchmark.FalseConsensus.related_work import manifest_check
         with tempfile.TemporaryDirectory() as td:
             p = self._write_manifest(td, {"complete": True, "expected_problem_count": 400,
                                           "observed_problem_count": 400, "missing_problem_count": 0,
-                                          "recorded_failures": 0, "invalid_readouts": 14,
-                                          "truncated_readouts": 0})
+                                          "recorded_failures": 0, "invalid_readouts": 107,
+                                          "truncated_readouts": 34})
             ok, _ = manifest_check.check_manifest(p, 400)
             self.assertTrue(ok)
+
+    def test_recorded_failures_nonzero_fails(self):
+        """recorded_failures > 0 (actual request errors) IS a hard failure."""
+        from benchmark.FalseConsensus.related_work import manifest_check
+        with tempfile.TemporaryDirectory() as td:
+            p = self._write_manifest(td, {"complete": True, "expected_problem_count": 400,
+                                          "observed_problem_count": 400, "missing_problem_count": 0,
+                                          "recorded_failures": 3})
+            ok, reason = manifest_check.check_manifest(p, 400)
+            self.assertFalse(ok)
+            self.assertIn("recorded_failures=3", reason)
+
+    def test_noncoverage_fails(self):
+        """missing_problem_count > 0 IS a hard failure."""
+        from benchmark.FalseConsensus.related_work import manifest_check
+        with tempfile.TemporaryDirectory() as td:
+            p = self._write_manifest(td, {"complete": True, "expected_problem_count": 400,
+                                          "observed_problem_count": 300, "missing_problem_count": 100,
+                                          "recorded_failures": 0})
+            ok, _ = manifest_check.check_manifest(p, 400)
+            self.assertFalse(ok)
+
+    def test_incomplete_fails(self):
+        """complete=false IS a hard failure."""
+        from benchmark.FalseConsensus.related_work import manifest_check
+        with tempfile.TemporaryDirectory() as td:
+            p = self._write_manifest(td, {"complete": False, "expected_problem_count": 400,
+                                          "observed_problem_count": 400, "missing_problem_count": 0,
+                                          "recorded_failures": 0})
+            ok, _ = manifest_check.check_manifest(p, 400)
+            self.assertFalse(ok)
 
 
 class ProgressValidationTests(unittest.TestCase):
