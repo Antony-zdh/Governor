@@ -22,15 +22,18 @@ after $s$. This is the quantity that never reaches zero---the $1.85\pp$ floor of
 Section~\ref{sec:results} is an \emph{accuracy tax} that no probing scheme can
 remove, because it is a property of the reasoning trajectory, not of the probe.
 A \emph{direction-of-effect} test operationalizes this: among stops where the
-committed answer differs from the final answer, we measure the ratio of
-(final-correct, stop-wrong) to (final-wrong, stop-correct). Pure sampling noise
-predicts $\approx 1{:}1$; a genuine ``continued reasoning corrects'' effect
-predicts a ratio $\gg 1$. On the frozen sweep this ratio is
-\pending{direction-of-effect ratio, offline compute}; we currently support the
-intrinsic-tax claim with the intervention-study recovery statistics of
-Section~\ref{sec:falseconsensus} ($65.5\%$, $76.3\%$), noting those were
-measured under a different budget/probe regime and treating the sweep ratio as
-the direct test to be reported.
+committed answer differs in correctness from the final answer, we measure the
+ratio of (final-correct, stop-wrong) to (final-wrong, stop-correct). Pure
+sampling noise predicts $\approx 1{:}1$; a genuine ``continued reasoning
+corrects'' effect predicts a ratio $\gg 1$. On the frozen replay this ratio is
+$\mathbf{35{:}1}$ for the naive consensus stopper (final-correct/stop-wrong
+$=1055$ vs.\ final-wrong/stop-correct $=30$; $34.3{:}1$ and $35.9{:}1$ on
+\dsseven{} and \qweneight{} separately), and $15$--$18{:}1$ for the more
+conservative variants---all far above the $1{:}1$ of sampling noise. Stopping on
+consensus therefore destroys a correct-in-the-end answer roughly $35$ times more
+often than it rescues a wrong one, corroborating the intervention-study recovery
+statistics of Section~\ref{sec:falseconsensus} ($65.5\%$, $76.3\%$). The accuracy
+tax is a real, directional effect, not sampling noise.
 
 \subsection{The probe tax is a design choice}
 The second cost is the probe output $p$. Under dense re-probing (every $64$

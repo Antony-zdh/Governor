@@ -29,14 +29,30 @@ none is admissible. The obstruction is not a narrow miss:
   whether the psf floor is set to $0.8$, $0.7$, $0.6$, or $0.5$.
 \end{itemize}
 
+\paragraph{Direction of effect.}
+The failure is systematic, not sampling noise. \emph{Every} one of the
+$17{,}712$ candidate rules incurs a positive worst-case per-model accuracy drop
+(minimum $1.85\pp$, median $20.1\pp$); \emph{zero} rules reach break-even. Across
+all $637{,}632$ rule--environment evaluations, accuracy strictly \emph{falls} in
+$67.7\%$ and strictly \emph{rises} in only $6.7\%$ (unchanged in the remaining
+$25.5\%$), for a mean drop of $10.9\pp$. The rare gains are small and do not
+concentrate in any rule or family. This is exactly the direction our mechanism
+(Section~\ref{sec:mechanism}) predicts: consensus forms while the answer is still
+moving, so acting on it removes correct recoveries more often than it banks a
+settled trajectory.
+
 Two claims should be kept separate. The \textbf{safety} result---no rule reaches
 even $1.5\pp$, the floor being $1.85\pp$---is a statement about accuracy and, as
 Section~\ref{sec:mechanism} argues, is independent of how densely we probe. Only
 the per-model condition is binding here; the per-benchmark cap is a diagnostic
-(Section~\ref{sec:resolution}). This safety margin is thin ($1.85$ vs.\ $1.5\pp$)
-and not yet equipped with uncertainty quantification, so the bootstrap CIs
-(Section~\ref{sec:resolution}) and held-out confirmation are substantive: they,
-not cosmetics, establish the floor's robustness to sampling noise. The
+(Section~\ref{sec:resolution}). This particular margin is thin: a bootstrap over
+the nine benchmark$\times$seed environments puts the least-bad rule's worst-case
+per-model drop at $1.85\pp$ with a $95\%$ CI of $[0.0,\,5.6]\pp$, which includes
+break-even, so we do \emph{not} rest the result on that single rule's point
+estimate. We rest it instead on the two facts that do not depend on it: all
+$17{,}712$ rules lose accuracy (above), and even this least-bad rule spends
+\emph{extra} tokens (its net savings are $-8$ to $-9\%$). Held-out confirmation
+(C3) then tests whether the floor reproduces out of distribution. The
 \textbf{savings} result---positive net savings costs $\ge 4.87\pp$---additionally
 depends on our dense-probe accounting and is therefore the more caveated of the
 two. Within the preregistered space one must choose between a stop that is

@@ -4,6 +4,35 @@
 
 ---
 
+## 2026-07-28 (续3) · 通宵跑 ①②③（服务器 34.182.235.113, 8×A100 全空）
+
+- **③ direction-of-effect + bootstrap CI（本地，无 GPU，不碰 test）已完成并入 paper。**
+  - 脚本 `governor_v2/analysis/direction_of_effect{,.py,_ratio.py}`。先复现 paper 头号数字
+    做校验：per-rule worst-case per-model drop 的 p1=3.370/p5=4.259/p25=10.722/median=20.074/min=1.852，
+    与 paper(3.37/4.26/10.7/20.1/1.85) **完全吻合** → 聚合口径正确。
+  - **方向性(robust)**：17,712 条规则 **100%** worst-case per-model drop>0（无一保本）；
+    637,632 个 rule×env cell 中 **67.7% 掉、仅 6.7% 涨**（25.5% 不变），均值 −10.9pp。
+  - **§6 判别比值(精确)**：从 `existing_methods_matched/governor_replay_rows.jsonl`(逐题
+    baseline_correct vs correct) 算 (final-correct,stop-wrong):(final-wrong,stop-correct)：
+    naive consensus **35.2:1**(1055 vs 30；DeepSeek 34.3、Qwen3 35.9)，conservative 变体 15–18:1，
+    远离噪声的 1:1 → 内在 accuracy tax 是真方向性效应。去掉 §6 的 \pending。
+  - **前沿 CI(诚实)**：least-bad rule 1.85pp，对 9 个 benchmark×seed env bootstrap 95% CI [0.0, 5.6]
+    —— **含保本点**，故不把结论押在这一条上；改押两条不依赖它的事实：全 17,712 条都掉、
+    且这条 least-bad 规则净省为 **−8~−9%**（保准确率必多花 token）。§5 相应改写。
+  - 编译 12 页，0 error / 0 undefined。
+- **② held-out confirmation（读 test split，预注册终局步骤）正在服务器跑。**
+  合法性：`heldout_32b_config.json` 有 `selection_visibility: never` + `never_use_confirmation_results_to_change_rule_or_cap`，
+  规则/cap 已冻结，读 test 不污染 selection；同事已先跑完 2 个 dev 模型(seed45/46/47)并入库，
+  今晚补 **held-out 两模型**：Llama-8B(GPU2) + Qwen-32B(TP2, GPU3,4)，seed 45，
+  main→dense_probe→adaptive_probe 三段（`run_matrix.py` 跑 `confirmation_matrix_base64.jsonl`）。
+  Llama 已 17:56 起跑健康(~900 tok/s)；32B 装载中。服务器 `~/Governor` 非 git，代码用 rsync 上传。
+- **① DEER 多 seed 被拦下（有意的预注册护栏）。** `online_controller.py:91-92,692-693`
+  硬锁 seed 42（"formal online experiment is hard-locked to seed 42"）。跑 43/44 需改护栏
+  = 改动预注册产物，**不擅自绕过**，等同事/用户明确授权做一个声明式 robustness set。
+  已释放 GPU0/1。
+
+---
+
 ## 2026-07-28 (续2) · 分支结论盘点 → paper 升级为"负→正"两幕
 
 - **盘点所有 GitHub 分支**:除 `deer-inspired-online-dev-vast-20260728`(2 commit
