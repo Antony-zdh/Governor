@@ -46,10 +46,30 @@ early-exit stop.
   \label{tab:baselines}
 \end{table*}
 
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/governor_related_work_pareto_dev.pdf}
+  \caption{Every swept consensus rule (dev) against the three prior
+  early-stoppers. Each point is one of the $17{,}712$ candidate rules; blue are
+  the $3{,}704$ surviving a near-Pareto train filter, the red step is the dev
+  Pareto boundary, and the markers are the reproduced anchors. The
+  safe-and-saving corner (top-left: small drop \emph{and} large saving) is empty
+  ---the boundary only climbs as the accuracy drop grows. \textbf{CertaIndex}
+  sits at the far right ($63\pp$ drop), the consensus family's collapse;
+  \textbf{TJE} at $9.8\pp$; and \textbf{DEER}---a boundary-confidence signal
+  \emph{outside} the swept space---occupies the low-drop corner ($2.0\pp$,
+  $18\%$), above the consensus Pareto boundary at the same accuracy drop. The
+  saving axis is all-generated tokens (the related-work convention of
+  Table~\ref{tab:baselines}); net probe-charged saving
+  (Section~\ref{sec:mechanism}) is lower and can be negative.}
+  \label{fig:pareto}
+\end{figure*}
+
 \paragraph{The consensus signal is the problem, not early exit.}
-Table~\ref{tab:baselines} sharpens the negative result. Every method that stops
-on \emph{probe agreement}---the swept schema and CertaIndex alike---either fails
-the safety bar or (CertaIndex) collapses outright. The lone method that stays
+Table~\ref{tab:baselines} and Figure~\ref{fig:pareto} sharpen the negative
+result. Every method that stops on \emph{probe agreement}---the swept schema and
+CertaIndex alike---either fails the safety bar or (CertaIndex) collapses
+outright. The lone method that stays
 near full accuracy, DEER, does not use probe agreement at all: it stops on the
 model's confidence in a trial answer emitted at a reasoning boundary. This is
 the first direct evidence that the failure we characterize is a property of the
