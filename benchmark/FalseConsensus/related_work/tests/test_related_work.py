@@ -78,6 +78,22 @@ class TriggerParsingTests(unittest.TestCase):
 
 
 # --------------------------------------------------------------------------- #
+class TokenAlignmentTests(unittest.TestCase):
+    def test_small_drift_is_recorded_but_not_material(self):
+        alignment = common.validate_token_alignment(1000, 1004)
+        self.assertEqual(alignment["delta"], 4)
+        self.assertFalse(alignment["material_mismatch"])
+
+    def test_material_drift_is_explicitly_flagged_not_discarded(self):
+        alignment = common.validate_token_alignment(3495, 3468)
+        self.assertEqual(alignment["recorded"], 3495)
+        self.assertEqual(alignment["reencoded"], 3468)
+        self.assertEqual(alignment["absolute_delta"], 27)
+        self.assertEqual(alignment["tolerance"], 17)
+        self.assertTrue(alignment["material_mismatch"])
+
+
+# --------------------------------------------------------------------------- #
 class TJEConfidenceTests(unittest.TestCase):
     def test_parse_forced_prefix_completion(self):
         self.assertEqual(tje.parse_confidence_response("Almost certain}"), "Almost certain")

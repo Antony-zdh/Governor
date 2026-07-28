@@ -657,6 +657,7 @@ def finalize_collection_manifest(
     invalid_readouts = 0
     truncated_readouts = 0
     token_mismatches = 0
+    material_token_mismatches = 0
     for path in paths:
         payload = load_json(path)
         rows = payload.get(records_key, [])
@@ -676,6 +677,8 @@ def finalize_collection_manifest(
             "main_token_count_reencoded"
         ):
             token_mismatches += 1
+        if payload.get("token_alignment", {}).get("material_mismatch") is True:
+            material_token_mismatches += 1
     observed = len(paths)
     completion = {
         "expected_problem_count": int(expected_problem_count),
@@ -687,6 +690,7 @@ def finalize_collection_manifest(
         "invalid_readouts": invalid_readouts,
         "truncated_readouts": truncated_readouts,
         "token_count_mismatches": token_mismatches,
+        "material_token_count_mismatches": material_token_mismatches,
         "elapsed_seconds": float(elapsed_seconds),
         "finished_at": now_iso(),
         "complete": observed == int(expected_problem_count) and errors == 0,
@@ -763,7 +767,15 @@ def token_position_for_char_end(
 
 
 def validate_token_alignment(recorded: int, reencoded: int) -> dict:
-    """Flag and reject material drift from the frozen trajectory tokenizer."""
+    """Measure and explicitly flag drift from the frozen trajectory tokenizer.
+
+    Frozen trajectories retain generated text and the server-reported token
+    count, but not the original generated token IDs.  Decode/re-encode is not
+    guaranteed to be token-idempotent, so a material mismatch is an auditable
+    data-quality flag rather than a reason to discard the trajectory.  The
+    exact counts, delta, tolerance, and flag are persisted in every record and
+    summarized in the finalized manifest.
+    """
     recorded = int(recorded)
     reencoded = int(reencoded)
     delta = reencoded - recorded
@@ -776,11 +788,6 @@ def validate_token_alignment(recorded: int, reencoded: int) -> dict:
         "tolerance": tolerance,
         "material_mismatch": abs(delta) > tolerance,
     }
-    if result["material_mismatch"]:
-        raise ValueError(
-            f"material token-count mismatch: recorded={recorded}, "
-            f"reencoded={reencoded}, tolerance={tolerance}"
-        )
     return result
 
 
