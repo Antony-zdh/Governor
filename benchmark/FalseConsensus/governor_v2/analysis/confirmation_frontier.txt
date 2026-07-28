@@ -1,0 +1,27 @@
+rows(at operating budget)=407376
+rules=17712  models=['Qwen3-8B', 'DeepSeek-R1-Distill-Llama-8B', 'DeepSeek-R1-Distill-Qwen-32B', 'DeepSeek-R1-Distill-Qwen-7B']
+roles={'Qwen3-8B': 'development', 'DeepSeek-R1-Distill-Llama-8B': 'heldout_architecture', 'DeepSeek-R1-Distill-Qwen-32B': 'heldout_scale', 'DeepSeek-R1-Distill-Qwen-7B': 'development'}
+seeds=[45, 46, 47]  benches=['aime24', 'amc23', 'math500']
+envs/rule (mode)=23
+
+=== TEST-split per-rule worst-case per-model drop ===
+  p  0 = 0.111 pp
+  p  1 = 0.333 pp
+  p  5 = 0.667 pp
+  p 25 = 2.000 pp
+  p 50 = 9.222 pp
+  min = 0.111 pp
+
+=== CONSERVATIVE GATE on TEST (<=1.5 / <=2.0 / psf>=0.8) ===
+  rules clearing gate on test: 204
+  rules with worst-case per-model drop <= 1.5pp (accuracy half only): 4118
+
+=== DIRECTION OF EFFECT on TEST ===
+  rules losing (worst-case per-model drop>0): 17712/17712 = 100.00%
+  cells: n=407376 lose>0=44.66% gain<0=4.26% mean drop=7.02pp
+
+=== PER-MODEL: least-bad mean drop, and safe-with-saving rules ===
+  development            Qwen3-8B                         least-bad mean drop= -0.11pp  rules(drop<=1.5 & psf>=0.8)=1140
+  heldout_architecture   DeepSeek-R1-Distill-Llama-8B     least-bad mean drop=  0.00pp  rules(drop<=1.5 & psf>=0.8)=1312
+  heldout_scale          DeepSeek-R1-Distill-Qwen-32B     least-bad mean drop=  0.00pp  rules(drop<=1.5 & psf>=0.8)=230
+  development            DeepSeek-R1-Distill-Qwen-7B      least-bad mean drop= -1.50pp  rules(drop<=1.5 & psf>=0.8)=1502

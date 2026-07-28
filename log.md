@@ -4,6 +4,33 @@
 
 ---
 
+## 2026-07-28 (续4) · ② held-out confirmation 结果 + 并入 paper
+
+- **数据齐活**:32B(held-out scale, seed45, test, 全3 benchmark)✅;Llama-8B
+  (held-out architecture)math500+amc23 ✅;**Llama-aime24 卡死排除**——弱模型在
+  32K budget 的 6 道 aime24 上退化成不终止生成(1.5h 计数器停在 1/6、单 req 生成
+  >1M token),killed 释放 GPU2(共享机礼貌);2/3 benchmark 足够作 held-out 架构证据。
+- **离线回放** `replay_rules.py sweep --phase confirmation`(16 shard 并行,~10min,
+  纯 CPU 无 GPU;candidate_rules.jsonl 确定性重建、rule_id 与 dev sweep 完全一致)。
+  注意 confirmation 每 env 有 3 个 eval budget,分析时须过滤到 cap budget
+  (math500/amc23=16384, aime24=32768)才与 dev gate 对齐。
+- **核心结论(leakage-safe:dev 排序、test 只测不选)**:
+  - **前沿高度稳定**:每条规则 worst-case per-model drop 的 dev↔test **Pearson r=0.963**。
+  - **联合门为空**:conservative gate 通过数 = dev 0 / test 272 / **both 0**;那 272 条
+    test-only 通过者在 dev 上掉 4.98–5.65pp(中位 5.09),0 条也 ≤1.5 on dev
+    —— 正是 held-out split 要挡掉的 in-sample 过拟合。
+  - **未见模型**:Llama-8B、32B 上 100% 规则 worst-case 掉点,dev 前沿规则无净节省。
+  - **诚实注脚**:1.85pp 是 dev 样本量(同一 least-bad rule 在 test 只 0.11pp),故稳健
+    主张压在 r=0.96 + 空联合门,而非精确 floor 值。脚本/输出存
+    `governor_v2/analysis/confirmation_{frontier,cross_split}.{py→,txt}`。
+- **并入 paper**:§5 新增"Held-out confirmation"小节;§10 limitations、§8 discussion
+  (confirmation 从 future 改 done)、abstract 各加确认句;去掉 §5:9 "deferred to C3"、
+  §4 CI、§附录 frontier-scatter/direction-of-effect 三处已完成的 \pending。14 页 0 error。
+  confirmation_metrics.jsonl.gz(38MB,可由 trajectory 重生)加入 .gitignore,提交原始
+  held-out trajectory(与已入库的 dev-model confirmation 一致)。
+
+---
+
 ## 2026-07-28 (续3) · 通宵跑 ①②③（服务器 34.182.235.113, 8×A100 全空）
 
 - **③ direction-of-effect + bootstrap CI（本地，无 GPU，不碰 test）已完成并入 paper。**

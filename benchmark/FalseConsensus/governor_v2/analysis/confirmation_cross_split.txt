@@ -1,0 +1,25 @@
+[(A) same-models dev->test generalization: TEST restricted to the 2 dev models]
+rules in both dev&test: 17712
+
+=== CONSERVATIVE GATE (per-model<=1.5, per-bench<=2.0, psf>=0.8) ===
+  pass on DEV (dev-split): 0
+  pass on TEST           : 272
+  pass on BOTH           : 0   <-- leakage-safe generalization
+
+=== accuracy half only (per-model drop <= 1.5pp) ===
+  dev<=1.5: 0   test<=1.5: 4444   both<=1.5: 0
+  dev(<=1.5 & psf>=.8): 0  test: 828  both: 0
+
+=== the 272 TEST-gate-passers, evaluated on DEV ===
+  their dev per-model drop: min=4.98 median=5.09 max=5.65 pp; how many also <=1.5 on dev: 0
+
+=== tracking the extremes across splits ===
+  dev least-bad rule: dev_mm=1.85 -> test_mm=0.11 pp
+  test least-bad rule: test_mm=-0.11 -> dev_mm=4.87 pp
+  Pearson corr(dev_mm, test_mm) = 0.963
+
+=== (B) HELD-OUT MODELS on test: ['DeepSeek-R1-Distill-Llama-8B', 'DeepSeek-R1-Distill-Qwen-32B'] ===
+  DeepSeek-R1-Distill-Llama-8B     [heldout_architecture] least-bad mean drop=0.00pp  in-sample rules(<=1.5 & psf>=.8)=1312
+      dev-least-bad rule on this model: 0.00pp
+  DeepSeek-R1-Distill-Qwen-32B     [heldout_scale] least-bad mean drop=0.00pp  in-sample rules(<=1.5 & psf>=.8)=230
+      dev-least-bad rule on this model: 0.00pp

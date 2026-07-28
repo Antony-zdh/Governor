@@ -5,8 +5,8 @@ We aggregate the sweep into per-environment metrics---$637{,}632$ rows
 $=17{,}712$ rules $\times$ $18$ environments $\times$ $2$ splits (train, dev)---
 and compute, for each rule, its worst per-model and per-benchmark accuracy drop
 and its net token savings (Section~\ref{sec:mechanism} defines the accounting).
-All numbers below are on the development set; held-out confirmation is
-\pending{deferred to C3}. Applying commitment~C2 to the preregistered
+All numbers below are on the development set unless noted; held-out confirmation
+is reported in the final subsection. Applying commitment~C2 to the preregistered
 conservative gate yields the paper's central result.
 
 \subsection{The conservative gate is empty}
@@ -153,8 +153,31 @@ against prior-work early-stoppers is completed in Section~\ref{sec:baselines}.
 \end{table*}
 
 \subsection{Held-out confirmation}
-Per commitment~C3, confirmation on the test split and on the two unseen models
-(Llama-8B, Qwen-32B) is \pending{run only after a frozen rule set / operating
-point is fixed; see Section~\ref{sec:discussion}}. Because the development
-result is that \emph{no} rule clears the conservative gate, confirmation is
-framed as validating the frontier lower bound rather than a selected rule.
+We read the test split once (commitment~C3). Because the development result is
+that \emph{no} rule clears the gate, there is no selected rule to confirm; we
+instead ask whether the \emph{frontier} reproduces out of distribution, ranking
+rules on dev and only \emph{measuring} them on test---never selecting there.
+
+\paragraph{The frontier reproduces; the joint gate is empty.}
+Each rule's worst-case per-model accuracy drop on test is near-perfectly
+correlated with its dev value (Pearson $r=0.96$ over all $17{,}712$ rules), and
+every rule still loses in the worst case. \textbf{No rule clears the conservative
+gate on both splits}: $0$ on dev, and of the $272$ rules admissible on test
+alone, not one is admissible on dev---there they cost $4.98$--$5.65\pp$ per model
+(median $5.09$). These $272$ are exactly the in-sample winners the held-out split
+exists to reject: selecting directly on test would ``find'' safe rules that are
+not safe.
+
+\paragraph{Unseen models.}
+The same structure holds for models never used in development---the $32$B distill
+(held-out scale) and Llama-8B (held-out architecture).\footnote{Llama-8B on
+math500 and amc23; its $32{,}768$-token aime24 collection did not terminate for
+this weaker model and is omitted.} On each, $100\%$ of rules lose in the worst
+case and the dev-frontier rules deliver no net savings; no rule is jointly
+safe-and-saving on any held-out model.
+
+\paragraph{On the floor value.}
+We report the $1.85\pp$ minimum as a \emph{development} quantity: the same
+least-bad rule measures $0.11\pp$ on test (still with negative savings). The
+split-invariant claims are therefore the $r=0.96$ frontier stability and the
+empty joint gate, not the exact floor.
