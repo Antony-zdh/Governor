@@ -35,6 +35,11 @@ MODELS = {
 }
 BENCHMARKS = ("math500", "amc23", "aime24")
 METHODS = (METHOD_PROPOSED, METHOD_REFERENCE)
+# short env-dir keys (match run_online_dev.sh MODEL_KEY)
+MODEL_KEYS = {
+    "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B": "deepseek",
+    "Qwen/Qwen3-8B": "qwen3",
+}
 
 
 def discover(results_root: Path) -> list[dict[str, Any]]:
@@ -365,7 +370,7 @@ def _frozen_deer_summary(baseline_root: Path, model: str, benchmark: str) -> Opt
     """Env-level frozen-DEER reproduction summary (read-only related_work)."""
     path = (
         baseline_root.parent / "related_work" / "full" / "_replay"
-        / f"{MODELS[model]}__{benchmark}__seed_42__deer" / "summary.json"
+        / f"{MODEL_KEYS[model]}__{benchmark}__seed_42__deer" / "summary.json"
     )
     if not path.exists():
         return None
@@ -583,11 +588,11 @@ def write_report(
         "## 1. 方法与部署化定位",
         "",
         "- **主方法 `deer_inspired_online_v1`**：1024 committed-main tokens 前只记录 `Wait` 不 probe；"
-        "前 10 次实际 Stage-1 probe 保持 dense；之后进入 sparse（距上次实际 probe ≥512 main tokens 才 probe）。"
-        "Stage-1 confidence `>0.995` fast commit；`>0.97` 且距上次 branch ≥512 进入 retained verification branch；"
+        "前 10 次实际 Stage-1 probe 保持 dense；之后进入 sparse（距上次实际 probe >=512 main tokens 才 probe）。"
+        "Stage-1 confidence `>0.995` fast commit；`>0.97` 且距上次 branch >=512 进入 retained verification branch；"
         "branch 通过（Stage-2 `>0.99` 且两答案数学等价）则 commit，否则保留 verification reasoning、丢弃 Stage-2 并继续。",
         "- **对照 `deer_online_reference`**：官方 DEER 在线 Wait-probe，从首个 `Wait` 起最多 10 次，"
-        "confidence `>0.95` 后用 `prefix+\\n\n\n` greedy readout（cap 4096）。无 fast path、无 verification branch。",
+        "confidence `>0.95` 后用 `prefix + \"\\n\\n\\n\"` greedy readout（cap 4096）。无 fast path、无 verification branch。",
         "- 两者共用同一 online engine、prompt、主采样（T=0.6, top_p=0.95）与 seed policy；"
         "**差异仅在触发调度与 branch 控制器**，报告据此区分方法差异。",
         "- DeepSeek 用 `avg1`（算术平均，跳过首 token）；Qwen3 用 `avg2`（几何平均）且 confidence 仅当末 token 为 `</` 时有效（否则强制 0）。"
@@ -658,7 +663,7 @@ def write_report(
             f"sparse probe 总数：{sum(r['sparse_attempts'] for r in prop)}；"
             f"512-gap 跳过总数：{sum(r['gap_skips'] for r in prop)}（不排队、不后延）。",
             f"- 平均 Stage-1 attempts：{mean(r['stage1_attempts'] for r in prop):.2f}；"
-            f"无隐藏 hard cap（reference 仍严格 ≤10，主方法 sparse 可超过）。",
+            f"无隐藏 hard cap（reference 仍严格 <=10，主方法 sparse 可超过）。",
         ]
 
     if comparisons:
