@@ -1,0 +1,174 @@
+{
+  "schema_version": "related-work-deer-trial-1",
+  "method": "deer_frozen",
+  "reproduction_class": "frozen-trajectory DEER reproduction (official probes on frozen prefix)",
+  "problem_id": 359,
+  "dataset": "math500",
+  "model": "Qwen/Qwen3-8B",
+  "base_seed": 43,
+  "main_token_count_recorded": 3410,
+  "main_token_count_reencoded": 3409,
+  "token_alignment": {
+    "recorded": 3410,
+    "reencoded": 3409,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 17,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "92cd50573954a540dd3fdc9936e532ebd0b2ba0465d94737dbf93e5a018a0429",
+  "policy": "avg2",
+  "threshold": 0.95,
+  "require_think_close": true,
+  "trials": [
+    {
+      "candidate_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 1333,
+      "token_position": 488,
+      "trial_text": "{2}\n\nWait, let me check that again. Let me expand $ (x + y +",
+      "trial_answer": "2",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": -0.048587556928396225
+        },
+        {
+          "token": "2",
+          "logprob": -0.012463067658245564
+        },
+        {
+          "token": "}\n\n",
+          "logprob": -0.0003383779258001596
+        },
+        {
+          "token": "Wait",
+          "logprob": -0.10307012498378754
+        },
+        {
+          "token": ",",
+          "logprob": -4.0531076592742465e-06
+        },
+        {
+          "token": " let",
+          "logprob": -0.1387542486190796
+        },
+        {
+          "token": " me",
+          "logprob": -4.017272294731811e-05
+        },
+        {
+          "token": " check",
+          "logprob": -0.08128486573696136
+        },
+        {
+          "token": " that",
+          "logprob": -0.06207450106739998
+        },
+        {
+          "token": " again",
+          "logprob": -0.19435451924800873
+        },
+        {
+          "token": ".",
+          "logprob": -0.018203342333436012
+        },
+        {
+          "token": " Let",
+          "logprob": -0.06355919688940048
+        },
+        {
+          "token": " me",
+          "logprob": -0.023246262222528458
+        },
+        {
+          "token": " expand",
+          "logprob": -0.09458937495946884
+        },
+        {
+          "token": " $",
+          "logprob": -0.0004328744253143668
+        },
+        {
+          "token": " (",
+          "logprob": 0.0
+        },
+        {
+          "token": "x",
+          "logprob": 0.0
+        },
+        {
+          "token": " +",
+          "logprob": -1.1920928244535389e-07
+        },
+        {
+          "token": " y",
+          "logprob": 0.0
+        },
+        {
+          "token": " +",
+          "logprob": 0.0
+        }
+      ],
+      "confidence": 0.0,
+      "policy": "avg2",
+      "last_token_decoded": " +",
+      "think_close_emitted": false,
+      "meets_threshold": false,
+      "trial_out_tokens": 20,
+      "trial_prompt_tokens": 599,
+      "trial_finish_reason": "length",
+      "trial_latency_seconds": 0.5774358940252569,
+      "retry_count": 0
+    },
+    {
+      "candidate_id": 2,
+      "trigger_type": "wait",
+      "trigger_char_position": 2957,
+      "token_position": 1176,
+      "trial_text": "{6}\n</think>",
+      "trial_answer": "6",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "6",
+          "logprob": 0.0
+        },
+        {
+          "token": "}\n",
+          "logprob": -7.867782187531702e-06
+        },
+        {
+          "token": "</think>",
+          "logprob": -3.576278118089249e-07
+        }
+      ],
+      "confidence": 0.9999972582004256,
+      "policy": "avg2",
+      "last_token_decoded": "</think>",
+      "think_close_emitted": true,
+      "meets_threshold": true,
+      "trial_out_tokens": 4,
+      "trial_prompt_tokens": 1286,
+      "trial_finish_reason": "stop",
+      "trial_latency_seconds": 0.30172739099361934,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "6",
+    "readout_text": "To solve for $ xy + yz + zx $, we are given the following system of equations:\n\n$$\n\\begin{align*}\n(1) &\\quad xyz = 4, \\\\\n(2) &\\quad x^3 + y^3 + z^3 = 4, \\\\\n(3) &\\quad xy^2 + x^2 y + xz^2 + x^2 z + yz^2 + y^2 z = 12.\n\\end{align*}\n$$\n\n---\n\n### Step 1: Use the identity for sum of cubes\n\nWe recall the identity:\n\n$$\nx^3 + y^3 + z^3 - 3xyz = (x + y + z)(x^2 + y^2 + z^2 - xy - yz - zx)\n$$\n\nSubstituting the known values from equations (1) and (2):\n\n$$\nx^3 + y^3 + z^3 - 3xyz = 4 - 3 \\cdot 4 = 4 - 12 = -8\n$$\n\nSo:\n\n$$\n(x + y + z)(x^2 + y^2 + z^2 - xy - yz - zx) = -8\n$$\n\nLet us define:\n\n- $ S = x + y + z $\n- $ P = xy + yz + zx $\n- $ Q = xyz = 4 $\n\nWe also know the identity:\n\n$$\nx^2 + y^2 + z^2 = S^2 - 2P\n$$\n\nSo:\n\n$$\nx^2 + y^2 + z^2 - P = S^2 - 3P\n$$\n\nSubstituting into the earlier equation:\n\n$$\nS(S^2 - 3P) = -8 \\tag{4}\n$$\n\n---\n\n### Step 2: Use the third equation\n\nThe third equation is:\n\n$$\nxy^2 + x^2 y + xz^2 + x^2 z + yz^2 + y^2 z = 12\n$$\n\nThis is the sum of all terms of the form $ x^2 y $, which is known to be:\n\n$$\n(x + y + z)(xy + yz + zx) - 3xyz\n$$\n\nSo:\n\n$$\n(x + y + z)(xy + yz + zx) - 3xyz = 12\n$$\n\nSubstituting $ S = x + y + z $, $ P = xy + yz + zx $, and $ Q = xyz = 4 $:\n\n$$\nSP - 3Q = 12 \\Rightarrow SP - 12 = 12 \\Rightarrow SP = 24 \\tag{5}\n$$\n\n---\n\n### Step 3: Solve the system of equations\n\nFrom equation (4):\n\n$$\nS(S^2 - 3P) = -8\n$$\n\nFrom equation (5):\n\n$$\nSP = 24 \\Rightarrow P = \\frac{24}{S}\n$$\n\nSubstitute into equation (4):\n\n$$\nS\\left(S^2 - 3 \\cdot \\frac{24}{S}\\right) = -8\n\\Rightarrow S\\left(S^2 - \\frac{72}{S}\\right) = -8\n\\Rightarrow S^3 - 72 = -8\n\\Rightarrow S^3 = 64\n\\Rightarrow S = 4\n$$\n\nNow substitute $ S = 4 $ into equation (5):\n\n$$\n4P = 24 \\Rightarrow P = 6\n$$\n\n---\n\n### Final Answer\n\n$$\n\\boxed{6}\n$$",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 775,
+    "readout_prompt_tokens": 1282,
+    "readout_latency_seconds": 18.648388914996758,
+    "at_candidate_id": 2,
+    "retry_count": 0
+  }
+}

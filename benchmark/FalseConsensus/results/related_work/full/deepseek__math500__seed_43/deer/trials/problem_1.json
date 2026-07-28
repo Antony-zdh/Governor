@@ -1,0 +1,134 @@
+{
+  "schema_version": "related-work-deer-trial-1",
+  "method": "deer_frozen",
+  "reproduction_class": "frozen-trajectory DEER reproduction (official probes on frozen prefix)",
+  "problem_id": 1,
+  "dataset": "math500",
+  "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+  "base_seed": 43,
+  "main_token_count_recorded": 2088,
+  "main_token_count_reencoded": 2087,
+  "token_alignment": {
+    "recorded": 2088,
+    "reencoded": 2087,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 10,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "d9e104b46789b21c0fb5604952417251e0d22b4bdee3b8541a2482535594c9c4",
+  "policy": "avg1",
+  "threshold": 0.95,
+  "require_think_close": false,
+  "trials": [
+    {
+      "candidate_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 1800,
+      "token_position": 565,
+      "trial_text": "{\\frac{q - p}{2}}\n",
+      "trial_answer": "\\frac{q - p}{2}",
+      "logprobs": [
+        {
+          "token": "{\\",
+          "logprob": -0.205239400267601
+        },
+        {
+          "token": "frac",
+          "logprob": -0.32495757937431335
+        },
+        {
+          "token": "{",
+          "logprob": -0.05536718666553497
+        },
+        {
+          "token": "q",
+          "logprob": -0.49423280358314514
+        },
+        {
+          "token": " -",
+          "logprob": -0.6372005939483643
+        },
+        {
+          "token": " p",
+          "logprob": -0.04548950493335724
+        },
+        {
+          "token": "}{",
+          "logprob": -0.2709581255912781
+        },
+        {
+          "token": "2",
+          "logprob": -0.029965508729219437
+        },
+        {
+          "token": "}}\n",
+          "logprob": -0.1740456223487854
+        }
+      ],
+      "confidence": 0.7920525818390042,
+      "policy": "avg1",
+      "last_token_decoded": "}}\n",
+      "think_close_emitted": false,
+      "meets_threshold": false,
+      "trial_out_tokens": 9,
+      "trial_prompt_tokens": 683,
+      "trial_finish_reason": "stop",
+      "trial_latency_seconds": 1.0235317100014072,
+      "retry_count": 0
+    },
+    {
+      "candidate_id": 2,
+      "trigger_type": "wait",
+      "trigger_char_position": 2859,
+      "token_position": 1064,
+      "trial_text": "{p - q}\n",
+      "trial_answer": "p - q",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": -7.939023635117337e-05
+        },
+        {
+          "token": "p",
+          "logprob": -5.6503606174374e-05
+        },
+        {
+          "token": " -",
+          "logprob": -2.622600959512056e-06
+        },
+        {
+          "token": " q",
+          "logprob": -1.0728830375228426e-06
+        },
+        {
+          "token": "}\n",
+          "logprob": -2.586808113846928e-05
+        }
+      ],
+      "confidence": 0.9999784836908948,
+      "policy": "avg1",
+      "last_token_decoded": "}\n",
+      "think_close_emitted": false,
+      "meets_threshold": true,
+      "trial_out_tokens": 5,
+      "trial_prompt_tokens": 1182,
+      "trial_finish_reason": "stop",
+      "trial_latency_seconds": 0.3339139230083674,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "p-q",
+    "readout_text": "The given double sum can be expressed in terms of \\( p \\) and \\( q \\) as follows:\n\n\\[\n\\sum_{j=1}^\\infty \\sum_{k=1}^\\infty \\frac{1}{(j + k)^3} = p - q\n\\]\n\n**Step-by-Step Explanation:**\n\n1. **Understand the Given Sums:**\n   - \\( p = \\sum_{k=1}^\\infty \\frac{1}{k^2} \\) (Basel problem, known to be \\( \\frac{\\pi^2}{6} \\))\n   - \\( q = \\sum_{k=1}^\\infty \\frac{1}{k^3} \\) (Apéry's constant, approximately 1.2020569...)\n\n2. **Express the Double Sum:**\n   - The expression to evaluate is \\( \\sum_{j=1}^\\infty \\sum_{k=1}^\\infty \\frac{1}{(j + k)^3} \\).\n\n3. **Change Variables in the Inner Sum:**\n   - For a fixed \\( j \\), let \\( m = j + k \\). When \\( k = 1 \\), \\( m = j + 1 \\); as \\( k \\to \\infty \\), \\( m \\to \\infty \\).\n   - The inner sum becomes \\( \\sum_{m=j+1}^\\infty \\frac{1}{m^3} \\).\n\n4. **Rewrite the Double Sum:**\n   - The double sum is now \\( \\sum_{j=1}^\\infty \\sum_{m=j+1}^\\infty \\frac{1}{m^3} \\).\n\n5. **Switch the Order of Summation:**\n   - For a fixed \\( m \\), \\( j \\) ranges from 1 to \\( m - 1 \\).\n   - The sum becomes \\( \\sum_{m=2}^\\infty \\sum_{j=1}^{m-1} \\frac{1}{m^3} \\).\n\n6. **Simplify the Inner Sum:**\n   - The inner sum \\( \\sum_{j=1}^{m-1} 1 \\) equals \\( m - 1 \\).\n   - Thus, the expression simplifies to \\( \\sum_{m=2}^\\infty \\frac{m - 1}{m^3} \\).\n\n7. **Decompose the Fraction:**\n   - \\( \\frac{m - 1}{m^3} = \\frac{1}{m^2} - \\frac{1}{m^3} \\).\n   - The sum becomes \\( \\sum_{m=2}^\\infty \\left( \\frac{1}{m^2} - \\frac{1}{m^3} \\right) \\).\n\n8. **Express in Terms of \\( p \\) and \\( q \\):**\n   - \\( \\sum_{m=2}^\\infty \\frac{1}{m^2} = p - 1 \\) (since \\( p = \\sum_{k=1}^\\infty \\frac{1}{k^2} \\))\n   - \\( \\sum_{m=2}^\\infty \\frac{1}{m^3} = q - 1 \\) (since \\( q = \\sum_{k=1}^\\infty \\frac{1}{k^3} \\))\n   - Therefore, the expression is \\( (p - 1) - (q - 1) = p - q \\).\n\n**Final Answer:**\n\n\\[\n\\boxed{p - q}\n\\]",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 779,
+    "readout_prompt_tokens": 1178,
+    "readout_latency_seconds": 19.936542873008875,
+    "at_candidate_id": 2,
+    "retry_count": 0
+  }
+}

@@ -1,0 +1,178 @@
+{
+  "schema_version": "related-work-deer-trial-1",
+  "method": "deer_frozen",
+  "reproduction_class": "frozen-trajectory DEER reproduction (official probes on frozen prefix)",
+  "problem_id": 229,
+  "dataset": "math500",
+  "model": "Qwen/Qwen3-8B",
+  "base_seed": 42,
+  "main_token_count_recorded": 2510,
+  "main_token_count_reencoded": 2509,
+  "token_alignment": {
+    "recorded": 2510,
+    "reencoded": 2509,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 13,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "08ac67d20e4c91d9b72c3cd0031f15ab86191dd32842123f6c7c78e7095621c2",
+  "policy": "avg2",
+  "threshold": 0.95,
+  "require_think_close": true,
+  "trials": [
+    {
+      "candidate_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 1263,
+      "token_position": 293,
+      "trial_text": "{90}\n\nWait, let me check that again. If there are 10 dishes,",
+      "trial_answer": "90",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "9",
+          "logprob": -6.198863957251888e-06
+        },
+        {
+          "token": "0",
+          "logprob": 0.0
+        },
+        {
+          "token": "}\n\n",
+          "logprob": -0.07889062911272049
+        },
+        {
+          "token": "Wait",
+          "logprob": -0.24225319921970367
+        },
+        {
+          "token": ",",
+          "logprob": -1.7165990357170813e-05
+        },
+        {
+          "token": " let",
+          "logprob": -0.7779166102409363
+        },
+        {
+          "token": " me",
+          "logprob": 0.0
+        },
+        {
+          "token": " check",
+          "logprob": -0.4244747757911682
+        },
+        {
+          "token": " that",
+          "logprob": -0.09630066156387329
+        },
+        {
+          "token": " again",
+          "logprob": -0.050681259483098984
+        },
+        {
+          "token": ".",
+          "logprob": -1.5258672647178173e-05
+        },
+        {
+          "token": " If",
+          "logprob": -0.7126634120941162
+        },
+        {
+          "token": " there",
+          "logprob": -0.19166907668113708
+        },
+        {
+          "token": " are",
+          "logprob": -4.768370445162873e-07
+        },
+        {
+          "token": " ",
+          "logprob": -0.00020489977032411844
+        },
+        {
+          "token": "1",
+          "logprob": 0.0
+        },
+        {
+          "token": "0",
+          "logprob": 0.0
+        },
+        {
+          "token": " dishes",
+          "logprob": -0.04555545747280121
+        },
+        {
+          "token": ",",
+          "logprob": -0.03804875910282135
+        }
+      ],
+      "confidence": 0.0,
+      "policy": "avg2",
+      "last_token_decoded": ",",
+      "think_close_emitted": false,
+      "meets_threshold": false,
+      "trial_out_tokens": 20,
+      "trial_prompt_tokens": 387,
+      "trial_finish_reason": "length",
+      "trial_latency_seconds": 0.5676015030185226,
+      "retry_count": 0
+    },
+    {
+      "candidate_id": 2,
+      "trigger_type": "wait",
+      "trigger_char_position": 4525,
+      "token_position": 1184,
+      "trial_text": "{90}\n</think>",
+      "trial_answer": "90",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "9",
+          "logprob": 0.0
+        },
+        {
+          "token": "0",
+          "logprob": 0.0
+        },
+        {
+          "token": "}\n",
+          "logprob": 0.0
+        },
+        {
+          "token": "</think>",
+          "logprob": -1.1920928244535389e-07
+        }
+      ],
+      "confidence": 0.9999999701976798,
+      "policy": "avg2",
+      "last_token_decoded": "</think>",
+      "think_close_emitted": true,
+      "meets_threshold": true,
+      "trial_out_tokens": 5,
+      "trial_prompt_tokens": 1278,
+      "trial_finish_reason": "stop",
+      "trial_latency_seconds": 0.39608863601461053,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "90",
+    "readout_text": "To determine the number of different combinations of meals Yann and Camille can order, we need to consider the following:\n\n- There are **10 items** on the menu.\n- Each person orders **one dish**.\n- They **refuse to order the same dish**.\n- The **order matters**, meaning that Yann ordering dish A and Camille ordering dish B is **different** from Yann ordering dish B and Camille ordering dish A.\n\n---\n\n### Step-by-Step Breakdown:\n\n1. **Total number of unrestricted combinations** (if they could order the same dish):\n   - Yann has 10 choices.\n   - Camille has 10 choices.\n   - So, total combinations = $10 \\times 10 = 100$.\n\n2. **Subtract the cases where they order the same dish**:\n   - There are 10 dishes, and for each dish, there is exactly one combination where both Yann and Camille order the same dish.\n   - So, number of same-dish combinations = 10.\n\n3. **Valid combinations where they order different dishes**:\n   - Total combinations = $100 - 10 = 90$.\n\n---\n\n### Alternative Approach: Permutations\n\nWe can also think of this as a **permutation** problem. We are choosing **2 different dishes** from 10, and assigning them to **Yann and Camille**, where the **order matters**.\n\n- The number of permutations of 10 items taken 2 at a time is:\n  $$\n  P(10, 2) = \\frac{10!}{(10 - 2)!} = \\frac{10!}{8!} = 10 \\times 9 = 90\n  $$\n\n---\n\n### Final Answer:\n\n$$\n\\boxed{90}\n$$",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 395,
+    "readout_prompt_tokens": 1274,
+    "readout_latency_seconds": 9.914605299010873,
+    "at_candidate_id": 2,
+    "retry_count": 0
+  }
+}

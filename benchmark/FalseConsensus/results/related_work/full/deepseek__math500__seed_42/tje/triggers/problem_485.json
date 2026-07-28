@@ -1,0 +1,57 @@
+{
+  "schema_version": "related-work-tje-trigger-1",
+  "method": "tje_frozen",
+  "reproduction_class": "frozen-trajectory TJE reproduction (confidence re-issued on frozen prefix)",
+  "problem_id": 485,
+  "dataset": "math500",
+  "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+  "base_seed": 42,
+  "main_token_count_recorded": 5272,
+  "main_token_count_reencoded": 5271,
+  "token_alignment": {
+    "recorded": 5272,
+    "reencoded": 5271,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 26,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "72901d27abc7eb1b3882640539bc8a7e6807e81ba0fb9fb3e25f2ae40afa1db9",
+  "include_think_close": true,
+  "threshold_label": "Almost certain",
+  "triggers": [
+    {
+      "trigger_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 816,
+      "token_position": 214,
+      "confidence_response": "Almost certain",
+      "confidence_label": "Almost certain",
+      "meets_threshold": true,
+      "confidence_out_tokens": 3,
+      "confidence_prompt_tokens": 770,
+      "confidence_finish_reason": "stop",
+      "confidence_latency_seconds": 0.23605647298973054,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "13",
+    "readout_text": "The problem requires finding the shortest possible route that starts at one of the four points (A, B, C, D) and visits each of the other three points exactly once. This is known as the Traveling Salesman Problem (TSP) for four points. \n\nTo solve this, we can examine all possible routes and calculate their total distances. However, since we're looking for the shortest distance, we can identify the most direct paths by analyzing the given distances:\n\n- **A to B**: 6 units\n- **A to C**: 6 units\n- **A to D**: 5 units\n- **B to C**: 5 units\n- **B to D**: 3 units\n- **C to D**: 4 units\n\nThe shortest path appears to involve starting at **D** and traveling to **B** (3 units), then to **C** (5 units), and finally to **A** (6 units). Adding these together: 3 + 5 + 6 = 14 units.\n\nHowever, upon closer examination, the actual shortest route is starting at **D**, going to **B** (3 units), then to **A** (6 units), and finally to **C** (6 units). This totals: 3 + 6 + 6 = 15 units.\n\nBut wait, if we start at **B**, the route would be **B** to **D** (3 units), then to **C** (4 units), and finally to **A** (6 units). This totals: 3 + 4 + 6 = 13 units.\n\nHowever, this contradicts our earlier calculation. To resolve this, let's list all possible permutations and calculate their distances:\n\n1. D → B → C → A: 3 + 5 + 6 = 14\n2. D → B → A → C: 3 + 6 + 6 = 15\n3. D → C → B → A: 4 + 5 + 6 = 15\n4. D → C → A → B: 4 + 6 + 6 = 16\n5. D → A → B → C: 5 + 6 + 5 = 16\n6. D → A → C → B: 5 + 6 + 5 = 16\n\n7. B → D → C → A: 3 + 4 + 6 = 13\n8. B → D → A → C: 3 + 5 + 6 = 14\n9. B → C → D → A: 5 + 4 + 5 = 14\n10. B → C → A → D: 5 + 6 + 5 = 16\n11. B → A → D → C: 6 + 5 + 4 = 15\n12. B → A → C → D: 6 + 6 + 4 = 16\n\n13. C → D → B → A: 4 + 3 + 6 = 13\n14. C → D → A → B: 4 + 5 + 6 = 15\n15. C → B → D → A: 5 + 3 + 5 = 13\n16. C → B → A → D: 5 + 6 + 5 = 16\n17. C → A → D → B: 6 + 5 + 3 = 14\n18. C → A → B → D: 6 + 6 + 3 = 15\n\nAfter calculating all possible routes, the shortest distance is 13 units, achieved by multiple routes such as starting at **B**, going to **C**, then to **D**, and finally to **A**; or starting at **C**, going to **B**, then to **D**, and finally to **A**.\n\n\\boxed{13}",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 855,
+    "readout_prompt_tokens": 775,
+    "readout_allowance": 8192,
+    "readout_prompt_tokens_estimate": 775,
+    "readout_context_overflow": false,
+    "readout_triggering_label": "Almost certain",
+    "readout_confidence_event": "\\confidence{Almost certain}",
+    "readout_prompt_sha256": "f400867d91f25e2dc37f37eb9bca474632fe13ffeb2c2f310e71656a2d1b8bf9",
+    "readout_latency_seconds": 20.808065513992915,
+    "at_trigger_id": 1,
+    "retry_count": 0
+  }
+}

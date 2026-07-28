@@ -1,0 +1,29 @@
+{
+  "method": "tje_frozen",
+  "reproduction_class": "frozen-trajectory TJE reproduction (confidence re-issued on frozen prefix)",
+  "source": "https://aclanthology.org/2026.findings-eacl.263/ (Figure 2 + Section 2.2)",
+  "variants": {
+    "primary_wait_and_final_think_close": {"include_think_close": true, "expected_triggers": {"deepseek": 32070, "qwen3": 33746}},
+    "optional_wait_only_diagnostic": {"include_think_close": false, "expected_triggers": {"deepseek": 30767, "qwen3": 32446}}
+  },
+  "confidence_instruction_sha256": "201ab025fa608098782ebb6b42ba7643800d75377bfd752315486c2f491eab80",
+  "force_prefix": "\\confidence{",
+  "ten_labels": ["Almost no chance", "Highly unlikely", "Chances are slight", "Unlikely", "Less than even", "Better than even", "Likely", "Very good chance", "Highly likely", "Almost certain"],
+  "threshold_label": "Almost certain",
+  "temperature": 0.6,
+  "top_p": 0.95,
+  "top_k": 20,
+  "confidence_cap": 20,
+  "readout_cap": 8192,
+  "readout_validity": "valid only if an explicit \\boxed{...} was completed before truncation; no last-number fallback",
+  "model_revisions": {"deepseek-ai/DeepSeek-R1-Distill-Qwen-7B": "916b56a44061fd5cd7d6a8fb632557ed4f724f60", "Qwen/Qwen3-8B": "b968826d9c46dd6066d109eabc6255188de91218"},
+  "finish_reason_recorded": true,
+  "test_read": false,
+  "main_generation_changed": false,
+  "cli_primary": "python -m benchmark.FalseConsensus.related_work.tje --main-run <ENV>/main --output <FULL>/<model>__<bench>__seed_<s>/tje --url http://127.0.0.1:<port>/v1 --model <model_id> --model-revision <40-hex> --split-manifest benchmark/FalseConsensus/governor_v2/generated/split_manifest.json --workers 4 --max-model-len 34816 --readout-cap 8192",
+  "cli_optional_wait_only": "python -m benchmark.FalseConsensus.related_work.tje --main-run <ENV>/main --output <FULL>/<model>__<bench>__seed_<s>/tje_wait_only --wait-only --url http://127.0.0.1:<port>/v1 --model <model_id> --model-revision <40-hex> --split-manifest benchmark/FalseConsensus/governor_v2/generated/split_manifest.json --workers 4 --max-model-len 34816 --readout-cap 8192",
+  "launcher_deepseek": "bash benchmark/FalseConsensus/results/related_work/_runtime/run_full_model_pipeline.sh deepseek",
+  "launcher_qwen3": "bash benchmark/FalseConsensus/results/related_work/_runtime/run_full_model_pipeline.sh qwen3",
+  "exact_deepseek": "python -m benchmark.FalseConsensus.related_work.tje --main-run <ENV>/main --output benchmark/FalseConsensus/results/related_work/full/deepseek__<bench>__seed_<s>/tje --url http://127.0.0.1:18000/v1 --model deepseek-ai/DeepSeek-R1-Distill-Qwen-7B --model-revision 916b56a44061fd5cd7d6a8fb632557ed4f724f60 --split-manifest benchmark/FalseConsensus/governor_v2/generated/split_manifest.json --workers 4 --max-model-len 34816 --readout-cap 8192",
+  "exact_qwen3": "python -m benchmark.FalseConsensus.related_work.tje --main-run <ENV>/main --output benchmark/FalseConsensus/results/related_work/full/qwen3__<bench>__seed_<s>/tje --url http://127.0.0.1:18001/v1 --model Qwen/Qwen3-8B --model-revision b968826d9c46dd6066d109eabc6255188de91218 --split-manifest benchmark/FalseConsensus/governor_v2/generated/split_manifest.json --workers 4 --max-model-len 34816 --readout-cap 8192"
+}

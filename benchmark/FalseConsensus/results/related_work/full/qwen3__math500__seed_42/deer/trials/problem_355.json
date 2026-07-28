@@ -1,0 +1,82 @@
+{
+  "schema_version": "related-work-deer-trial-1",
+  "method": "deer_frozen",
+  "reproduction_class": "frozen-trajectory DEER reproduction (official probes on frozen prefix)",
+  "problem_id": 355,
+  "dataset": "math500",
+  "model": "Qwen/Qwen3-8B",
+  "base_seed": 42,
+  "main_token_count_recorded": 11356,
+  "main_token_count_reencoded": 11355,
+  "token_alignment": {
+    "recorded": 11356,
+    "reencoded": 11355,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 57,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "81ad867639088768c2aebe0db21bdfce86747736f2eebbe199eac0b93dbd34b3",
+  "policy": "avg2",
+  "threshold": 0.95,
+  "require_think_close": true,
+  "trials": [
+    {
+      "candidate_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 6179,
+      "token_position": 2528,
+      "trial_text": "{100}\n</think>",
+      "trial_answer": "100",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "1",
+          "logprob": 0.0
+        },
+        {
+          "token": "0",
+          "logprob": 0.0
+        },
+        {
+          "token": "0",
+          "logprob": 0.0
+        },
+        {
+          "token": "}\n",
+          "logprob": -0.20141391456127167
+        },
+        {
+          "token": "</think>",
+          "logprob": -0.0027072704397141933
+        }
+      ],
+      "confidence": 0.9599978472216695,
+      "policy": "avg2",
+      "last_token_decoded": "</think>",
+      "think_close_emitted": true,
+      "meets_threshold": true,
+      "trial_out_tokens": 6,
+      "trial_prompt_tokens": 2598,
+      "trial_finish_reason": "stop",
+      "trial_latency_seconds": 0.729633520997595,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "100",
+    "readout_text": "To find the minimum value of the expression\n\n$$\n\\frac{(a + b + c)[(a + b)^2 + (a + b + 4c)^2]}{abc},\n$$\n\nwe begin by introducing a substitution to simplify the expression. Let:\n\n- $ x = a + b $,\n- $ S = a + b + c = x + c $.\n\nThen the expression becomes:\n\n$$\n\\frac{(x + c)\\left[x^2 + (x + 4c)^2\\right]}{abc}.\n$$\n\nExpanding the square in the numerator:\n\n$$\n(x + 4c)^2 = x^2 + 8xc + 16c^2,\n$$\n\nso the numerator becomes:\n\n$$\n(x + c)\\left[x^2 + x^2 + 8xc + 16c^2\\right] = (x + c)(2x^2 + 8xc + 16c^2).\n$$\n\nExpanding this product:\n\n$$\n(x + c)(2x^2 + 8xc + 16c^2) = 2x^3 + 8x^2c + 16xc^2 + 2x^2c + 8xc^2 + 16c^3 = 2x^3 + 10x^2c + 24xc^2 + 16c^3.\n$$\n\nThus, the full expression becomes:\n\n$$\n\\frac{2x^3 + 10x^2c + 24xc^2 + 16c^3}{abc}.\n$$\n\nNow, we assume symmetry by setting $ a = b $, which is a common strategy in symmetric expressions. Then $ x = a + b = 2a $, and the denominator becomes $ abc = a^2c $. The numerator becomes:\n\n$$\n(2a + c)\\left[(2a)^2 + (2a + 4c)^2\\right] = (2a + c)\\left[4a^2 + (2a + 4c)^2\\right].\n$$\n\nExpanding $ (2a + 4c)^2 = 4a^2 + 16ac + 16c^2 $, so the numerator becomes:\n\n$$\n(2a + c)(4a^2 + 4a^2 + 16ac + 16c^2) = (2a + c)(8a^2 + 16ac + 16c^2).\n$$\n\nExpanding this:\n\n$$\n2a(8a^2 + 16ac + 16c^2) + c(8a^2 + 16ac + 16c^2) = 16a^3 + 32a^2c + 32ac^2 + 8a^2c + 16ac^2 + 16c^3.\n$$\n\nCombining like terms:\n\n$$\n16a^3 + 40a^2c + 48ac^2 + 16c^3.\n$$\n\nSo the full expression becomes:\n\n$$\n\\frac{16a^3 + 40a^2c + 48ac^2 + 16c^3}{a^2c}.\n$$\n\nDividing each term by $ a^2c $:\n\n$$\n\\frac{16a^3}{a^2c} + \\frac{40a^2c}{a^2c} + \\frac{48ac^2}{a^2c} + \\frac{16c^3}{a^2c} = \\frac{16a}{c} + 40 + \\frac{48c}{a} + \\frac{16c^2}{a^2}.\n$$\n\nLet $ t = \\frac{a}{c} $, so $ a = tc $. Substituting:\n\n$$\n\\frac{16a}{c} = 16t, \\quad \\frac{48c}{a} = \\frac{48}{t}, \\quad \\frac{16c^2}{a^2} = \\frac{16}{t^2}.\n$$\n\nSo the expression becomes:\n\n$$\nf(t) = 16t + \\frac{48}{t} + \\frac{16}{t^2} + 40.\n$$\n\nTo find the minimum, take the derivative:\n\n$$\nf'(t) = 16 - \\frac{48}{t^2} - \\frac{32}{t^3}.\n$$\n\nSet $ f'(t) = 0 $:\n\n$$\n16 - \\frac{48}{t^2} - \\frac{32}{t^3} = 0.\n$$\n\nMultiply through by $ t^3 $:\n\n$$\n16t^3 - 48t - 32 = 0.\n$$\n\nDivide by 16:\n\n$$\nt^3 - 3t - 2 = 0.\n$$\n\nFactoring:\n\n$$\n(t + 1)^2(t - 2) = 0.\n$$\n\nSo the only positive root is $ t = 2 $. Substituting back into $ f(t) $:\n\n$$\nf(2) = 16(2) + \\frac{48}{2} + \\frac{16}{2^2} + 40 = 32 + 24 + 4 + 40 = 100.\n$$\n\n---\n\n**Final Answer:**\n\n$$\n\\boxed{100}\n$$",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 1231,
+    "readout_prompt_tokens": 2594,
+    "readout_latency_seconds": 29.2521893279918,
+    "at_candidate_id": 1,
+    "retry_count": 0
+  }
+}

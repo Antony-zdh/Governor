@@ -1,0 +1,78 @@
+{
+  "schema_version": "related-work-deer-trial-1",
+  "method": "deer_frozen",
+  "reproduction_class": "frozen-trajectory DEER reproduction (official probes on frozen prefix)",
+  "problem_id": 201,
+  "dataset": "math500",
+  "model": "Qwen/Qwen3-8B",
+  "base_seed": 42,
+  "main_token_count_recorded": 2891,
+  "main_token_count_reencoded": 2890,
+  "token_alignment": {
+    "recorded": 2891,
+    "reencoded": 2890,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 14,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "4f118399e4534499f4c12485af01a40e83ecf6e40b6500e07b8df02c186a5b5d",
+  "policy": "avg2",
+  "threshold": 0.95,
+  "require_think_close": true,
+  "trials": [
+    {
+      "candidate_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 2180,
+      "token_position": 796,
+      "trial_text": "{66}\n</think>",
+      "trial_answer": "66",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "6",
+          "logprob": 0.0
+        },
+        {
+          "token": "6",
+          "logprob": 0.0
+        },
+        {
+          "token": "}\n",
+          "logprob": -2.861018856492592e-06
+        },
+        {
+          "token": "</think>",
+          "logprob": -5.960462772236497e-07
+        }
+      ],
+      "confidence": 0.99999913573409,
+      "policy": "avg2",
+      "last_token_decoded": "</think>",
+      "think_close_emitted": true,
+      "meets_threshold": true,
+      "trial_out_tokens": 5,
+      "trial_prompt_tokens": 884,
+      "trial_finish_reason": "stop",
+      "trial_latency_seconds": 0.3449775490153115,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "66",
+    "readout_text": "To solve the problem, we are given two conditions about the number of students $ N $, where $ N < 50 $:\n\n1. When the students are grouped in **groups of 8**, the **last group has 5 students**. This implies:\n   $$\n   N \\equiv 5 \\pmod{8}\n   $$\n\n2. When the students are grouped in **groups of 6**, the **last group has 3 students**. This implies:\n   $$\n   N \\equiv 3 \\pmod{6}\n   $$\n\nWe are to find all such values of $ N $ that satisfy both congruences and are less than 50, and then compute the **sum of all such values**.\n\n---\n\n### Step 1: List all numbers less than 50 that satisfy $ N \\equiv 5 \\pmod{8} $\n\nWe can generate all such numbers by starting at 5 and adding 8 repeatedly:\n\n$$\n5, 13, 21, 29, 37, 45\n$$\n\nThese are all the numbers less than 50 that are congruent to 5 modulo 8.\n\n---\n\n### Step 2: Check which of these numbers also satisfy $ N \\equiv 3 \\pmod{6} $\n\nWe now test each of the above numbers modulo 6:\n\n- $ 5 \\mod 6 = 5 $ → Not 3\n- $ 13 \\mod 6 = 1 $ → Not 3\n- $ 21 \\mod 6 = 3 $ → ✅\n- $ 29 \\mod 6 = 5 $ → Not 3\n- $ 37 \\mod 6 = 1 $ → Not 3\n- $ 45 \\mod 6 = 3 $ → ✅\n\nSo the numbers that satisfy **both** congruences are:\n\n$$\n21 \\quad \\text{and} \\quad 45\n$$\n\n---\n\n### Step 3: Compute the sum of all such values\n\n$$\n21 + 45 = \\boxed{66}\n$$\n\n---\n\n### Final Answer:\n\n$$\n\\boxed{66}\n$$",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 469,
+    "readout_prompt_tokens": 880,
+    "readout_latency_seconds": 11.389933215017663,
+    "at_candidate_id": 1,
+    "retry_count": 0
+  }
+}

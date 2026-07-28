@@ -1,0 +1,71 @@
+{
+  "schema_version": "related-work-tje-trigger-1",
+  "method": "tje_frozen",
+  "reproduction_class": "frozen-trajectory TJE reproduction (confidence re-issued on frozen prefix)",
+  "problem_id": 78,
+  "dataset": "math500",
+  "model": "Qwen/Qwen3-8B",
+  "base_seed": 42,
+  "main_token_count_recorded": 2716,
+  "main_token_count_reencoded": 2715,
+  "token_alignment": {
+    "recorded": 2716,
+    "reencoded": 2715,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 14,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "fd63be4201adefebeaee97826b1d2d6523518c1ebd4c60de5c1f5ffe5c0ce364",
+  "include_think_close": true,
+  "threshold_label": "Almost certain",
+  "triggers": [
+    {
+      "trigger_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 2674,
+      "token_position": 1073,
+      "confidence_response": "Highly likely",
+      "confidence_label": "Highly likely",
+      "meets_threshold": false,
+      "confidence_out_tokens": 4,
+      "confidence_prompt_tokens": 1508,
+      "confidence_finish_reason": "stop",
+      "confidence_latency_seconds": 0.4739908259944059,
+      "retry_count": 0
+    },
+    {
+      "trigger_id": 2,
+      "trigger_type": "think_close",
+      "trigger_char_position": 3802,
+      "token_position": 1559,
+      "confidence_response": "Almost certain",
+      "confidence_label": "Almost certain",
+      "meets_threshold": true,
+      "confidence_out_tokens": 3,
+      "confidence_prompt_tokens": 1994,
+      "confidence_finish_reason": "stop",
+      "confidence_latency_seconds": 0.24083180801244453,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "(-2,1)",
+    "readout_text": "To solve the given problem, we are told that for the function  \n$$\nf(x) = x^3 + 3x^2 + 1,\n$$  \nthere exist real numbers $ a \\neq 0 $ and $ b $ such that  \n$$\nf(x) - f(a) = (x - a)^2 (x - b).\n$$  \nWe are to find the ordered pair $ (a, b) $.\n\n---\n\n### Step 1: Expand the Left-Hand Side\n\nWe start by computing $ f(x) - f(a) $:  \n$$\nf(x) - f(a) = (x^3 + 3x^2 + 1) - (a^3 + 3a^2 + 1) = x^3 - a^3 + 3x^2 - 3a^2.\n$$  \nFactor both terms:\n- $ x^3 - a^3 = (x - a)(x^2 + ax + a^2) $\n- $ 3x^2 - 3a^2 = 3(x^2 - a^2) = 3(x - a)(x + a) $\n\nSo we have:\n$$\nf(x) - f(a) = (x - a)\\left[x^2 + ax + a^2 + 3(x + a)\\right] = (x - a)\\left[x^2 + (a + 3)x + a^2 + 3a\\right].\n$$\n\n---\n\n### Step 2: Match with the Right-Hand Side\n\nWe are given:\n$$\nf(x) - f(a) = (x - a)^2 (x - b).\n$$  \nDivide both sides by $ x - a $ (assuming $ x \\ne a $):\n$$\nx^2 + (a + 3)x + a^2 + 3a = (x - a)(x - b).\n$$  \nNow expand the right-hand side:\n$$\n(x - a)(x - b) = x^2 - (a + b)x + ab.\n$$  \nEquating coefficients with the left-hand side:\n\n- Coefficient of $ x^2 $: both sides are 1, so this matches.\n- Coefficient of $ x $:  \n  $$\n  a + 3 = -(a + b) \\Rightarrow 2a + b + 3 = 0 \\Rightarrow b = -2a - 3.\n  $$\n- Constant term:  \n  $$\n  a^2 + 3a = ab.\n  $$\n\n---\n\n### Step 3: Solve the System of Equations\n\nSubstitute $ b = -2a - 3 $ into the second equation:\n$$\na^2 + 3a = a(-2a - 3) = -2a^2 - 3a.\n$$  \nBring all terms to one side:\n$$\na^2 + 3a + 2a^2 + 3a = 0 \\Rightarrow 3a^2 + 6a = 0 \\Rightarrow 3a(a + 2) = 0.\n$$  \nSo:\n$$\na = 0 \\quad \\text{or} \\quad a = -2.\n$$  \nSince $ a \\ne 0 $, we take $ a = -2 $.\n\nNow compute $ b $:\n$$\nb = -2a - 3 = -2(-2) - 3 = 4 - 3 = 1.\n$$\n\n---\n\n### Step 4: Verify the Solution\n\nLet’s verify that $ f(x) - f(-2) = (x + 2)^2(x - 1) $.\n\n- $ f(-2) = (-2)^3 + 3(-2)^2 + 1 = -8 + 12 + 1 = 5 $\n- $ f(x) - f(-2) = x^3 + 3x^2 + 1 - 5 = x^3 + 3x^2 - 4 $\n\nNow expand $ (x + 2)^2(x - 1) $:\n- $ (x + 2)^2 = x^2 + 4x + 4 $\n- Multiply by $ (x - 1) $:  \n  $$\n  (x^2 + 4x + 4)(x - 1) = x^3 - x^2 + 4x^2 - 4x + 4x - 4 = x^3 + 3x^2 - 4.\n  $$\n\nThis matches $ f(x) - f(-2) $, so the solution is correct.\n\n---\n\n### Final Answer\n\n$$\n\\boxed{(-2, 1)}\n$$  \n\\confidence{Almost certain}",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 1011,
+    "readout_prompt_tokens": 1999,
+    "readout_allowance": 8192,
+    "readout_prompt_tokens_estimate": 1999,
+    "readout_context_overflow": false,
+    "readout_triggering_label": "Almost certain",
+    "readout_confidence_event": "\\confidence{Almost certain}",
+    "readout_prompt_sha256": "971851515e24c814a8899fac69bba2eb504aba1795af4ed59782aaf8aa3ed747",
+    "readout_latency_seconds": 35.34067588701146,
+    "at_trigger_id": 2,
+    "retry_count": 0
+  }
+}

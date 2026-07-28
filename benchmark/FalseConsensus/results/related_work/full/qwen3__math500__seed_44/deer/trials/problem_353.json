@@ -1,0 +1,182 @@
+{
+  "schema_version": "related-work-deer-trial-1",
+  "method": "deer_frozen",
+  "reproduction_class": "frozen-trajectory DEER reproduction (official probes on frozen prefix)",
+  "problem_id": 353,
+  "dataset": "math500",
+  "model": "Qwen/Qwen3-8B",
+  "base_seed": 44,
+  "main_token_count_recorded": 4515,
+  "main_token_count_reencoded": 4514,
+  "token_alignment": {
+    "recorded": 4515,
+    "reencoded": 4514,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 23,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "ad9df61b5ee183dfeebbf66498171bf54744a20e2549df7f14916792156eb064",
+  "policy": "avg2",
+  "threshold": 0.95,
+  "require_think_close": true,
+  "trials": [
+    {
+      "candidate_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 1222,
+      "token_position": 276,
+      "trial_text": "{48}\n\nWait, hold on. Let me check my steps again. Maybe I made a",
+      "trial_answer": "48",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "4",
+          "logprob": -0.00208934280090034
+        },
+        {
+          "token": "8",
+          "logprob": -2.372236667724792e-05
+        },
+        {
+          "token": "}\n\n",
+          "logprob": -0.16036799550056458
+        },
+        {
+          "token": "Wait",
+          "logprob": -0.3098124563694
+        },
+        {
+          "token": ",",
+          "logprob": -0.0001280225842492655
+        },
+        {
+          "token": " hold",
+          "logprob": -0.24454499781131744
+        },
+        {
+          "token": " on",
+          "logprob": -1.1920928244535389e-07
+        },
+        {
+          "token": ".",
+          "logprob": -0.48549211025238037
+        },
+        {
+          "token": " Let",
+          "logprob": -0.012191539630293846
+        },
+        {
+          "token": " me",
+          "logprob": 0.0
+        },
+        {
+          "token": " check",
+          "logprob": -0.4790387749671936
+        },
+        {
+          "token": " my",
+          "logprob": -0.4467121362686157
+        },
+        {
+          "token": " steps",
+          "logprob": -0.15023359656333923
+        },
+        {
+          "token": " again",
+          "logprob": -0.0003916450368706137
+        },
+        {
+          "token": ".",
+          "logprob": -0.7120285034179688
+        },
+        {
+          "token": " Maybe",
+          "logprob": -0.5552821159362793
+        },
+        {
+          "token": " I",
+          "logprob": -0.004221457056701183
+        },
+        {
+          "token": " made",
+          "logprob": -0.3039870858192444
+        },
+        {
+          "token": " a",
+          "logprob": -0.00523553229868412
+        }
+      ],
+      "confidence": 0.0,
+      "policy": "avg2",
+      "last_token_decoded": " a",
+      "think_close_emitted": false,
+      "meets_threshold": false,
+      "trial_out_tokens": 20,
+      "trial_prompt_tokens": 341,
+      "trial_finish_reason": "length",
+      "trial_latency_seconds": 0.6613475559861399,
+      "retry_count": 0
+    },
+    {
+      "candidate_id": 2,
+      "trigger_type": "wait",
+      "trigger_char_position": 5308,
+      "token_position": 1437,
+      "trial_text": "{480}\n</think>",
+      "trial_answer": "480",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "4",
+          "logprob": 0.0
+        },
+        {
+          "token": "8",
+          "logprob": 0.0
+        },
+        {
+          "token": "0",
+          "logprob": 0.0
+        },
+        {
+          "token": "}\n",
+          "logprob": -0.0015038858400657773
+        },
+        {
+          "token": "</think>",
+          "logprob": -4.768370445162873e-07
+        }
+      ],
+      "confidence": 0.9996991727221802,
+      "policy": "avg2",
+      "last_token_decoded": "</think>",
+      "think_close_emitted": true,
+      "meets_threshold": true,
+      "trial_out_tokens": 6,
+      "trial_prompt_tokens": 1502,
+      "trial_finish_reason": "stop",
+      "trial_latency_seconds": 0.4145145280053839,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "480",
+    "readout_text": "To determine the number of ways to stack 6 different books on a shelf such that the two math books are **not adjacent**, we can use a combination of **total arrangements** and **subtracting the invalid cases** (where the math books are adjacent). Alternatively, we can use the **gap method** to directly count the valid arrangements. Both approaches lead to the same result, and we'll walk through them step by step.\n\n---\n\n### **Method 1: Total Arrangements Minus Invalid Arrangements**\n\n1. **Total number of arrangements of 6 books** (all different):  \n   $$\n   6! = 720\n   $$\n\n2. **Number of arrangements where the two math books are adjacent**:\n   - Treat the two math books as a single \"block\" (since they must be together).\n   - This reduces the problem to arranging 5 items: the math block and the other 4 books.\n   - The number of ways to arrange these 5 items is $5!$.\n   - Within the math block, the two math books can be arranged in $2!$ ways.\n   - So, the number of invalid arrangements is:\n     $$\n     2! \\times 5! = 2 \\times 120 = 240\n     $$\n\n3. **Valid arrangements (math books not adjacent)**:\n   $$\n   6! - 2! \\times 5! = 720 - 240 = 480\n   $$\n\n---\n\n### **Method 2: Gap Method**\n\n1. **Arrange the 4 non-math books first**:\n   - These can be arranged in $4!$ ways.\n   - $$\n   4! = 24\n   $$\n\n2. **Determine the number of available gaps**:\n   - When 4 books are arranged, there are 5 gaps: one before the first book, one between each pair, and one after the last book.\n   - These are the positions where the math books can be placed **without being adjacent**.\n\n3. **Choose 2 gaps out of the 5** to place the math books:\n   - The number of ways to choose 2 gaps is:\n     $$\n     \\binom{5}{2} = 10\n     $$\n\n4. **Arrange the two math books in the chosen gaps**:\n   - Since the math books are different, they can be arranged in $2!$ ways.\n\n5. **Total valid arrangements**:\n   $$\n   4! \\times \\binom{5}{2} \\times 2! = 24 \\times 10 \\times 2 = 480\n   $$\n\n---\n\n### **Method 3: Direct Position Selection**\n\n1. **Choose 2 positions for the math books** out of 6:\n   - Total ways to choose 2 positions: $\\binom{6}{2} = 15$\n\n2. **Subtract the number of adjacent position pairs**:\n   - Adjacent pairs: (1,2), (2,3), (3,4), (4,5), (5,6) → 5 pairs\n   - So, non-adjacent pairs: $15 - 5 = 10$\n\n3. **Arrange the math books in the chosen positions**:\n   - $2!$ ways\n\n4. **Arrange the remaining 4 books in the remaining positions**:\n   - $4!$ ways\n\n5. **Total valid arrangements**:\n   $$\n   \\binom{6}{2} - 5 = 10 \\quad \\text{valid position pairs}\n   $$\n   $$\n   10 \\times 2! \\times 4! = 10 \\times 2 \\times 24 = 480\n   $$\n\n---\n\n### ✅ Final Answer\n\n$$\n\\boxed{480}\n$$",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 838,
+    "readout_prompt_tokens": 1498,
+    "readout_latency_seconds": 20.170635168004083,
+    "at_candidate_id": 2,
+    "retry_count": 0
+  }
+}

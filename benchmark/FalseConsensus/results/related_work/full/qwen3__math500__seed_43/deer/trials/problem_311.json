@@ -1,0 +1,74 @@
+{
+  "schema_version": "related-work-deer-trial-1",
+  "method": "deer_frozen",
+  "reproduction_class": "frozen-trajectory DEER reproduction (official probes on frozen prefix)",
+  "problem_id": 311,
+  "dataset": "math500",
+  "model": "Qwen/Qwen3-8B",
+  "base_seed": 43,
+  "main_token_count_recorded": 5655,
+  "main_token_count_reencoded": 5654,
+  "token_alignment": {
+    "recorded": 5655,
+    "reencoded": 5654,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 28,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "edf31b4fdeea6690763cbc1c9e29c86ee355875edcfdea5a2878fe95d6db3eff",
+  "policy": "avg2",
+  "threshold": 0.95,
+  "require_think_close": true,
+  "trials": [
+    {
+      "candidate_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 2358,
+      "token_position": 900,
+      "trial_text": "{3}\n</think>",
+      "trial_answer": "3",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "3",
+          "logprob": 0.0
+        },
+        {
+          "token": "}\n",
+          "logprob": -0.008614521473646164
+        },
+        {
+          "token": "</think>",
+          "logprob": -1.311301275563892e-06
+        }
+      ],
+      "confidence": 0.9971321758284406,
+      "policy": "avg2",
+      "last_token_decoded": "</think>",
+      "think_close_emitted": true,
+      "meets_threshold": true,
+      "trial_out_tokens": 4,
+      "trial_prompt_tokens": 989,
+      "trial_finish_reason": "stop",
+      "trial_latency_seconds": 0.34731873401324265,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "3",
+    "readout_text": "To solve the problem, we are asked to find the value of $ n $ such that:\n\n$$\n1 + 12 + 123 + 1234 + 12345 + 123456 + 1234567 + 12345678 \\equiv n \\pmod{9}\n$$\n\nwhere $ 0 \\leq n < 9 $.\n\n---\n\n### Step 1: Use the Digit Sum Modulo 9 Trick\n\nA key property of modulo 9 is that:\n\n$$\n\\text{For any integer } N, \\quad N \\equiv \\text{sum of its digits} \\pmod{9}\n$$\n\nThis is because $ 10 \\equiv 1 \\pmod{9} $, so each digit contributes its value times $ 1 $, and the entire number is congruent to the sum of its digits modulo 9.\n\nThus, instead of computing the actual sum of the large numbers, we can compute the **sum of the digits** of each term and then sum those results.\n\n---\n\n### Step 2: Compute the Digit Sums\n\nLet’s compute the digit sum for each term:\n\n- $ 1 $ → $ 1 $\n- $ 12 $ → $ 1 + 2 = 3 $\n- $ 123 $ → $ 1 + 2 + 3 = 6 $\n- $ 1234 $ → $ 1 + 2 + 3 + 4 = 10 $\n- $ 12345 $ → $ 1 + 2 + 3 + 4 + 5 = 15 $\n- $ 123456 $ → $ 1 + 2 + 3 + 4 + 5 + 6 = 21 $\n- $ 1234567 $ → $ 1 + 2 + 3 + 4 + 5 + 6 + 7 = 28 $\n- $ 12345678 $ → $ 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 = 36 $\n\nNow, sum these digit sums:\n\n$$\n1 + 3 + 6 + 10 + 15 + 21 + 28 + 36 = 120\n$$\n\n---\n\n### Step 3: Compute $ 120 \\mod 9 $\n\nWe now compute:\n\n$$\n120 \\div 9 = 13 \\text{ remainder } 3\n$$\n\nSo:\n\n$$\n120 \\equiv 3 \\pmod{9}\n$$\n\n---\n\n### Final Answer\n\n$$\n\\boxed{3}\n$$",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 594,
+    "readout_prompt_tokens": 985,
+    "readout_latency_seconds": 13.548930452001514,
+    "at_candidate_id": 1,
+    "retry_count": 0
+  }
+}

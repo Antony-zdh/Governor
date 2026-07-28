@@ -1,0 +1,32 @@
+{
+  "method": "deer_frozen",
+  "reproduction_class": "frozen-trajectory DEER reproduction (official probes on frozen prefix)",
+  "source": "https://github.com/iie-ycx/DEER",
+  "source_commit": "c9dd19fbffa27f841cfe47502d015b63811b4d1b",
+  "transition_point": "Wait",
+  "max_attempts": 10,
+  "threshold": 0.95,
+  "trial_output_cap": 20,
+  "readout_output_cap": 4096,
+  "readout_validity": "valid only if an explicit \\boxed{...} was completed before truncation; no last-number fallback",
+  "answer_inducer": "\n**Final Answer**\n\\boxed",
+  "logprobs": 1,
+  "confidence_metric": "average of per-token max prob (exp(logprob)) from index 1 to last token",
+  "model_revisions": {"deepseek-ai/DeepSeek-R1-Distill-Qwen-7B": "916b56a44061fd5cd7d6a8fb632557ed4f724f60", "Qwen/Qwen3-8B": "b968826d9c46dd6066d109eabc6255188de91218"},
+  "finish_reason_recorded": true,
+  "model_branches": {
+    "deepseek": {"policy": "avg1", "aggregation": "arithmetic_mean", "trial_stop": [" }", "}\n", "}\n\n", "}.", "}.\n", "}\\", "}}", ")}", ")}.", ")}\n"], "require_think_close": false},
+    "qwen3": {"policy": "avg2", "aggregation": "geometric_mean", "trial_stop": ["</think>"], "require_think_close": true, "note": "confidence returned only if last generated token is </think>, else 0.0"}
+  },
+  "hard_upper_bound_trial_calls": 27360,
+  "temperature": 0.0,
+  "top_p": 1.0,
+  "seed_policy": "base_seed (deterministic frozen-replay adaptation)",
+  "test_read": false,
+  "main_generation_changed": false,
+  "cli": "python -m benchmark.FalseConsensus.related_work.deer --main-run <ENV>/main --output <FULL>/<model>__<bench>__seed_<s>/deer --url http://127.0.0.1:<port>/v1 --model <model_id> --model-revision <40-hex> --split-manifest benchmark/FalseConsensus/governor_v2/generated/split_manifest.json --workers 4",
+  "launcher_deepseek": "bash benchmark/FalseConsensus/results/related_work/_runtime/run_full_model_pipeline.sh deepseek",
+  "launcher_qwen3": "bash benchmark/FalseConsensus/results/related_work/_runtime/run_full_model_pipeline.sh qwen3",
+  "exact_deepseek": "python -m benchmark.FalseConsensus.related_work.deer --main-run <ENV>/main --output benchmark/FalseConsensus/results/related_work/full/deepseek__<bench>__seed_<s>/deer --url http://127.0.0.1:18000/v1 --model deepseek-ai/DeepSeek-R1-Distill-Qwen-7B --model-revision 916b56a44061fd5cd7d6a8fb632557ed4f724f60 --split-manifest benchmark/FalseConsensus/governor_v2/generated/split_manifest.json --workers 4",
+  "exact_qwen3": "python -m benchmark.FalseConsensus.related_work.deer --main-run <ENV>/main --output benchmark/FalseConsensus/results/related_work/full/qwen3__<bench>__seed_<s>/deer --url http://127.0.0.1:18001/v1 --model Qwen/Qwen3-8B --model-revision b968826d9c46dd6066d109eabc6255188de91218 --split-manifest benchmark/FalseConsensus/governor_v2/generated/split_manifest.json --workers 4"
+}

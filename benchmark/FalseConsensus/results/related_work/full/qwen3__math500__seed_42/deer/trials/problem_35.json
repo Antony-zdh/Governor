@@ -1,0 +1,174 @@
+{
+  "schema_version": "related-work-deer-trial-1",
+  "method": "deer_frozen",
+  "reproduction_class": "frozen-trajectory DEER reproduction (official probes on frozen prefix)",
+  "problem_id": 35,
+  "dataset": "math500",
+  "model": "Qwen/Qwen3-8B",
+  "base_seed": 42,
+  "main_token_count_recorded": 3171,
+  "main_token_count_reencoded": 3170,
+  "token_alignment": {
+    "recorded": 3171,
+    "reencoded": 3170,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 16,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "a062ff851cb60b0692336e45d9849a4d41159e238d93a438cd2bb98088bcfe28",
+  "policy": "avg2",
+  "threshold": 0.95,
+  "require_think_close": true,
+  "trials": [
+    {
+      "candidate_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 968,
+      "token_position": 390,
+      "trial_text": "{0}\n\nWait, hold on. Let me check that again. 8 mod 7 is",
+      "trial_answer": "0",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "0",
+          "logprob": -0.3885127604007721
+        },
+        {
+          "token": "}\n\n",
+          "logprob": -0.02457244321703911
+        },
+        {
+          "token": "Wait",
+          "logprob": -0.057187288999557495
+        },
+        {
+          "token": ",",
+          "logprob": -0.0019387274514883757
+        },
+        {
+          "token": " hold",
+          "logprob": -0.0500546395778656
+        },
+        {
+          "token": " on",
+          "logprob": 0.0
+        },
+        {
+          "token": ".",
+          "logprob": -0.47485625743865967
+        },
+        {
+          "token": " Let",
+          "logprob": -0.8505637645721436
+        },
+        {
+          "token": " me",
+          "logprob": -2.3841855067985307e-07
+        },
+        {
+          "token": " check",
+          "logprob": -0.007596652023494244
+        },
+        {
+          "token": " that",
+          "logprob": -0.027388663962483406
+        },
+        {
+          "token": " again",
+          "logprob": -0.09307317435741425
+        },
+        {
+          "token": ".",
+          "logprob": -0.0006158839096315205
+        },
+        {
+          "token": " ",
+          "logprob": -0.7490108609199524
+        },
+        {
+          "token": "8",
+          "logprob": -0.2519296109676361
+        },
+        {
+          "token": " mod",
+          "logprob": -0.09567642956972122
+        },
+        {
+          "token": " ",
+          "logprob": -3.576278118089249e-07
+        },
+        {
+          "token": "7",
+          "logprob": 0.0
+        },
+        {
+          "token": " is",
+          "logprob": -1.9550132492440753e-05
+        }
+      ],
+      "confidence": 0.0,
+      "policy": "avg2",
+      "last_token_decoded": " is",
+      "think_close_emitted": false,
+      "meets_threshold": false,
+      "trial_out_tokens": 20,
+      "trial_prompt_tokens": 446,
+      "trial_finish_reason": "length",
+      "trial_latency_seconds": 0.7180161430151202,
+      "retry_count": 0
+    },
+    {
+      "candidate_id": 2,
+      "trigger_type": "wait",
+      "trigger_char_position": 1353,
+      "token_position": 553,
+      "trial_text": "{3}\n</think>",
+      "trial_answer": "3",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "3",
+          "logprob": 0.0
+        },
+        {
+          "token": "}\n",
+          "logprob": -0.03804141283035278
+        },
+        {
+          "token": "</think>",
+          "logprob": -1.1920922133867862e-06
+        }
+      ],
+      "confidence": 0.9873991951210723,
+      "policy": "avg2",
+      "last_token_decoded": "</think>",
+      "think_close_emitted": true,
+      "meets_threshold": true,
+      "trial_out_tokens": 4,
+      "trial_prompt_tokens": 608,
+      "trial_finish_reason": "stop",
+      "trial_latency_seconds": 0.20505127700744197,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "3",
+    "readout_text": "We are given that $ n \\equiv 2 \\pmod{7} $, and we are asked to find the remainder when the expression $ (n + 2)(n + 4)(n + 6) $ is divided by 7.\n\n---\n\n### Step 1: Use the given congruence\n\nSince $ n \\equiv 2 \\pmod{7} $, we can write:\n$$\nn = 7k + 2\n$$\nfor some integer $ k $. Substituting this into the expression:\n\n$$\n(n + 2)(n + 4)(n + 6) = (7k + 2 + 2)(7k + 2 + 4)(7k + 2 + 6)\n$$\n\nSimplify each term:\n$$\nn + 2 = 7k + 4, \\quad n + 4 = 7k + 6, \\quad n + 6 = 7k + 8\n$$\n\n---\n\n### Step 2: Reduce modulo 7\n\nWe now reduce each term modulo 7:\n- $ 7k + 4 \\equiv 4 \\pmod{7} $\n- $ 7k + 6 \\equiv 6 \\pmod{7} $\n- $ 7k + 8 \\equiv 1 \\pmod{7} $ (since $ 8 \\equiv 1 \\pmod{7} $)\n\nSo the expression becomes:\n$$\n(4)(6)(1) \\pmod{7}\n$$\n\n---\n\n### Step 3: Compute the product modulo 7\n\n$$\n4 \\times 6 = 24 \\quad \\text{and} \\quad 24 \\equiv 3 \\pmod{7}\n$$\n\nThen:\n$$\n3 \\times 1 = 3 \\pmod{7}\n$$\n\n---\n\n### Final Answer\n\n$$\n\\boxed{3}\n$$",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 407,
+    "readout_prompt_tokens": 604,
+    "readout_latency_seconds": 9.051916505995905,
+    "at_candidate_id": 2,
+    "retry_count": 0
+  }
+}

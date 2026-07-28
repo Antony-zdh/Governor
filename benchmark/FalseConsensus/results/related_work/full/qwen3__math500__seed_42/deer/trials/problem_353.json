@@ -1,0 +1,182 @@
+{
+  "schema_version": "related-work-deer-trial-1",
+  "method": "deer_frozen",
+  "reproduction_class": "frozen-trajectory DEER reproduction (official probes on frozen prefix)",
+  "problem_id": 353,
+  "dataset": "math500",
+  "model": "Qwen/Qwen3-8B",
+  "base_seed": 42,
+  "main_token_count_recorded": 4028,
+  "main_token_count_reencoded": 4027,
+  "token_alignment": {
+    "recorded": 4028,
+    "reencoded": 4027,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 20,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "ad9df61b5ee183dfeebbf66498171bf54744a20e2549df7f14916792156eb064",
+  "policy": "avg2",
+  "threshold": 0.95,
+  "require_think_close": true,
+  "trials": [
+    {
+      "candidate_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 977,
+      "token_position": 226,
+      "trial_text": "{48}\n\nWait, hold on. Let me check that again. If I consider the two",
+      "trial_answer": "48",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "4",
+          "logprob": -0.00013422065239865333
+        },
+        {
+          "token": "8",
+          "logprob": -1.1324817933200393e-05
+        },
+        {
+          "token": "}\n\n",
+          "logprob": -0.08213713020086288
+        },
+        {
+          "token": "Wait",
+          "logprob": -0.16305799782276154
+        },
+        {
+          "token": ",",
+          "logprob": -2.5033637939486653e-05
+        },
+        {
+          "token": " hold",
+          "logprob": -0.22757327556610107
+        },
+        {
+          "token": " on",
+          "logprob": -1.1920928244535389e-07
+        },
+        {
+          "token": ".",
+          "logprob": -0.3156205117702484
+        },
+        {
+          "token": " Let",
+          "logprob": -0.001416394836269319
+        },
+        {
+          "token": " me",
+          "logprob": 0.0
+        },
+        {
+          "token": " check",
+          "logprob": -0.3031207323074341
+        },
+        {
+          "token": " that",
+          "logprob": -0.585574209690094
+        },
+        {
+          "token": " again",
+          "logprob": -0.002679926110431552
+        },
+        {
+          "token": ".",
+          "logprob": -0.005326484329998493
+        },
+        {
+          "token": " If",
+          "logprob": -0.4072243571281433
+        },
+        {
+          "token": " I",
+          "logprob": -0.02106589637696743
+        },
+        {
+          "token": " consider",
+          "logprob": -0.40045076608657837
+        },
+        {
+          "token": " the",
+          "logprob": -1.1920928244535389e-07
+        },
+        {
+          "token": " two",
+          "logprob": -0.00015841660206206143
+        }
+      ],
+      "confidence": 0.0,
+      "policy": "avg2",
+      "last_token_decoded": " two",
+      "think_close_emitted": false,
+      "meets_threshold": false,
+      "trial_out_tokens": 20,
+      "trial_prompt_tokens": 290,
+      "trial_finish_reason": "length",
+      "trial_latency_seconds": 0.6560163889953401,
+      "retry_count": 0
+    },
+    {
+      "candidate_id": 2,
+      "trigger_type": "wait",
+      "trigger_char_position": 1733,
+      "token_position": 426,
+      "trial_text": "{480}\n</think>",
+      "trial_answer": "480",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "4",
+          "logprob": 0.0
+        },
+        {
+          "token": "8",
+          "logprob": 0.0
+        },
+        {
+          "token": "0",
+          "logprob": 0.0
+        },
+        {
+          "token": "}\n",
+          "logprob": -0.06196851283311844
+        },
+        {
+          "token": "</think>",
+          "logprob": -3.6954811548639555e-06
+        }
+      ],
+      "confidence": 0.9876820530665705,
+      "policy": "avg2",
+      "last_token_decoded": "</think>",
+      "think_close_emitted": true,
+      "meets_threshold": true,
+      "trial_out_tokens": 6,
+      "trial_prompt_tokens": 490,
+      "trial_finish_reason": "stop",
+      "trial_latency_seconds": 0.2160452259995509,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "480",
+    "readout_text": "To determine the number of ways to stack 6 different books on a shelf such that the two math books are **not** next to each other, we can use a **complementary counting** approach.\n\n---\n\n### Step 1: Total Number of Arrangements\n\nWe are arranging 6 **distinct** books. The total number of ways to arrange 6 distinct items is:\n\n$$\n6! = 720\n$$\n\n---\n\n### Step 2: Subtract the Invalid Arrangements (Math Books Together)\n\nWe now count the number of arrangements where the **two math books are adjacent**. To do this, we treat the two math books as a **single unit** or \"block.\" This reduces the number of items to arrange from 6 to 5: the math block and the other 4 books.\n\n- The number of ways to arrange these 5 items is:\n\n$$\n5! = 120\n$$\n\n- Within the math block, the two math books can be arranged in **2** ways (since they are distinct).\n\nSo, the total number of arrangements where the two math books are adjacent is:\n\n$$\n5! \\times 2 = 120 \\times 2 = 240\n$$\n\n---\n\n### Step 3: Subtract to Find Valid Arrangements\n\nNow, subtract the number of invalid arrangements (math books together) from the total number of arrangements:\n\n$$\n720 - 240 = 480\n$$\n\n---\n\n### ✅ Final Answer:\n\n$$\n\\boxed{480}\n$$\n\nThere are **480** ways to stack the 6 books such that the two math books are **not** next to each other.",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 358,
+    "readout_prompt_tokens": 486,
+    "readout_latency_seconds": 8.738624808989698,
+    "at_candidate_id": 2,
+    "retry_count": 0
+  }
+}
