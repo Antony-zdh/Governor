@@ -20,7 +20,13 @@
   note、`\pp` 正体、CCE 展开、certainty/entropy 触发定义入附录。
 - 仍 PENDING(诚实占位)：baseline 数字、direction-of-effect 比值、confirmation、
   frontier/calibration 图、grader 误判率。编译 11 页,0 undefined。
-- 下一步：R2 审稿 → 收敛;之后集成已合并的 related_work 真实 baseline。
+- **R2 重审(同 3 人带记忆重审)**：三人全部上调至 borderline-accept
+  （A soundness 2→3、B 2→3、C 3→4），**无遗留 BLOCKING/MAJOR,仅剩 pending-data
+  与缺图**。R2 收尾 MINOR：§5.1 点明 per-model 单独 binding + 薄边际(1.85 vs 1.5)
+  需 CI 的 caveat、§6.4 补探针可达性前提、§6.1 澄清判分对 ground truth。
+- 审稿循环收敛。下一步(需真实数据,非改文字)：① 集成已合并 related_work 的
+  CertaIndex/DEER/TJE 真实 baseline(先核口径)；② confirmation 结果(同事在跑)；
+  ③ 补 frontier/calibration 图(需装 matplotlib)；④ bootstrap CI + direction-of-effect。
 
 ---
 

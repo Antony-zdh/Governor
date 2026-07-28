@@ -8,8 +8,10 @@ stopping and argue that only one of them depends on how we probe.
 For a rule that stops a problem at token position $s$ after consuming probe
 output $p$, we charge total decode tokens $T = s + p$ and compare against the
 frozen baseline $B$ (the full trajectory, capped at budget). Net savings is
-$(B-T)/B$; the accuracy drop compares the committed answer at $s$ against the
-frozen final answer. Two quantities therefore move independently: \emph{where}
+$(B-T)/B$; the accuracy drop compares the correctness against ground truth of
+the committed answer at $s$ with that of the frozen final answer (it is not an
+agreement rate between the two). Two quantities therefore move independently:
+\emph{where}
 the rule stops (which sets both the accuracy drop and the main-token saving
 $s$) and \emph{how much it probes} to get there (which adds $p$).
 
@@ -61,5 +63,9 @@ Separating the taxes pre-empts the natural objection that our negative result is
 an artifact of dense probing. It is not: the \emph{savings collapse} is partly a
 probe-tax artifact and is addressable, but the \emph{accuracy floor}---the
 finding that even the safest stop costs $\ge 1.85\pp$---is probe-independent and
-survives any probing scheme. The two families of prior work we test next fail on
-the accuracy axis, not the probe axis.
+survives any probing scheme. This probe-independence rests on one premise: the
+sweep's probe grid (intervals $64/128/256$ tokens) makes essentially every stop
+position reachable, and the $1.85\pp$ floor is the minimum over these schedules;
+a sparser schedule can only stop later or at a subset of positions, never at a
+safer one that the grid missed. The two families of prior work we test next fail
+on the accuracy axis, not the probe axis.
