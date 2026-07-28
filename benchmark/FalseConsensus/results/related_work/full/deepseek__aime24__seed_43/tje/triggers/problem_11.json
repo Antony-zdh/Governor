@@ -1,0 +1,71 @@
+{
+  "schema_version": "related-work-tje-trigger-1",
+  "method": "tje_frozen",
+  "reproduction_class": "frozen-trajectory TJE reproduction (confidence re-issued on frozen prefix)",
+  "problem_id": 11,
+  "dataset": "aime24",
+  "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+  "base_seed": 43,
+  "main_token_count_recorded": 4810,
+  "main_token_count_reencoded": 4810,
+  "token_alignment": {
+    "recorded": 4810,
+    "reencoded": 4810,
+    "delta": 0,
+    "absolute_delta": 0,
+    "tolerance": 24,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "c3224e11de23c986dc05be11bfdb34b1c63cc73945ff05a57ec8f73947822cb4",
+  "include_think_close": true,
+  "threshold_label": "Almost certain",
+  "triggers": [
+    {
+      "trigger_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 1185,
+      "token_position": 320,
+      "confidence_response": "Likely",
+      "confidence_label": "Likely",
+      "meets_threshold": false,
+      "confidence_out_tokens": 3,
+      "confidence_prompt_tokens": 729,
+      "confidence_finish_reason": "stop",
+      "confidence_latency_seconds": 0.9082817840098869,
+      "retry_count": 0
+    },
+    {
+      "trigger_id": 2,
+      "trigger_type": "wait",
+      "trigger_char_position": 3186,
+      "token_position": 793,
+      "confidence_response": "Almost certain",
+      "confidence_label": "Almost certain",
+      "meets_threshold": true,
+      "confidence_out_tokens": 3,
+      "confidence_prompt_tokens": 1202,
+      "confidence_finish_reason": "stop",
+      "confidence_latency_seconds": 0.25009249200229533,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "294",
+    "readout_text": "To solve the problem of finding the number of paths of length 16 on an 8x8 grid that change direction exactly four times, we can break it down step by step.\n\n1. **Understanding the Grid and Path Requirements**:\n   - The grid is 8x8, meaning we need to move 8 steps right (R) and 8 steps up (U) to go from the lower left corner (0,0) to the upper right corner (8,8).\n   - Each path is a sequence of 16 moves, consisting of 8 R's and 8 U's.\n\n2. **Direction Changes**:\n   - A direction change occurs when the path switches from moving right to up or vice versa.\n   - If the path changes direction exactly four times, there are four transitions between R and U, resulting in five runs (consecutive moves in the same direction).\n\n3. **Structure of the Path**:\n   - Since there are four direction changes, the path will have five runs. These runs alternate between R and U.\n   - The path can start with either an R or a U, leading to two possible sequences:\n     - Starting with R: R, U, R, U, R\n     - Starting with U: U, R, U, R, U\n\n4. **Counting the Paths**:\n   - For each starting direction, we need to count the number of valid sequences where the total number of R's is 8 and the total number of U's is 8.\n   - This translates to finding the number of ways to distribute the R's and U's across the runs.\n\n5. **Mathematical Formulation**:\n   - Let’s denote the number of runs as n = 5.\n   - If the path starts with R, the number of R runs is 3 and the number of U runs is 2.\n   - If the path starts with U, the number of U runs is 3 and the number of R runs is 2.\n   - The number of ways to distribute the R's and U's is given by the multinomial coefficients.\n\n6. **Calculating the Coefficients**:\n   - For paths starting with R:\n     - Number of ways = C(8-1, 3-1) * C(8-1, 2-1) = C(7,2) * C(7,1)\n   - For paths starting with U:\n     - Number of ways = C(8-1, 2-1) * C(8-1, 3-1) = C(7,1) * C(7,2)\n   - Since both cases are symmetric, the total number of paths is 2 * (C(7,2) * C(7,1)).\n\n7. **Computing the Values**:\n   - C(7,2) = 21\n   - C(7,1) = 7\n   - Total number of paths = 2 * (21 * 7) = 2 * 147 = 294\n\nTherefore, the number of such paths that change direction exactly four times is 294.\n\n\\boxed{294}",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 676,
+    "readout_prompt_tokens": 1207,
+    "readout_allowance": 8192,
+    "readout_prompt_tokens_estimate": 1207,
+    "readout_context_overflow": false,
+    "readout_triggering_label": "Almost certain",
+    "readout_confidence_event": "\\confidence{Almost certain}",
+    "readout_prompt_sha256": "8aca2a066212fefa5db954a9ca16afa8d569d1d7ecf4962859289ae2dd80a7d1",
+    "readout_latency_seconds": 15.291338678012835,
+    "at_trigger_id": 2,
+    "retry_count": 0
+  }
+}

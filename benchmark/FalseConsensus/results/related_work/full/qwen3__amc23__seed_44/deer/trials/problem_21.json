@@ -1,0 +1,74 @@
+{
+  "schema_version": "related-work-deer-trial-1",
+  "method": "deer_frozen",
+  "reproduction_class": "frozen-trajectory DEER reproduction (official probes on frozen prefix)",
+  "problem_id": 21,
+  "dataset": "amc23",
+  "model": "Qwen/Qwen3-8B",
+  "base_seed": 44,
+  "main_token_count_recorded": 3325,
+  "main_token_count_reencoded": 3324,
+  "token_alignment": {
+    "recorded": 3325,
+    "reencoded": 3324,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 17,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "c0896ed1904a46b0c32dcf9f11d1d0563aae298d98bb73b4a364ed55a964d2fe",
+  "policy": "avg2",
+  "threshold": 0.95,
+  "require_think_close": true,
+  "trials": [
+    {
+      "candidate_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 3139,
+      "token_position": 1139,
+      "trial_text": "{7}\n</think>",
+      "trial_answer": "7",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "7",
+          "logprob": 0.0
+        },
+        {
+          "token": "}\n",
+          "logprob": 0.0
+        },
+        {
+          "token": "</think>",
+          "logprob": -2.3841855067985307e-07
+        }
+      ],
+      "confidence": 0.9999999205271529,
+      "policy": "avg2",
+      "last_token_decoded": "</think>",
+      "think_close_emitted": true,
+      "meets_threshold": true,
+      "trial_out_tokens": 4,
+      "trial_prompt_tokens": 1225,
+      "trial_finish_reason": "stop",
+      "trial_latency_seconds": 0.35865136299980804,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "7",
+    "readout_text": "To determine Maureen's current mean quiz score, we begin by defining variables:\n\n- Let $ n $ be the number of quizzes she has taken so far.\n- Let $ S $ be the total of her current quiz scores.\n- Then, her current mean is $ m = \\frac{S}{n} $.\n\n---\n\n### Step 1: Use the first condition\n\nIf Maureen scores an 11 on the next quiz, her new total score becomes $ S + 11 $, and the number of quizzes becomes $ n + 1 $. The new mean is:\n\n$$\n\\frac{S + 11}{n + 1}\n$$\n\nAccording to the problem, this new mean is **1 more** than her current mean:\n\n$$\n\\frac{S + 11}{n + 1} = \\frac{S}{n} + 1\n$$\n\nMultiply both sides by $ n(n + 1) $ to eliminate denominators:\n\n$$\nn(S + 11) = (S + 1)(n + 1)\n$$\n\nExpanding both sides:\n\n$$\nnS + 11n = Sn + S + n + 1\n$$\n\nSubtract $ nS $ from both sides:\n\n$$\n11n = S + n + 1\n$$\n\nSimplify:\n\n$$\n10n = S + 1 \\quad \\text{(Equation 1)}\n$$\n\n---\n\n### Step 2: Use the second condition\n\nIf Maureen scores 11 on each of the next three quizzes, her new total score becomes $ S + 33 $, and the number of quizzes becomes $ n + 3 $. The new mean is:\n\n$$\n\\frac{S + 33}{n + 3}\n$$\n\nThis is **2 more** than her current mean:\n\n$$\n\\frac{S + 33}{n + 3} = \\frac{S}{n} + 2\n$$\n\nMultiply both sides by $ n(n + 3) $:\n\n$$\nn(S + 33) = (S + 2)(n + 3)\n$$\n\nExpanding both sides:\n\n$$\nnS + 33n = Sn + 3S + 2n + 6\n$$\n\nSubtract $ nS $ from both sides:\n\n$$\n33n = 3S + 2n + 6\n$$\n\nSimplify:\n\n$$\n31n = 3S + 6 \\quad \\text{(Equation 2)}\n$$\n\n---\n\n### Step 3: Solve the system of equations\n\nFrom Equation 1:\n\n$$\nS = 10n - 1\n$$\n\nSubstitute into Equation 2:\n\n$$\n31n = 3(10n - 1) + 6\n$$\n\n$$\n31n = 30n - 3 + 6\n$$\n\n$$\n31n = 30n + 3\n$$\n\n$$\nn = 3\n$$\n\nNow substitute back to find $ S $:\n\n$$\nS = 10n - 1 = 10(3) - 1 = 29\n$$\n\nSo, the current mean is:\n\n$$\nm = \\frac{S}{n} = \\frac{29}{3}\n$$\n\nWait — this contradicts the earlier conclusion. Let's recheck the algebra.\n\n---\n\n### Rechecking the equations\n\nLet’s go back to the system:\n\nFrom the first condition:\n\n$$\n\\frac{S + 11}{n + 1} = \\frac{S}{n} + 1\n$$\n\nMultiply both sides by $ n(n + 1) $:\n\n$$\nn(S + 11) = (S + 1)(n + 1)\n$$\n\n$$\nnS + 11n = Sn + S + n + 1\n$$\n\n$$\n11n = S + n + 1 \\Rightarrow S = 10n - 1\n$$\n\nFrom the second condition:\n\n$$\n\\frac{S + 33}{n + 3} = \\frac{S}{n} + 2\n$$\n\nMultiply both sides by $ n(n + 3) $:\n\n$$\nn(S + 33) = (S + 2)(n + 3)\n$$\n\n$$\nnS + 33n = Sn + 3S + 2n + 6\n$$\n\n$$\n33n = 3S + 2n + 6 \\Rightarrow 31n = 3S + 6\n$$\n\nSubstitute $ S = 10n - 1 $:\n\n$$\n31n = 3(10n - 1) + 6 = 30n - 3 + 6 = 30n + 3\n$$\n\n$$\n31n = 30n + 3 \\Rightarrow n = 3\n$$\n\nThen:\n\n$$\nS = 10n - 1 = 10(3) - 1 = 29\n$$\n\n$$\n\\text{Current mean} = \\frac{S}{n} = \\frac{29}{3}\n$$\n\nWait — this is not an integer. But the problem says \"mean will increase by 1\" and \"mean will increase by 2\", which implies the mean is a whole number. So this suggests a mistake in the setup.\n\nLet’s try a different approach.\n\n---\n\n### Alternative approach: Let $ m $ be the current mean\n\nThen $ S = mn $\n\nFrom the first condition:\n\n$$\n\\frac{mn + 11}{n + 1} = m + 1\n$$\n\nMultiply both sides by $ n + 1 $:\n\n$$\nmn + 11 = (m + 1)(n + 1)\n$$\n\n$$\nmn + 11 = mn + m + n + 1\n$$\n\n$$\n11 = m + n + 1 \\Rightarrow m + n = 10 \\quad \\text{(Equation A)}\n$$\n\nFrom the second condition:\n\n$$\n\\frac{mn + 33}{n + 3} = m + 2\n$$\n\nMultiply both sides by $ n + 3 $:\n\n$$\nmn + 33 = (m + 2)(n + 3)\n$$\n\n$$\nmn + 33 = mn + 3m + 2n + 6\n$$\n\n$$\n33 = 3m + 2n + 6 \\Rightarrow 3m + 2n = 27 \\quad \\text{(Equation B)}\n$$\n\nNow solve the system:\n\nFrom Equation A: $ m + n = 10 \\Rightarrow n = 10 - m $\n\nSubstitute into Equation B:\n\n$$\n3m + 2(10 - m) = 27\n$$\n\n$$\n3m + 20 - 2m = 27 \\Rightarrow m + 20 = 27 \\Rightarrow m = 7\n$$\n\nThen $ n = 10 - 7 = 3 $\n\nSo the current mean is:\n\n$$\n\\boxed{7}\n$$\n\n---\n\n### Final Answer:\n\n$$\n\\boxed{7}\n$$",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 1559,
+    "readout_prompt_tokens": 1221,
+    "readout_latency_seconds": 37.3185877079959,
+    "at_candidate_id": 1,
+    "retry_count": 0
+  }
+}

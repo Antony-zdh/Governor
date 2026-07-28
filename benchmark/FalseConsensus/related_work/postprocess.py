@@ -58,6 +58,43 @@ COLLECTED_SUBDIR = {
 }
 
 
+def _cache_is_valid(rows_file: Path, expected_count: int = 0) -> bool:
+    """Check that a cached replay_rows.jsonl is valid:
+    - non-empty, every line is a JSON dict;
+    - exact row count == expected_count (if > 0);
+    - every row has ``correct`` and ``baseline_correct`` as bool or 0/1
+      (not null/missing/other);
+    - every row has identity fields: method, model, dataset, base_seed,
+      problem_id.
+    Stale caches (correct: null from the pre-fix bug) are rejected."""
+    try:
+        count = 0
+        with rows_file.open(encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                row = json.loads(line)
+                if not isinstance(row, dict):
+                    return False
+                for k in ("method", "model", "dataset", "base_seed", "problem_id"):
+                    if k not in row or row[k] is None:
+                        return False
+                c = row.get("correct")
+                if c is None or (not isinstance(c, bool) and c not in (0, 1)):
+                    return False
+                bc = row.get("baseline_correct")
+                if bc is None or (not isinstance(bc, bool) and bc not in (0, 1)):
+                    return False
+                count += 1
+    except Exception:
+        return False
+    if count == 0:
+        return False
+    if expected_count > 0 and count != expected_count:
+        return False
+    return True
+
+
 def all_envs() -> List[Tuple[str, str, int, str]]:
     """All 54 (method, model_key, bench, seed) tuples."""
     out = []
@@ -159,18 +196,24 @@ def main(argv=None) -> int:
         print("=== DRY RUN complete: no outputs written ===")
         return 0
 
-    # Step 2: run replay for each env (restartable: skip if replay_rows.jsonl exists)
+    # Step 2: run replay for each env (restartable: skip if replay_rows.jsonl
+    # exists AND passes cache validity — every row has boolean/0/1 correct and
+    # baseline_correct, not null/missing)
     replay_root.mkdir(parents=True, exist_ok=True)
     replay_paths = []
     t0 = time.time()
     pending = []
+    stale = []
     for i, (method, key, bench, seed, env_name) in enumerate(all_envs(), 1):
         out_dir = replay_root / f"{key}__{bench}__seed_{seed}__{method}"
         rows_file = out_dir / "replay_rows.jsonl"
-        if rows_file.exists():
+        if rows_file.exists() and _cache_is_valid(rows_file, model_map.EXPECTED_PROBLEM_COUNTS[bench]):
             replay_paths.append(rows_file)
             print(f"[{i}/54] replay {method}/{key}/{bench}/seed{seed} (cached)", flush=True)
             continue
+        if rows_file.exists():
+            stale.append(f"{key}__{bench}__seed_{seed}__{method}")
+            print(f"[{i}/54] replay {method}/{key}/{bench}/seed{seed} (stale cache, regenerating)", flush=True)
         cmd = replay_command(method, key, bench, seed, env_name, full_root, replay_root)
         pending.append((i, method, key, bench, seed, cmd, rows_file))
 

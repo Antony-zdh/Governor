@@ -1,0 +1,102 @@
+{
+  "schema_version": "related-work-deer-trial-1",
+  "method": "deer_frozen",
+  "reproduction_class": "frozen-trajectory DEER reproduction (official probes on frozen prefix)",
+  "problem_id": 454,
+  "dataset": "math500",
+  "model": "Qwen/Qwen3-8B",
+  "base_seed": 43,
+  "main_token_count_recorded": 4374,
+  "main_token_count_reencoded": 4373,
+  "token_alignment": {
+    "recorded": 4374,
+    "reencoded": 4373,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 22,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "50fe8ed5e1e7dc36888137bf2a7903fdeed198c5cdee8b2a4fbf2ff1281a6c10",
+  "policy": "avg2",
+  "threshold": 0.95,
+  "require_think_close": true,
+  "trials": [
+    {
+      "candidate_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 3518,
+      "token_position": 1387,
+      "trial_text": "{y = 2x + 3}\n</think>",
+      "trial_answer": "y = 2x + 3",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "y",
+          "logprob": 0.0
+        },
+        {
+          "token": " =",
+          "logprob": 0.0
+        },
+        {
+          "token": " ",
+          "logprob": 0.0
+        },
+        {
+          "token": "2",
+          "logprob": 0.0
+        },
+        {
+          "token": "x",
+          "logprob": 0.0
+        },
+        {
+          "token": " +",
+          "logprob": 0.0
+        },
+        {
+          "token": " ",
+          "logprob": 0.0
+        },
+        {
+          "token": "3",
+          "logprob": 0.0
+        },
+        {
+          "token": "}\n",
+          "logprob": -1.1444026313256472e-05
+        },
+        {
+          "token": "</think>",
+          "logprob": -5.960462772236497e-07
+        }
+      ],
+      "confidence": 0.9999987959934657,
+      "policy": "avg2",
+      "last_token_decoded": "</think>",
+      "think_close_emitted": true,
+      "meets_threshold": true,
+      "trial_out_tokens": 11,
+      "trial_prompt_tokens": 1523,
+      "trial_finish_reason": "stop",
+      "trial_latency_seconds": 0.5971787130110897,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "2x+3",
+    "readout_text": "To determine the image of the line $ y = 2x + 1 $ under the matrix transformation $ \\mathbf{M} $, we begin by identifying the matrix $ \\mathbf{M} $ using the given transformations:\n\n- $ \\mathbf{M} \\begin{pmatrix} 2 \\\\ -1 \\end{pmatrix} = \\begin{pmatrix} 9 \\\\ 3 \\end{pmatrix} $\n- $ \\mathbf{M} \\begin{pmatrix} 1 \\\\ -3 \\end{pmatrix} = \\begin{pmatrix} 7 \\\\ -1 \\end{pmatrix} $\n\nLet $ \\mathbf{M} = \\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix} $. Then, we can write the following system of equations:\n\n$$\n\\begin{cases}\n2a - b = 9 \\\\\n2c - d = 3 \\\\\na - 3b = 7 \\\\\nc - 3d = -1\n\\end{cases}\n$$\n\n---\n\n### Step 1: Solve for $ a $ and $ b $\n\nFrom the first two equations:\n\n- $ 2a - b = 9 $ → $ b = 2a - 9 $\n- Substitute into the third equation: $ a - 3(2a - 9) = 7 $\n- $ a - 6a + 27 = 7 $ → $ -5a = -20 $ → $ a = 4 $\n- Then $ b = 2(4) - 9 = -1 $\n\n---\n\n### Step 2: Solve for $ c $ and $ d $\n\nFrom the last two equations:\n\n- $ 2c - d = 3 $ → $ d = 2c - 3 $\n- Substitute into the fourth equation: $ c - 3(2c - 3) = -1 $\n- $ c - 6c + 9 = -1 $ → $ -5c = -10 $ → $ c = 2 $\n- Then $ d = 2(2) - 3 = 1 $\n\n---\n\n### Step 3: Construct the Matrix\n\n$$\n\\mathbf{M} = \\begin{pmatrix} 4 & -1 \\\\ 2 & 1 \\end{pmatrix}\n$$\n\n---\n\n### Step 4: Apply the Matrix to the Line\n\nWe are given the line $ y = 2x + 1 $. Let’s parametrize it as:\n\n$$\n\\begin{pmatrix} x \\\\ y \\end{pmatrix} = \\begin{pmatrix} t \\\\ 2t + 1 \\end{pmatrix}\n$$\n\nApply $ \\mathbf{M} $ to this vector:\n\n$$\n\\mathbf{M} \\begin{pmatrix} t \\\\ 2t + 1 \\end{pmatrix} = \\begin{pmatrix} 4t - (2t + 1) \\\\ 2t + (2t + 1) \\end{pmatrix} = \\begin{pmatrix} 2t - 1 \\\\ 4t + 1 \\end{pmatrix}\n$$\n\nLet the transformed coordinates be $ (X, Y) $, so:\n\n$$\nX = 2t - 1, \\quad Y = 4t + 1\n$$\n\n---\n\n### Step 5: Eliminate the Parameter $ t $\n\nFrom $ X = 2t - 1 $, solve for $ t $:\n\n$$\nt = \\frac{X + 1}{2}\n$$\n\nSubstitute into the expression for $ Y $:\n\n$$\nY = 4\\left(\\frac{X + 1}{2}\\right) + 1 = 2(X + 1) + 1 = 2X + 2 + 1 = 2X + 3\n$$\n\n---\n\n### Final Answer\n\n$$\n\\boxed{y = 2x + 3}\n$$",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 849,
+    "readout_prompt_tokens": 1519,
+    "readout_latency_seconds": 19.397010283981217,
+    "at_candidate_id": 1,
+    "retry_count": 0
+  }
+}

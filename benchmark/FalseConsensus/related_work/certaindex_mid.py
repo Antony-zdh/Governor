@@ -215,11 +215,14 @@ def replay(
             recovery_truncated = False
         overthinking_avoided = 0
 
-    if answers_equal_target_fn is not None and delivered:
-        try:
-            correct = bool(answers_equal_target_fn(delivered, trajectory.get("target")))
-        except Exception:
-            correct = False
+    if answers_equal_target_fn is not None:
+        if delivered:
+            try:
+                correct = bool(answers_equal_target_fn(delivered, trajectory.get("target")))
+            except Exception:
+                correct = False
+        else:
+            correct = False  # empty delivered with grader = incorrect, not ungraded
     else:
         correct = None
 

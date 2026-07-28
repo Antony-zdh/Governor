@@ -1,0 +1,71 @@
+{
+  "schema_version": "related-work-tje-trigger-1",
+  "method": "tje_frozen",
+  "reproduction_class": "frozen-trajectory TJE reproduction (confidence re-issued on frozen prefix)",
+  "problem_id": 269,
+  "dataset": "math500",
+  "model": "Qwen/Qwen3-8B",
+  "base_seed": 42,
+  "main_token_count_recorded": 2161,
+  "main_token_count_reencoded": 2160,
+  "token_alignment": {
+    "recorded": 2161,
+    "reencoded": 2160,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 11,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "2d8a86a66f6db8be342b370666c5c37dbb1f2c7a8641602d9a0b09651ed5036f",
+  "include_think_close": true,
+  "threshold_label": "Almost certain",
+  "triggers": [
+    {
+      "trigger_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 1655,
+      "token_position": 404,
+      "confidence_response": "Highly likely",
+      "confidence_label": "Highly likely",
+      "meets_threshold": false,
+      "confidence_out_tokens": 4,
+      "confidence_prompt_tokens": 811,
+      "confidence_finish_reason": "stop",
+      "confidence_latency_seconds": 0.2688578520028386,
+      "retry_count": 0
+    },
+    {
+      "trigger_id": 2,
+      "trigger_type": "think_close",
+      "trigger_char_position": 6470,
+      "token_position": 1680,
+      "confidence_response": "Almost certain",
+      "confidence_label": "Almost certain",
+      "meets_threshold": true,
+      "confidence_out_tokens": 3,
+      "confidence_prompt_tokens": 2087,
+      "confidence_finish_reason": "stop",
+      "confidence_latency_seconds": 0.43588004101184197,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "6",
+    "readout_text": "To determine the number of distinct arrangements of 2 indistinguishable IMO gold medals and 2 indistinguishable IPhO gold medals in a row, we approach the problem as a permutation of a multiset.\n\n---\n\n### Step 1: Understanding the Problem\n\nWe are arranging **4 medals** in a row. These medals are **not all distinguishable** — the two IMO medals are **identical**, and the two IPhO medals are also **identical**. However, the two types (IMO and IPhO) are **distinct** from one another. \n\nThis means that swapping the two IMO medals does **not** create a new arrangement, and the same goes for the IPhO medals. But swapping an IMO medal with an IPhO medal **does** create a different arrangement.\n\n---\n\n### Step 2: Applying the Multiset Permutation Formula\n\nWhen arranging **n** items where there are duplicates of certain types, the number of **distinct** arrangements is given by:\n\n$$\n\\text{Number of arrangements} = \\frac{n!}{n_1! \\cdot n_2! \\cdot \\ldots \\cdot n_k!}\n$$\n\nWhere:\n- $ n $ is the total number of items,\n- $ n_1, n_2, \\ldots, n_k $ are the counts of each type of identical item.\n\nIn this case:\n- $ n = 4 $ (total medals),\n- There are 2 identical IMO medals and 2 identical IPhO medals.\n\nSo, the formula becomes:\n\n$$\n\\frac{4!}{2! \\cdot 2!} = \\frac{24}{2 \\cdot 2} = \\frac{24}{4} = 6\n$$\n\n---\n\n### Step 3: Verifying with Enumeration\n\nTo confirm this, we can list all possible distinct arrangements of the letters 'I' and 'P', where two 'I's and two 'P's are used:\n\n1. I, I, P, P  \n2. I, P, I, P  \n3. I, P, P, I  \n4. P, I, I, P  \n5. P, I, P, I  \n6. P, P, I, I  \n\nThese are all the unique sequences, and there are **exactly 6** of them. This confirms our calculation.\n\n---\n\n### Step 4: Alternative Reasoning\n\nWe can also think of the problem as first choosing positions for the 2 IMO medals. There are $ \\binom{4}{2} = 6 $ ways to choose 2 positions out of 4 for the IMO medals. Once those are chosen, the IPhO medals automatically occupy the remaining two positions. Since the IPhO medals are identical, there is no further distinction.\n\nThus, the number of distinct arrangements is again **6**.\n\n---\n\n### Final Conclusion\n\nAll methods — formula, enumeration, and combinatorial reasoning — consistently lead to the same result. Therefore, the number of distinct arrangements is:\n\n$$\n\\boxed{6}\n$$\n\n\\confidence{Almost certain}",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 646,
+    "readout_prompt_tokens": 2092,
+    "readout_allowance": 8192,
+    "readout_prompt_tokens_estimate": 2092,
+    "readout_context_overflow": false,
+    "readout_triggering_label": "Almost certain",
+    "readout_confidence_event": "\\confidence{Almost certain}",
+    "readout_prompt_sha256": "4179669761bab399dd5824a78b7322c3e17682811b8862c44093b38a4d7baac5",
+    "readout_latency_seconds": 22.584974807978142,
+    "at_trigger_id": 2,
+    "retry_count": 0
+  }
+}
