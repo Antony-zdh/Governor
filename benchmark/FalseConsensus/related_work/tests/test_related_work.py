@@ -607,6 +607,26 @@ class MetricsTests(unittest.TestCase):
             views["dev_pooled"][0]["all_generated_token_saving_fraction"], 0.4
         )
 
+    def test_macro_dev_is_float_reduction_order_independent(self):
+        fields = (
+            "accuracy", "baseline_accuracy", "accuracy_diff_pp",
+            "avg_main_tokens", "avg_probe_out_tokens",
+            "avg_all_generated_tokens", "main_only_token_saving_fraction",
+            "all_generated_token_saving_fraction", "stop_rate",
+            "invalid_aux_response_rate", "capped_rate",
+        )
+        rows = []
+        for dataset, value in (
+            ("math500", 1e16), ("amc23", -1e16), ("aime24", 1.0)
+        ):
+            row = {"method": "m", "model": "model", "dataset": dataset}
+            row.update({field: value for field in fields})
+            rows.append(row)
+        forward = aggregate_all.macro_dev(rows)
+        reverse = aggregate_all.macro_dev(list(reversed(rows)))
+        self.assertEqual(forward, reverse)
+        self.assertEqual(forward[0]["accuracy"], 1.0 / 3.0)
+
 
 if __name__ == "__main__":
     unittest.main()

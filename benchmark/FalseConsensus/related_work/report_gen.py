@@ -35,7 +35,7 @@ GOVERNOR_REFERENCE_FILE = (
 
 def _fmt(v: Any, places: int = 2) -> str:
     if v is None:
-        return "—"
+        return "N/A"
     if isinstance(v, float):
         return f"{v:.{places}f}"
     return str(v)
@@ -43,14 +43,21 @@ def _fmt(v: Any, places: int = 2) -> str:
 
 def _ci(lo: Any, hi: Any, places: int = 2) -> str:
     if lo is None or hi is None:
-        return "—"
+        return "N/A"
     return f"[{_fmt(lo, places)}, {_fmt(hi, places)}]"
 
 
 def _pct(v: Any, places: int = 2) -> str:
     if v is None:
-        return "—"
+        return "N/A"
     return f"{100.0 * float(v):.{places}f}%"
+
+
+def _pct_ci(lo: Any, hi: Any, places: int = 2) -> str:
+    """Format a confidence interval stored as fractions in percentage points."""
+    if lo is None or hi is None:
+        return "N/A"
+    return f"[{100.0 * float(lo):.{places}f}, {100.0 * float(hi):.{places}f}]"
 
 
 def _method_label(value: Any) -> str:
@@ -70,11 +77,11 @@ def _dev_table(views: dict) -> str:
     for row in dev_pooled:
         ci = row.get("ci") or {}
         lines.append(
-            f"| {row.get('model','—')} | {row.get('dataset','—')} | {_method_label(row.get('method','—'))} "
+            f"| {row.get('model','N/A')} | {row.get('dataset','N/A')} | {_method_label(row.get('method','N/A'))} "
             f"| {_pct(row.get('accuracy'))} | {_pct(row.get('baseline_accuracy'))} "
-            f"| {_fmt(row.get('accuracy_diff_pp'),2)} | {_fmt(ci.get('accuracy_diff'),4)}→{_fmt(ci.get('accuracy_diff_ci_lo'),4)},{_fmt(ci.get('accuracy_diff_ci_hi'),4)} "
+            f"| {_fmt(row.get('accuracy_diff_pp'),2)} | {_pct_ci(ci.get('accuracy_diff_ci_lo'), ci.get('accuracy_diff_ci_hi'))} "
             f"| {_pct(row.get('all_generated_token_saving_fraction'))} "
-            f"| {_fmt(ci.get('all_generated_token_saving'),4)}→{_fmt(ci.get('token_saving_ci_lo'),4)},{_fmt(ci.get('token_saving_ci_hi'),4)} "
+            f"| {_pct_ci(ci.get('token_saving_ci_lo'), ci.get('token_saving_ci_hi'))} "
             f"| {_pct(row.get('main_only_token_saving_fraction'))} "
             f"| {_pct(row.get('stop_rate'))} | {_fmt(row.get('avg_probe_out_tokens'),1)} |"
         )
@@ -205,10 +212,11 @@ def _governor_reference_table() -> str:
             f"| {label} | {accuracy:.2f}% | {accuracy - baseline:+.2f}pp | {saving:.2f}% |"
         )
     lines.append(
-        f"\n来源：`{reference['source_path']}`（SHA-256 "
-        f"`{reference['source_sha256']}`）。该表是历史三-seed MATH500 "
-        "探索结果，模型/seed/任务构成与本报告的 18 个 development 环境不完全匹配；"
-        "只用于定性定位，不能和上表作严格横向显著性比较。"
+        f"\n- 来源文件：`{reference['source_path']}`\n"
+        f"- 来源 SHA-256：`{reference['source_sha256']}`\n\n"
+        "该表是历史三-seed MATH500 探索结果，模型/seed/任务构成与本报告的 "
+        "18 个 development 环境不完全匹配；只用于定性定位，不能和上表作严格"
+        "横向显著性比较。"
     )
     return "\n".join(lines)
 
@@ -295,7 +303,7 @@ def generate_report(aggregate_path: Path, output_path: Path) -> str:
     if data_ready:
         report.append(f"全量数据已就绪（{row_count} 行，3 方法 × {common.EXPECTED_TOTAL_TRAJECTORIES} 轨迹/方法）。\n")
     else:
-        report.append(f"数据尚不完整（{row_count}/{expected} 行）。以下表格中—表示数据待补。\n")
+        report.append(f"数据尚不完整（{row_count}/{expected} 行）。以下表格中 N/A 表示数据待补。\n")
     report.append(_executive_conclusion(views, data_ready))
 
     report.append("\n## 2. 实验范围与复现标签\n")
@@ -313,11 +321,11 @@ def generate_report(aggregate_path: Path, output_path: Path) -> str:
 
     report.append("\n## 4. 覆盖率\n")
     if coverage:
-        report.append(f"- 方法数: {coverage.get('method_count', '—')}\n")
-        report.append(f"- 环境数: {coverage.get('environment_count', '—')}\n")
+        report.append(f"- 方法数: {coverage.get('method_count', 'N/A')}\n")
+        report.append(f"- 环境数: {coverage.get('environment_count', 'N/A')}\n")
         per_method = coverage.get("rows_per_method", {})
         report.append(f"- 每方法行数: {per_method}\n")
-        report.append(f"- 测试行数: {coverage.get('test_rows', '—')}\n")
+        report.append(f"- 测试行数: {coverage.get('test_rows', 'N/A')}\n")
     else:
         report.append("数据待补。\n")
 
@@ -334,7 +342,7 @@ def generate_report(aggregate_path: Path, output_path: Path) -> str:
         ]
         for m in macro:
             lines.append(
-                f"| {_method_label(m.get('method','—'))} | {m.get('model','—')} | {m.get('benchmark_count','—')} "
+                f"| {_method_label(m.get('method','N/A'))} | {m.get('model','N/A')} | {m.get('benchmark_count','N/A')} "
                 f"| {_pct(m.get('accuracy'))} | {_fmt(m.get('accuracy_diff_pp'),2)} "
                 f"| {_pct(m.get('all_generated_token_saving_fraction'))} "
                 f"| {_pct(m.get('main_only_token_saving_fraction'))} "
@@ -345,7 +353,7 @@ def generate_report(aggregate_path: Path, output_path: Path) -> str:
         report.append("数据待补。\n")
     report.append("")
 
-    report.append("\n## 7. Accuracy–compute Pareto\n")
+    report.append("\n## 7. Accuracy-compute Pareto\n")
     report.append(_pareto_table(views))
     report.append(
         "\n“非支配”仅在同一模型的 Full + 三个相关工作主点内部计算；"
@@ -362,11 +370,11 @@ def generate_report(aggregate_path: Path, output_path: Path) -> str:
 
     report.append("\n## 9. 公平计费说明\n")
     report.append("**两种成本视图**:\n")
-    report.append("1. **论文式** `main_tokens_through_stop` — 冻结推理长度到停止（或全长如无停止）\n")
+    report.append("1. **论文式** `main_tokens_through_stop` - 冻结推理长度到停止（或全长如无停止）\n")
     report.append("2. **公平全量** `all_generated_tokens` = 主停止长度 + 所有探针/试错/读出输出token\n")
     report.append("探针/试错/读出 **prompt token**（重发前缀）单独报告，不计入全量生成token。\n")
-    report.append(f"\n**配对分层 bootstrap**: {metrics.BOOTSTRAP_SAMPLES} 样本, 种子 `{metrics.BOOTSTRAP_SEED}` — "
-                 "重采样种子→种子内配对问题行。仅在 dev-pooled + train+dev 视图运行（非逐环境）。\n")
+    report.append(f"\n**配对分层 bootstrap**: {metrics.BOOTSTRAP_SAMPLES} 样本, 种子 `{metrics.BOOTSTRAP_SEED}` - "
+                 "先重采样种子，再在种子内重采样配对问题行。仅在 dev-pooled + train+dev 视图运行（非逐环境）。\n")
 
     report.append("\n## 10. 失败、截断与解析诊断\n")
     report.append(_diagnostic_table(views))

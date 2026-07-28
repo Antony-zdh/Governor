@@ -93,8 +93,10 @@ class ReportGenTests(unittest.TestCase):
             self.assertIn("Governor v2 相关工作基线实验报告", text)
             self.assertIn("CertaIndex faithful mid", text)
             self.assertIn("85.00%", text)  # fixture accuracy
+            self.assertIn("[-8.00, -2.00]", text)
+            self.assertIn("[25.00, 35.00]", text)
             self.assertIn("数据已就绪", text)
-            self.assertIn("Accuracy–compute Pareto", text)
+            self.assertIn("Accuracy-compute Pareto", text)
             self.assertIn("Matched-accuracy / matched-token", text)
             self.assertIn("Artifact inventory", text)
             self.assertIn("复现命令", text)

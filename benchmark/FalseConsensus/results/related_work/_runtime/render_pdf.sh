@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# render_pdf.sh -- render the Chinese Markdown report to PDF using already-
-# installed tools only. Tries pandoc, weasyprint, wkhtmltopdf in order; if none
-# is available, generates an HTML rendering and prints the exact pandoc command
-# to run once a tool is installed.
+# render_pdf.sh -- render the Chinese Markdown report to PDF.
+#
+# The script derives the repository root from its own location, so it works in
+# both the ugcpu2 checkout and a clean local audit worktree.
 set -euo pipefail
 
-REPO=/localdata/dzhaoah/Governor
-PY=/localdata/dzhaoah/miniforge3/envs/gov/bin/python
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
+PY="${GOVERNOR_PYTHON:-python3}"
 REPORT_MD="$REPO/benchmark/FalseConsensus/results/related_work/aggregate/report.md"
 REPORT_HTML="$REPO/benchmark/FalseConsensus/results/related_work/aggregate/report.html"
 REPORT_PDF="$REPO/benchmark/FalseConsensus/results/related_work/aggregate/report.pdf"
@@ -22,7 +23,18 @@ fi
 # Try pandoc (best: Markdown -> PDF via LaTeX or wkhtmltopdf)
 if command -v pandoc >/dev/null 2>&1; then
     echo "pandoc found; rendering PDF..."
-    pandoc "$REPORT_MD" -o "$REPORT_PDF" --pdf-engine=xelatex 2>/dev/null || \
+    PANDOC_ARGS=(
+        "$REPORT_MD" -o "$REPORT_PDF" --pdf-engine=xelatex
+        -V geometry:landscape -V geometry:margin=10mm
+        -V mainfont=Helvetica
+    )
+    if [[ "$(uname -s)" == "Darwin" && -f "/System/Library/Fonts/STHeiti Light.ttc" ]]; then
+        PANDOC_ARGS+=(
+            -V "CJKmainfont=STHeiti Light.ttc"
+            -V "CJKoptions=Path=/System/Library/Fonts/"
+        )
+    fi
+    pandoc "${PANDOC_ARGS[@]}" || \
     pandoc "$REPORT_MD" -o "$REPORT_PDF" --pdf-engine=wkhtmltopdf 2>/dev/null || \
     pandoc "$REPORT_MD" -o "$REPORT_PDF" 2>/dev/null
     if [[ -f "$REPORT_PDF" ]]; then

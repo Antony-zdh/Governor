@@ -107,6 +107,11 @@ class LauncherDryRunTests(unittest.TestCase):
         r = subprocess.run(["bash", "-n", str(LAUNCHER)], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, "bash -n failed: " + r.stderr)
 
+    def test_repo_root_is_derived_not_hardcoded(self):
+        text = LAUNCHER.read_text(encoding="utf-8")
+        self.assertIn("rev-parse --show-toplevel", text)
+        self.assertNotIn("REPO=/localdata/dzhaoah/Governor", text)
+
     def test_unknown_key_rejected(self):
         r = subprocess.run(["bash", str(LAUNCHER), "llama", "--dry-run"],
                             capture_output=True, text=True)

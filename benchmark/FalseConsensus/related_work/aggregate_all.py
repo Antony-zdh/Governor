@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
@@ -176,7 +177,10 @@ def macro_dev(dev_pooled: Sequence[Mapping[str, Any]]) -> list[dict]:
         item = {"method": key[0], "model": key[1], "benchmark_count": len(summaries)}
         for field in fields:
             values = [float(row[field]) for row in summaries if row.get(field) is not None]
-            item[field] = sum(values) / len(values) if values else None
+            # CPython 3.12 changed float ``sum`` relative to 3.11.  Use a
+            # stable, accurately rounded reduction so identical replay rows
+            # regenerate byte-identical macro aggregates across interpreters.
+            item[field] = math.fsum(values) / len(values) if values else None
         output.append(item)
     return output
 

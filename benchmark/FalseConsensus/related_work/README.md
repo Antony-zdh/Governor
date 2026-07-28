@@ -57,14 +57,18 @@ python -m benchmark.FalseConsensus.related_work.preflight \
 
 ### Full bank (one model)
 
-The durable launcher validates the endpoint, the split manifest, and the exactly-9
-authorized development environments (math500/amc23/aime24 x seeds 42/43/44) for
-the model, then runs CertaIndex -> TJE -> DEER across those 9 environments with
-workers=4 and the exact pinned arguments. It is safely restartable (collectors
-skip complete per-problem files), fails loudly, uses absolute
-/localdata/dzhaoah/Governor paths, never selects/resets/touches GPUs or other
-processes, and writes per-method/environment logs + machine-readable
+The durable launcher derives the repository root from its own location,
+validates endpoint readiness for a full run, and validates the split manifest
+plus exactly 9 authorized development environments (math500/amc23/aime24 x
+seeds 42/43/44) for the model. It then runs CertaIndex -> TJE -> DEER across
+those 9 environments with workers=4 and the exact pinned arguments. It is
+safely restartable (collectors skip complete per-problem files), fails loudly,
+never selects/resets/touches GPUs or other processes, and writes
+per-method/environment logs + machine-readable
 status_<key>.json / progress_<key>.json under the full-results runtime area.
+The portable `--dry-run` validates files, revisions, and exact commands but does
+not require a live endpoint, so it remains usable after the model servers have
+been intentionally stopped.
 The manifest gate requires complete coverage (observed=expected, missing=0),
 zero recorded request failures, and complete=true; both invalid_readouts and
 truncated_readouts are diagnostic method outcomes (capped readout at
