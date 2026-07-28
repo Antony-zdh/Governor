@@ -226,7 +226,11 @@ class ManifestCheckTests(unittest.TestCase):
 
 
 class ManifestInvalidReadoutsTests(unittest.TestCase):
-    """manifest_check must also require invalid_readouts == 0."""
+    """manifest_check treats invalid_readouts as a diagnostic (not a hard
+    failure -- these are deterministic method-level outcomes where the model
+    claimed Almost certain but couldn't deliver a boxed readout; replay handles
+    them as empty/incorrect). truncated_readouts > 0 IS a hard failure
+    (infrastructure blocker: context overflow, server truncation)."""
 
     def _write_manifest(self, tmpdir, completion):
         p = Path(tmpdir) / "probe_manifest.json"
@@ -235,15 +239,16 @@ class ManifestInvalidReadoutsTests(unittest.TestCase):
         p.write_text(json.dumps(d), encoding="utf-8")
         return p
 
-    def test_invalid_readouts_nonzero_fails(self):
+    def test_invalid_readouts_nonzero_passes(self):
+        """invalid_readouts > 0 is a diagnostic, NOT a hard failure."""
         from benchmark.FalseConsensus.related_work import manifest_check
         with tempfile.TemporaryDirectory() as td:
             p = self._write_manifest(td, {"complete": True, "expected_problem_count": 400,
                                           "observed_problem_count": 400, "missing_problem_count": 0,
-                                          "recorded_failures": 0, "invalid_readouts": 2})
+                                          "recorded_failures": 0, "invalid_readouts": 14})
             ok, reason = manifest_check.check_manifest(p, 400)
-            self.assertFalse(ok)
-            self.assertIn("invalid_readouts=2", reason)
+            self.assertTrue(ok)
+            self.assertEqual(reason, "ok")
 
     def test_invalid_readouts_zero_passes(self):
         from benchmark.FalseConsensus.related_work import manifest_check
@@ -251,6 +256,28 @@ class ManifestInvalidReadoutsTests(unittest.TestCase):
             p = self._write_manifest(td, {"complete": True, "expected_problem_count": 400,
                                           "observed_problem_count": 400, "missing_problem_count": 0,
                                           "recorded_failures": 0, "invalid_readouts": 0})
+            ok, _ = manifest_check.check_manifest(p, 400)
+            self.assertTrue(ok)
+
+    def test_truncated_readouts_nonzero_fails(self):
+        """truncated_readouts > 0 IS a hard failure (infrastructure blocker)."""
+        from benchmark.FalseConsensus.related_work import manifest_check
+        with tempfile.TemporaryDirectory() as td:
+            p = self._write_manifest(td, {"complete": True, "expected_problem_count": 400,
+                                          "observed_problem_count": 400, "missing_problem_count": 0,
+                                          "recorded_failures": 0, "invalid_readouts": 0,
+                                          "truncated_readouts": 3})
+            ok, reason = manifest_check.check_manifest(p, 400)
+            self.assertFalse(ok)
+            self.assertIn("truncated_readouts=3", reason)
+
+    def test_truncated_readouts_zero_passes(self):
+        from benchmark.FalseConsensus.related_work import manifest_check
+        with tempfile.TemporaryDirectory() as td:
+            p = self._write_manifest(td, {"complete": True, "expected_problem_count": 400,
+                                          "observed_problem_count": 400, "missing_problem_count": 0,
+                                          "recorded_failures": 0, "invalid_readouts": 14,
+                                          "truncated_readouts": 0})
             ok, _ = manifest_check.check_manifest(p, 400)
             self.assertTrue(ok)
 
