@@ -91,8 +91,11 @@ class ReportGenTests(unittest.TestCase):
             self.assertTrue(out_path.exists())
             self.assertIn("Governor v2 相关工作基线实验报告", text)
             self.assertIn("CertaIndex faithful mid", text)
-            self.assertIn("0.85", text)  # fixture accuracy
+            self.assertIn("85.00%", text)  # fixture accuracy
             self.assertIn("数据已就绪", text)
+            self.assertIn("Accuracy–compute Pareto", text)
+            self.assertIn("Matched-accuracy / matched-token", text)
+            self.assertIn("Artifact inventory", text)
             self.assertIn("复现命令", text)
 
     def test_report_skeleton_no_data(self):
