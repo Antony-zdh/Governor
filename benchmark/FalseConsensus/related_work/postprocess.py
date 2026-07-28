@@ -18,6 +18,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import os
 import subprocess
@@ -109,9 +110,15 @@ def main(argv=None) -> int:
     ap.add_argument("--aggregate-dir", type=Path, default=AGGREGATE_DIR)
     ap.add_argument("--split-manifest", type=Path, default=SPLIT_MANIFEST)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument(
+        "--jobs", type=int, default=8,
+        help="number of independent replay subprocesses (default 8; each writes a distinct environment)",
+    )
     ap.add_argument("--allow-partial", action="store_true",
                    help="proceed even if some manifests are incomplete (incremental)")
     args = ap.parse_args(argv)
+    if args.jobs < 1:
+        ap.error("--jobs must be >= 1")
 
     full_root = args.full_root
     replay_root = args.replay_root
@@ -137,6 +144,7 @@ def main(argv=None) -> int:
         print(f"expected_rows=8208 (2736 per method × 3 methods)")
         print(f"bootstrap={metrics.BOOTSTRAP_SAMPLES} samples, seed={metrics.BOOTSTRAP_SEED}")
         print(f"bootstrap_scope=dev_pooled + train_dev_diagnostic only (NOT per-environment)")
+        print(f"replay_jobs={args.jobs}")
         print("=== plan ===")
         for method, key, bench, seed, env_name in all_envs():
             cmd = replay_command(method, key, bench, seed, env_name, full_root, replay_root)
@@ -151,6 +159,7 @@ def main(argv=None) -> int:
     replay_root.mkdir(parents=True, exist_ok=True)
     replay_paths = []
     t0 = time.time()
+    pending = []
     for i, (method, key, bench, seed, env_name) in enumerate(all_envs(), 1):
         out_dir = replay_root / f"{key}__{bench}__seed_{seed}__{method}"
         rows_file = out_dir / "replay_rows.jsonl"
@@ -159,20 +168,52 @@ def main(argv=None) -> int:
             print(f"[{i}/54] replay {method}/{key}/{bench}/seed{seed} (cached)", flush=True)
             continue
         cmd = replay_command(method, key, bench, seed, env_name, full_root, replay_root)
-        print(f"[{i}/54] replay {method}/{key}/{bench}/seed{seed}", flush=True)
+        pending.append((i, method, key, bench, seed, cmd, rows_file))
+
+    def run_replay(item):
+        i, method, key, bench, seed, cmd, rows_file = item
         r = subprocess.run(cmd, cwd=str(REPO), capture_output=True, text=True,
                            timeout=3600,
                            env={**os.environ,
                                 "LD_PRELOAD": "/localdata/dzhaoah/miniforge3/envs/gov/lib/libstdc++.so.6",
                                 "LD_LIBRARY_PATH": "/localdata/dzhaoah/miniforge3/envs/gov/lib:/usr/local/cuda-13.0.0/lib64",
                                 "HF_HOME": "/localdata/dzhaoah/hf-cache"})
-        if r.returncode != 0:
-            print(f"FAIL: replay {method}/{key}/{bench}/seed{seed}: {r.stderr[-200:]}", file=sys.stderr)
-            if not args.allow_partial:
-                return 1
-        else:
-            if rows_file.exists():
-                replay_paths.append(rows_file)
+        return i, method, key, bench, seed, rows_file, r
+
+    failures_replay = []
+    if pending:
+        print(
+            f"launching {len(pending)} uncached replays with jobs={args.jobs}",
+            flush=True,
+        )
+        with ThreadPoolExecutor(max_workers=min(args.jobs, len(pending))) as pool:
+            futures = {pool.submit(run_replay, item): item for item in pending}
+            for future in as_completed(futures):
+                i, method, key, bench, seed, rows_file, r = future.result()
+                if r.returncode != 0 or not rows_file.exists():
+                    reason = r.stderr[-500:] if r.returncode else "replay_rows.jsonl missing"
+                    failures_replay.append({
+                        "index": i, "method": method, "model": key,
+                        "bench": bench, "seed": seed, "reason": reason,
+                    })
+                    print(
+                        f"FAIL [{i}/54] replay {method}/{key}/{bench}/seed{seed}: "
+                        f"{reason[-200:]}",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                else:
+                    replay_paths.append(rows_file)
+                    print(
+                        f"OK [{i}/54] replay {method}/{key}/{bench}/seed{seed}",
+                        flush=True,
+                    )
+    if failures_replay and not args.allow_partial:
+        print(
+            f"Aborting after {len(failures_replay)} replay failure(s).",
+            file=sys.stderr,
+        )
+        return 1
 
     print(f"replay done: {len(replay_paths)}/54 in {time.time()-t0:.0f}s", flush=True)
 

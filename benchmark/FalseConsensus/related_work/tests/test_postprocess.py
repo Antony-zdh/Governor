@@ -35,6 +35,7 @@ class PostprocessDryRunTests(unittest.TestCase):
         self.assertIn("replay_commands=54", out)
         self.assertIn("expected_rows=8208", out)
         self.assertIn(str(metrics.BOOTSTRAP_SAMPLES), out)
+        self.assertIn("replay_jobs=8", out)
         self.assertIn("no outputs written", out)
 
     def test_dry_run_non_mutating(self):
