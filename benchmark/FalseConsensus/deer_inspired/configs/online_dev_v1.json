@@ -1,0 +1,72 @@
+{
+  "protocol_version": "deer-inspired-online-dev-2026-07-28.1",
+  "formal_seed": 42,
+  "split": "dev",
+  "split_manifest": "benchmark/FalseConsensus/governor_v2/generated/split_manifest.json",
+  "models": {
+    "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B": {
+      "revision": "916b56a44061fd5cd7d6a8fb632557ed4f724f60",
+      "dtype": "bfloat16",
+      "max_model_len": 49152,
+      "policy": "avg1",
+      "require_think_close": false
+    },
+    "Qwen/Qwen3-8B": {
+      "revision": "b968826d9c46dd6066d109eabc6255188de91218",
+      "dtype": "bfloat16",
+      "max_model_len": 40960,
+      "policy": "avg2",
+      "require_think_close": true
+    }
+  },
+  "benchmarks": {
+    "math500": {
+      "dataset_path": "benchmark/TokenDeprivation/data/math500/test.jsonl",
+      "dev_count": 100,
+      "cap": 16384
+    },
+    "amc23": {
+      "dataset_path": "benchmark/TokenDeprivation/data/amc23/test.jsonl",
+      "dev_count": 8,
+      "cap": 16384
+    },
+    "aime24": {
+      "dataset_path": "benchmark/TokenDeprivation/data/aime24/test.jsonl",
+      "dev_count": 6,
+      "cap": 32768
+    }
+  },
+  "main_sampling": {
+    "temperature": 0.6,
+    "top_p": 0.95
+  },
+  "trial": {
+    "answer_inducer": "\n**Final Answer**\n\\boxed",
+    "output_cap": 20,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "logprobs": 1
+  },
+  "proposed": {
+    "trigger": "case-insensitive whole-word Wait",
+    "minimum_committed_main_tokens": 1024,
+    "dense_stage1_attempts": 10,
+    "post_dense_min_probe_gap_tokens": 512,
+    "max_stage1_attempts": null,
+    "branch_threshold_strict": 0.97,
+    "fast_threshold_strict": 0.995,
+    "verification_budget": 64,
+    "verification_min_gap_tokens": 512,
+    "commit_threshold_strict": 0.99,
+    "confirmation_depth": 2,
+    "require_answer_equivalence": true,
+    "formal_readout_after_commit": false,
+    "verification_cue_template": "\nCandidate answer: \\boxed{<ANSWER_A>}\nI will quickly verify within 64 tokens whether this answer satisfies every requirement of the problem."
+  },
+  "reference": {
+    "max_attempts": 10,
+    "threshold_strict": 0.95,
+    "readout_cap": 4096
+  },
+  "test_read": false
+}
