@@ -1,0 +1,118 @@
+{
+  "schema_version": "deer-inspired-fast-path-replay-1",
+  "created_at": "2026-07-28",
+  "status": "cpu_replay_complete_test_untouched",
+  "source_commit": "e458a0742eacecca5e5af550b0323d5041cd2262",
+  "protocol_version": "governor-v2-preregistered-2026-07-27.10",
+  "split_manifest_sha256": "3d30cd624dd9cd637b5d3f40e030247d225114db6074c6b2d26a1351d676e9a6",
+  "deer_config_sha256": "21c78cafc9e5babfc8cae7ee09513dbc0cc561a00d364aa29212673207529d25",
+  "method": {
+    "name": "deer_fast_path_only_frozen_replay",
+    "base_method": "deer_frozen",
+    "fast_threshold_strictly_greater_than": 0.995,
+    "validity_gate": "non-empty parsed trial answer",
+    "fast_action": "deliver the existing high-confidence trial answer and omit the formal DEER readout",
+    "fallback_action": "preserve the original DEER delivered answer and accounting",
+    "branch_enabled": false,
+    "main_generation_changed": false
+  },
+  "coverage": {
+    "train_rows": 2052,
+    "dev_rows": 684,
+    "test_rows": 0,
+    "train_valid_fast_commits": 1043,
+    "dev_raw_confidence_candidates": 340,
+    "dev_valid_fast_commits": 335,
+    "dev_invalid_candidates_falling_back": 5
+  },
+  "macro_over_benchmarks": {
+    "train": {
+      "Qwen/Qwen3-8B": {
+        "original_deer_accuracy": 0.7909876543209877,
+        "fast_path_accuracy": 0.7975308641975308,
+        "accuracy_delta_pp": 0.6543209876543185,
+        "original_deer_token_saving": 0.17173033395244208,
+        "fast_path_token_saving": 0.20212118984029714,
+        "token_saving_delta_pp": 3.039085588785506
+      },
+      "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B": {
+        "original_deer_accuracy": 0.6754938271604938,
+        "fast_path_accuracy": 0.6895679012345679,
+        "accuracy_delta_pp": 1.407407407407409,
+        "original_deer_token_saving": 0.23612058967969626,
+        "fast_path_token_saving": 0.2551409250942606,
+        "token_saving_delta_pp": 1.9020335414564344
+      }
+    },
+    "dev": {
+      "Qwen/Qwen3-8B": {
+        "original_deer_accuracy": 0.8622222222222222,
+        "fast_path_accuracy": 0.8588888888888889,
+        "accuracy_delta_pp": -0.33333333333333365,
+        "original_deer_token_saving": 0.16294927572493287,
+        "fast_path_token_saving": 0.18688734402413595,
+        "token_saving_delta_pp": 2.3938068299203086
+      },
+      "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B": {
+        "original_deer_accuracy": 0.7492592592592593,
+        "fast_path_accuracy": 0.7637037037037038,
+        "accuracy_delta_pp": 1.4444444444444446,
+        "original_deer_token_saving": 0.20161758990357384,
+        "fast_path_token_saving": 0.22174515531679337,
+        "token_saving_delta_pp": 2.0127565413219513
+      }
+    }
+  },
+  "dev_paired_diagnostics": {
+    "Qwen/Qwen3-8B": {
+      "rows": 342,
+      "valid_fast_commits": 161,
+      "wrong_to_correct": 0,
+      "correct_to_wrong": 3,
+      "readout_output_tokens_avoided": 79721,
+      "readout_prompt_tokens_avoided": 165927,
+      "pooled_accuracy_delta_pp": -0.8771929824561431,
+      "pooled_accuracy_delta_95ci_pp": [
+        -2.0467836257309968,
+        0.0
+      ],
+      "relative_generated_token_reduction_vs_original_deer": 0.0538529869726313,
+      "relative_generated_token_reduction_95ci": [
+        0.04044119019328507,
+        0.06925824601734165
+      ]
+    },
+    "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B": {
+      "rows": 342,
+      "valid_fast_commits": 174,
+      "wrong_to_correct": 16,
+      "correct_to_wrong": 3,
+      "readout_output_tokens_avoided": 51478,
+      "readout_prompt_tokens_avoided": 195152,
+      "pooled_accuracy_delta_pp": 3.801169590643283,
+      "pooled_accuracy_delta_95ci_pp": [
+        0.29239766081872176,
+        7.309941520467833
+      ],
+      "relative_generated_token_reduction_vs_original_deer": 0.049192891790545645,
+      "relative_generated_token_reduction_95ci": [
+        0.02986648448754703,
+        0.08180180675386839
+      ]
+    },
+    "combined": {
+      "rows": 684,
+      "valid_fast_commits": 335,
+      "wrong_to_correct": 16,
+      "correct_to_wrong": 6,
+      "readout_output_tokens_avoided": 131199,
+      "readout_prompt_tokens_avoided": 361079
+    }
+  },
+  "limitations": [
+    "This is a paired CPU replay over existing frozen DEER trial and readout artifacts, not a new online generation run.",
+    "The validity gate is intentionally minimal: the parsed trial answer must be non-empty; strict mathematical equivalence is used for grading.",
+    "No branch-and-commit behavior is simulated.",
+    "No Test data is read."
+  ]
+}

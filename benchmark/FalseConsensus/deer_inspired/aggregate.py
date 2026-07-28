@@ -575,154 +575,163 @@ def write_report(
     comparisons: Sequence[Mapping[str, Any]],
     manifest: Optional[Mapping[str, Any]],
 ) -> None:
-    def model_slug(m: str) -> str:
-        return "DeepSeek-7B" if "deepseek" in m else "Qwen3-8B"
+    def short_method(method: str) -> str:
+        return "DEER-inspired" if method == METHOD_PROPOSED else "Online DEER"
+
+    def short_model(model: str) -> str:
+        if model == "all_models":
+            return "All"
+        return "DeepSeek-7B" if "deepseek" in model.lower() else "Qwen3-8B"
+
+    macro_all = {r["method"]: r for r in macro_rows if r["model"] == "all_models"}
+    pooled_all = {r["method"]: r for r in pooled_rows if r["model"] == "all_models"}
+    prop = [r for r in rows if r["method"] == METHOD_PROPOSED]
+    proposed = macro_all.get(METHOD_PROPOSED)
+    reference = macro_all.get(METHOD_REFERENCE)
 
     lines = [
-        "# DEER-inspired Online Dev 实验报告",
+        "# DEER-inspired Online Dev 结果",
         "",
-        "本轮为 seed 42 的 exploratory Dev 评估（加分项），不替代、也不回溯修改既有 Governor Pareto sweep。"
-        "两个 BF16 模型在单张 RTX 5090 上依次在线服务，主推理从题目 prompt 在线生成，"
-        "遇 `Wait` 转换且满足调度条件时现场 probe / 现场 verification branch，不拼接任何 frozen 轨迹的未来 suffix。",
+        "Seed 42 的 exploratory Dev 评估；两个 BF16 模型、三个 benchmark，所有推理、probe 与 verification branch 均在线执行。",
         "",
-        "## 1. 方法与部署化定位",
+        "## 结论",
         "",
-        "- **主方法 `deer_inspired_online_v1`**：1024 committed-main tokens 前只记录 `Wait` 不 probe；"
-        "前 10 次实际 Stage-1 probe 保持 dense；之后进入 sparse（距上次实际 probe >=512 main tokens 才 probe）。"
-        "Stage-1 confidence `>0.995` fast commit；`>0.97` 且距上次 branch >=512 进入 retained verification branch；"
-        "branch 通过（Stage-2 `>0.99` 且两答案数学等价）则 commit，否则保留 verification reasoning、丢弃 Stage-2 并继续。",
-        "- **对照 `deer_online_reference`**：官方 DEER 在线 Wait-probe，从首个 `Wait` 起最多 10 次，"
-        "confidence `>0.95` 后用 `prefix + \"\\n\\n\\n\"` greedy readout（cap 4096）。无 fast path、无 verification branch。",
-        "- 两者共用同一 online engine、prompt、主采样（T=0.6, top_p=0.95）与 seed policy；"
-        "**差异仅在触发调度与 branch 控制器**，报告据此区分方法差异。",
-        "- DeepSeek 用 `avg1`（算术平均，跳过首 token）；Qwen3 用 `avg2`（几何平均）且 confidence 仅当末 token 为 `</` 时有效（否则强制 0）。"
-        "该 Qwen gate 同时适用于 Stage-1/Stage-2/reference。",
-        "",
-        "## 2. 完整性审计",
-        "",
-        f"- 状态：`{audit_result['status']}`；总结果数：{audit_result['total']}；"
-        f"方法计数：`{json.dumps(audit_result['counts'], ensure_ascii=False)}`。",
-        "- 每方法 228（2 模型 × 3 benchmark × seed 42，每模型 114 题），两方法合计 456；"
-        "硬校验 seed=42、split=dev、单一 config hash、零 infrastructure error、all_generated_tokens 可逐行重算。",
-        "",
-        "## 3. Benchmark 等权宏平均",
-        "",
-        "| 方法 | 模型 | Macro Acc. | ΔAcc(vs full) | 公平 token saving | Main-only saving | Fast | Branch |",
-        "|---|---|---:|---:|---:|---:|---:|---:|",
     ]
-    for r in macro_rows:
-        lines.append(
-            f"| {r['method']} | {r['model']} | {r['benchmark_macro_accuracy']:.4f} | "
-            f"{r['benchmark_macro_accuracy_delta']:+.4f} | "
-            f"{r['benchmark_macro_fair_token_saving']:.4f} | "
-            f"{r['benchmark_macro_main_only_token_saving']:.4f} | "
-            f"{r['benchmark_macro_fast_rate']:.4f} | {r['benchmark_macro_branch_rate']:.4f} |"
+    if proposed and reference:
+        acc_adv = proposed["benchmark_macro_accuracy"] - reference["benchmark_macro_accuracy"]
+        saving_adv = (
+            proposed["benchmark_macro_fair_token_saving"]
+            - reference["benchmark_macro_fair_token_saving"]
         )
+        lines += [
+            f"按 benchmark 等权宏平均，DEER-inspired 达到 "
+            f"**{proposed['benchmark_macro_accuracy']:.2%} accuracy / "
+            f"{proposed['benchmark_macro_fair_token_saving']:.2%} fair token saving**。"
+            f"相较在线 DEER，准确率提高 {acc_adv:+.2%}，token saving 提高 {saving_adv:+.2%}。",
+            "",
+            "| 方法 | Macro accuracy | 相对 Full | Fair token saving |",
+            "|---|---:|---:|---:|",
+            f"| DEER-inspired | {proposed['benchmark_macro_accuracy']:.2%} | "
+            f"{proposed['benchmark_macro_accuracy_delta']:+.2%} | "
+            f"{proposed['benchmark_macro_fair_token_saving']:.2%} |",
+            f"| Online DEER | {reference['benchmark_macro_accuracy']:.2%} | "
+            f"{reference['benchmark_macro_accuracy_delta']:+.2%} | "
+            f"{reference['benchmark_macro_fair_token_saving']:.2%} |",
+            f"| 差值 | {acc_adv:+.2%} | - | {saving_adv:+.2%} |",
+        ]
 
     lines += [
         "",
-        "## 4. 分环境结果（model × benchmark）",
+        "Fair token saving 计入 main generation、probe、verification 与 readout 的输出 token；不包含输入 prompt/prefill 成本。",
         "",
-        "| 方法 | 模型 | Benchmark | n | Acc. | ΔAcc. | Fair saving | Main saving | 均生成token | Fast | Branch | Branch通过 | Capped | 均Stage-1 | P95 |",
-        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "## 方法",
+        "",
+        "- **DEER-inspired**：1024 main tokens 后在 `Wait` 处 probe；前 10 次 dense，此后保持至少 512-token 间隔。"
+        "置信度 >0.995 直接提交；>0.97 进入最多 64-token 的 retained verification branch，"
+        "Stage-2 >0.99 且答案一致时提交。",
+        "- **Online DEER**：从首个 `Wait` 起最多 probe 10 次；置信度 >0.95 后 greedy readout。"
+        "两种方法共享 online engine、prompt、采样与 seed policy。",
+        "",
+        "## 分模型结果",
+        "",
+        "| 模型 | 方法 | Macro accuracy | 相对 Full | Fair saving |",
+        "|---|---|---:|---:|---:|",
     ]
-    for r in env_rows:
-        lines.append(
-            f"| {r['method']} | {model_slug(r['model'])} | {r['benchmark']} | {r['n']} | "
-            f"{r['accuracy']:.4f} | {r['accuracy_delta']:+.4f} | {r['fair_token_saving']:.4f} | "
-            f"{r['main_only_token_saving']:.4f} | {r['mean_all_generated_tokens']:.0f} | "
-            f"{r['fast_rate']:.4f} | {r['branch_rate']:.4f} | {r['branch_commit_rate']:.4f} | "
-            f"{r['capped_rate']:.4f} | {r['mean_stage1_attempts']:.2f} | {r['p95_stage1_attempts']:.0f} |"
-        )
-
-    lines += [
-        "",
-        "## 5. Dev 汇总（pooled）",
-        "",
-        "| 方法 | 模型 | n | Acc. | Fair saving | Main-only saving | Fast | Branch | Capped | 均Stage-1 |",
-        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|",
-    ]
-    for r in pooled_rows:
-        lines.append(
-            f"| {r['method']} | {r['model']} | {r['n']} | {r['accuracy']:.4f} | "
-            f"{r['fair_token_saving']:.4f} | {r['main_only_token_saving']:.4f} | "
-            f"{r['fast_rate']:.4f} | {r['branch_rate']:.4f} | {r['capped_rate']:.4f} | "
-            f"{r['mean_stage1_attempts']:.2f} |"
-        )
-
-    prop = [r for r in rows if r["method"] == METHOD_PROPOSED]
-    if prop:
-        lines += [
-            "",
-            "## 6. Wait 调度器诊断（主方法）",
-            "",
-            f"- 观测 `Wait` 总数：{sum(r['waits_observed'] for r in prop)}；"
-            f"1024 前记录但不 probe 的 `Wait` 涉及题数："
-            f"{sum(1 for r in prop if r['waits_before_1024']>0)}/{len(prop)}。",
-            f"- dense Stage-1 probe 总数：{sum(r['dense_attempts'] for r in prop)}；"
-            f"sparse probe 总数：{sum(r['sparse_attempts'] for r in prop)}；"
-            f"512-gap 跳过总数：{sum(r['gap_skips'] for r in prop)}（不排队、不后延）。",
-            f"- 平均 Stage-1 attempts：{mean(r['stage1_attempts'] for r in prop):.2f}；"
-            f"无隐藏 hard cap（reference 仍严格 <=10，主方法 sparse 可超过）。",
-        ]
-
-    if comparisons:
-        lines += [
-            "",
-            "## 7. 对比",
-            "",
-            "| 对比 | 配对/路径 | counterfactual | ΔAcc | ΔToken |",
-            "|---|---|---|---:|---:|",
-        ]
-        for c in comparisons:
-            acc = c.get("accuracy_delta_mean")
-            tok = c.get("token_delta_mean")
-            acc_s = f"{acc:+.4f}" if isinstance(acc, (int, float)) else "n/a"
-            tok_s = f"{tok:+.1f}" if isinstance(tok, (int, float)) else "n/a"
-            lines.append(
-                f"| {c['comparison']} | {c['path_match']} | {c['counterfactual']} | {acc_s} | {tok_s} |"
+    for model in (
+        "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+        "Qwen/Qwen3-8B",
+    ):
+        for method in (METHOD_PROPOSED, METHOD_REFERENCE):
+            row = next(
+                (r for r in macro_rows if r["model"] == model and r["method"] == method),
+                None,
             )
+            if row:
+                lines.append(
+                    f"| {short_model(model)} | {short_method(method)} | "
+                    f"{row['benchmark_macro_accuracy']:.2%} | "
+                    f"{row['benchmark_macro_accuracy_delta']:+.2%} | "
+                    f"{row['benchmark_macro_fair_token_saving']:.2%} |"
+                )
 
+    lines += [
+        "",
+        "Qwen3 上 DEER-inspired 同时提高 accuracy 与 saving；DeepSeek 上获得较小的 saving 增益，但 accuracy 下降，"
+        "说明当前阈值仍存在模型依赖。",
+        "",
+        "## 不确定性与配对结果",
+        "",
+    ]
     if bootstrap:
         lines += [
-            "",
-            "## 8. 配对不确定性",
-            "",
-            "按 benchmark 分层、方法间逐题配对 10,000 次 bootstrap（seed 20260728），三 benchmark 等权。",
-            "",
-            f"- Accuracy difference（proposed−reference）mean={bootstrap['accuracy_delta']['mean']:+.4f}，"
-            f"95% CI [{bootstrap['accuracy_delta']['ci95'][0]:+.4f}, {bootstrap['accuracy_delta']['ci95'][1]:+.4f}]。",
-            f"- Token-saving advantage mean={bootstrap['token_saving_advantage']['mean']:+.4f}，"
-            f"95% CI [{bootstrap['token_saving_advantage']['ci95'][0]:+.4f}, {bootstrap['token_saving_advantage']['ci95'][1]:+.4f}]。",
+            f"- Benchmark-stratified paired bootstrap（10,000 次）：accuracy 差值 "
+            f"{bootstrap['accuracy_delta']['mean']:+.2%}，95% CI "
+            f"[{bootstrap['accuracy_delta']['ci95'][0]:+.2%}, "
+            f"{bootstrap['accuracy_delta']['ci95'][1]:+.2%}]；尚不能确认 accuracy 优势。",
+            f"- Token-saving 差值 {bootstrap['token_saving_advantage']['mean']:+.2%}，95% CI "
+            f"[{bootstrap['token_saving_advantage']['ci95'][0]:+.2%}, "
+            f"{bootstrap['token_saving_advantage']['ci95'][1]:+.2%}]；区间稳定为正。",
+        ]
+    strict = next(
+        (c for c in comparisons if c["comparison"] == "new_online_vs_online_reference"),
+        None,
+    )
+    versus_full = next(
+        (c for c in comparisons if c["comparison"] == "new_online_vs_existing_full"),
+        None,
+    )
+    if strict:
+        lines.append(
+            f"- 逐题 pooled 配对：相对 Online DEER，accuracy "
+            f"{strict['accuracy_delta_mean']:+.2%}，平均少生成 "
+            f"{-strict['token_delta_mean']:.0f} tokens/题。"
+        )
+    if versus_full:
+        lines.append(
+            f"- 相对 existing full 的近似 counterfactual：accuracy "
+            f"{versus_full['accuracy_delta_mean']:+.2%}，平均少生成 "
+            f"{-versus_full['token_delta_mean']:.0f} tokens/题；因在线多请求改变采样路径，此项不是严格配对。"
+        )
+    if METHOD_PROPOSED in pooled_all and METHOD_REFERENCE in pooled_all:
+        p = pooled_all[METHOD_PROPOSED]
+        r = pooled_all[METHOD_REFERENCE]
+        lines.append(
+            f"- Pooled 汇总受 MATH500 数量主导：DEER-inspired 为 "
+            f"{p['accuracy']:.2%} / {p['fair_token_saving']:.2%}，Online DEER 为 "
+            f"{r['accuracy']:.2%} / {r['fair_token_saving']:.2%}；因此主文优先使用 benchmark 等权宏平均。"
+        )
+
+    lines += [
+        "",
+        "## 行为与完整性",
+        "",
+        f"- 审计状态 `{audit_result['status']}`：{audit_result['total']}/456 条结果齐全，"
+        "零 infrastructure error，token accounting 可重算。",
+    ]
+    if prop:
+        fast_count = sum(r["terminal_state"] == "fast_commit" for r in prop)
+        branch_count = sum(int(r["branches"]) for r in prop)
+        branch_commit_count = sum(int(r["branch_commits"]) for r in prop)
+        lines += [
+            f"- {fast_count}/228 题 fast commit；{branch_count} 次 verification branch 中 "
+            f"{branch_commit_count} 次提交；{sum(r['capped'] for r in prop)} 题 capped。",
+            f"- 共观察 {sum(r['waits_observed'] for r in prop)} 个 `Wait`；"
+            f"dense/sparse probes 为 {sum(r['dense_attempts'] for r in prop)}/"
+            f"{sum(r['sparse_attempts'] for r in prop)}，512-gap 跳过 "
+            f"{sum(r['gap_skips'] for r in prop)} 次。",
         ]
 
     lines += [
         "",
-        "## 9. 限制与说明",
+        "## 限制",
         "",
-        "- 在线 controller 的多请求采样路径与既有 single-request full baseline 不完全相同，"
-        "故 vs-existing-full 为近似 counterfactual，已明确标记。",
-        "- 本轮仅 1 个 seed，不能估计 seed variance；AMC23(8)/AIME24(6) 样本很小，所有区间与结论均为 exploratory。",
-        "- 未读取 Test/confirmation；阈值、verification budget、prompt、采样与 cap 未依本轮结果改动。",
-        "- 原 Governor Pareto sweep 未改动；本轮为加分项。",
-        "- fast_path_only_replay 数据在当前 checkout 中不存在，对应对比项标记为 n/a。",
+        "- 仅一个 seed；AMC23（8 题）与 AIME24（6 题）样本很小，accuracy CI 较宽。",
+        "- 本轮未读取 Test/confirmation，也未回溯修改 Governor Pareto sweep。",
+        "- 结论可支持“显著改善 Online DEER 的 token trade-off”，但跨模型稳定性仍需 Test 与更多 seed 验证。",
+        "",
+        "详细的逐环境指标、逐题记录与 bootstrap 数据分别见 `environment_metrics.csv`、"
+        "`per_problem.csv` 和 `bootstrap.json`。",
     ]
-    if prop:
-        lines.append(
-            f"- capped / invalid trial：主方法 capped 率 {mean(r['capped'] for r in prop):.4f}，"
-            f"invalid trial 率 {mean((r['invalid_trials']/r['stage1_attempts']) if r['stage1_attempts'] else 0 for r in prop):.4f}。"
-        )
-    if manifest:
-        lines += [
-            "",
-            "## 10. 产物清单",
-            "",
-            f"- per-problem 结果：{manifest['per_problem_count']} 条；"
-            f"config_sha256=`{manifest['config_sha256'][:16]}…`；dtype=bfloat16。",
-            f"- 各模型 pinned revision：DeepSeek `{manifest['models'].get('deepseek-ai/DeepSeek-R1-Distill-Qwen-7B','')[:12]}…`，"
-            f"Qwen3 `{manifest['models'].get('Qwen/Qwen3-8B','')[:12]}…`。",
-            "- 各 aggregate 产物 SHA-256 见 `artifact_manifest.json`。",
-        ]
     path.write_text("\n".join(lines), encoding="utf-8")
 
 

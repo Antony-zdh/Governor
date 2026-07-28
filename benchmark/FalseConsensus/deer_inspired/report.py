@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import platform
 import shutil
 import subprocess
 from pathlib import Path
@@ -25,6 +26,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if not engines:
         raise SystemExit("xelatex or lualatex is required for Chinese PDF output")
     args.pdf.parent.mkdir(parents=True, exist_ok=True)
+    cjk_font = "Hiragino Sans GB" if platform.system() == "Darwin" else "Noto Sans CJK SC"
     command = [
         pandoc,
         str(args.markdown),
@@ -32,9 +34,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         str(args.pdf),
         f"--pdf-engine={engines[0]}",
         "-V",
-        "geometry:margin=2.2cm",
+        "papersize=a4",
         "-V",
-        "CJKmainfont=Noto Sans CJK SC",
+        "geometry:margin=1.45cm",
+        "-V",
+        "fontsize=10pt",
+        "-V",
+        "linestretch=1.0",
+        "-V",
+        f"CJKmainfont={cjk_font}",
     ]
     subprocess.run(command, check=True)
     if not args.pdf.exists() or args.pdf.stat().st_size < 1024:
