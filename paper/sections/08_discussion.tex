@@ -1,0 +1,32 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{What the negative result does and does not say.}
+It says: within a large, preregistered space of \emph{consensus-based} stopping
+rules, and under a dense-probe measurement regime, there is no rule that is both
+safe (per-model drop $\le 1.5\pp$) and net token-saving. It does \emph{not} say
+early exit is impossible in principle. The result localizes the failure: the
+signal these rules consume---agreement among probes of an unfinished
+trajectory---is intrinsically non-terminal, so no threshold on that signal
+escapes the accuracy tax.
+
+\paragraph{Implication: change the signal, not the threshold.}
+The community's effort has largely gone into \emph{tuning} confidence-based
+stops. Our frontier suggests the ceiling of that approach is low. Progress more
+likely requires a different termination signal---one that predicts whether the
+\emph{trajectory itself} will still change, rather than whether recent probes
+happen to agree. Candidate directions include answer-shape and stability
+predictors, verifier- or process-reward-based termination, and training the
+model to emit a calibrated ``done'' signal.
+
+\paragraph{Two live extensions.}
+Two follow-ups are compatible with the preregistration and would strengthen the
+paper without touching the test split. \textbf{(A)} \emph{Confirmation as
+lower-bound validation}: evaluate the family-best points on the held-out test
+split and on the two unseen models, showing the $\ge 4.87\pp$ price of savings
+reproduces out of distribution. \textbf{(B)} \emph{Attacking the probe tax}: a
+newly preregistered extension with sparser probes / KV-cache reuse could recover
+positive \emph{net} savings at the safe end, converting ``no safe-and-saving
+stop exists'' into ``\ldots exists only if probing is made this much cheaper.''
+Both are additive to the frozen findings of
+Sections~\ref{sec:falseconsensus}--\ref{sec:mechanism}.

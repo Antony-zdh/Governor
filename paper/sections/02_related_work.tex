@@ -1,0 +1,47 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Probe-based early exit for reasoning.}
+The methods we scrutinize periodically query a partial reasoning trajectory for
+its current answer and halt on agreement. Dynasor / Certaindex
+\citep{dynasor_certaindex} formalize this with a ``certainty index'' over
+recent probe answers and use it to schedule early termination when serving
+reasoning programs; related work targets the \emph{overthinking} of reasoning
+models \citep{overthinking} and proposes dynamic early exit
+\citep{deer}. Our study is built on a fork of this line of work: we adopt the
+same probe mechanism (a short boxed-answer suffix) and the same notion of
+probe agreement, and ask how far \emph{any} rule in this family can be pushed
+before it becomes unsafe.
+
+\paragraph{Self-consistency and answer aggregation.}
+Self-consistency \citep{wang2023selfconsistency} samples multiple full chains
+of thought and takes a majority vote, trading compute for accuracy. Probe-based
+early exit can be seen as an \emph{online, single-trajectory} analogue: instead
+of voting across completed samples, it votes across snapshots of one
+in-progress trajectory. Our false-consensus findings show why the analogy
+breaks down---snapshots of an unfinished trajectory are not exchangeable draws
+from a stable answer distribution, because the trajectory is still correcting
+itself.
+
+\paragraph{Adaptive computation and early exit.}
+Adaptive computation time \citep{graves2016act} and confident adaptive language
+modeling \citep{schuster2022confident} let models spend variable compute per
+input, typically via a learned or thresholded halting signal at the token or
+layer level. Early exit for \emph{reasoning} operates at the much coarser
+granularity of a whole answer and must contend with non-monotone answer
+trajectories; we quantify exactly this non-monotonicity.
+
+\paragraph{Confidence and calibration.}
+That model confidence overstates correctness is well documented for classifiers
+\citep{guo2017calibration}. We report an analogous miscalibration for
+\emph{probe consensus}: the share of recent probes agreeing on an answer is a
+poorly calibrated estimate of that answer's correctness, and is worst precisely
+in the regime a stopping rule would act on.
+
+\paragraph{Preregistration.}
+To keep an exhaustive rule search from silently overfitting to a favorable
+operating point, we fix the rule schema, splits, and acceptance gates before
+looking at held-out data \citep{preregistration_ml}. To our knowledge this is
+the first preregistered evaluation of early-exit rules for reasoning models; the
+protocol (Section~\ref{sec:method}) is a contribution in its own right, since it
+makes a \emph{negative} result interpretable.

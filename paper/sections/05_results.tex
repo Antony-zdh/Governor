@@ -1,0 +1,127 @@
+\section{Results: No Safe-and-Saving Stop Exists}
+\label{sec:results}
+
+We aggregate the sweep into per-environment metrics ($637{,}632$ metric rows
+over the $17{,}712$ rules $\times$ $18$ dev environments) and compute, for each
+rule, its worst per-model and per-benchmark accuracy drop and its net token
+savings (Section~\ref{sec:mechanism} defines the accounting). Applying
+commitment~C2 to the preregistered conservative gate yields the paper's central
+result.
+
+\subsection{The conservative gate is empty}
+\textbf{No rule in the $17{,}712$-candidate space clears the conservative gate}
+(per-model drop $\le 1.5\pp$, per-benchmark $\le 2.0\pp$, psf $\ge 0.8$). The
+Pareto frontier over (worst-case drop, net savings) contains $93$ rules, and
+none is admissible. The obstruction is not a narrow miss:
+
+\begin{itemize}
+  \item the \emph{smallest} per-model accuracy drop anywhere in the space is
+  $1.85\pp$---already above the $1.5\pp$ gate---and the rules achieving it have
+  \emph{negative} net savings (20th-percentile saving $\approx -11\%$; only
+  $2.8\%$ of environments save at all);
+  \item \emph{no} rule achieves a near-zero drop: the per-model drop
+  distribution over the frontier has percentiles $p_1{=}3.37$, $p_5{=}4.26$,
+  $p_{25}{=}10.7$, median $20.1\pp$;
+  \item obtaining even three distinct rules with \emph{positive} net savings
+  requires accepting a per-model drop of at least $4.87\pp$---and this holds
+  whether the psf floor is set to $0.8$, $0.7$, $0.6$, or $0.5$.
+\end{itemize}
+
+In other words, within the preregistered space one must choose between a stop
+that is (nearly) safe but costs tokens and a stop that saves tokens but is
+unsafe; the safe-and-saving corner is empty.
+
+\subsection{Family frontier}
+Table~\ref{tab:frontier} gives each family's best attainable operating point.
+The ordering is informative. The simplest evidence signal
+(\texttt{window\_share}) gives the best safe-with-positive-savings point
+($4.87\pp$); \texttt{entropy\_budget\_fraction} can push the drop down to
+$1.85\pp$ but only by stopping so rarely that savings go negative; and
+\texttt{adaptive\_event\_probe}---the most sophisticated family, with
+entropy- and marker-triggered probing---is the \emph{worst}, needing $9.70\pp$
+for a positive-savings point.
+
+\begin{table}[t]
+  \centering\small
+  \begin{tabular}{lcc}
+    \toprule
+    Rule family & Min per-model & Net savings \\
+                & drop (pp)     & at that point \\
+    \midrule
+    \texttt{entropy\_budget\_fraction} & $1.85$ & negative ($q_{20}{\approx}{-}11\%$) \\
+    \texttt{window\_share}             & $4.87$ & $\approx 0$ ($q_{20}{\approx}0.3\%$) \\
+    \texttt{latest\_persistence}       & $8.20$ & $q_{20}{\approx}9.7\%$ \\
+    \texttt{adaptive\_event\_probe}    & $9.70$ & $q_{20}{\approx}4.5\%$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{Best operating point per rule family on dev. Lower drop is safer;
+  the safest family (entropy) cannot save, and the most complex family
+  (adaptive) is dominated by the simplest (window share).}
+  \label{tab:frontier}
+\end{table}
+
+\subsection{Adaptive probing does not help}
+Because event-triggered probing is the natural ``smarter'' fix, we isolate its
+frontier (Table~\ref{tab:adaptive}). Even its most conservative point loses
+$5.88\pp$ on average (worst environment $-9.70\pp$) for a $14.2\%$ mean saving;
+becoming more aggressive trades linearly into larger losses ($-15.03\pp$ macro
+for a $37.3\%$ saving). Entropy-drop and conclusion-marker triggers buy savings
+only by paying accuracy---they do not locate a safer place to stop. Sophistication
+in \emph{where} to probe cannot fix the fact that the answer is still moving.
+
+\begin{table}[t]
+  \centering\small
+  \begin{tabular}{lcccc}
+    \toprule
+    Adaptive point & Trigger & Mean & $q_{20}$ & Macro \\
+                   &         & save & save     & $\Delta$acc \\
+    \midrule
+    conservative & entropy drop & $14.2\%$ & $4.5\%$  & $-5.88\pp$  \\
+    moderate     & conclusion   & $25.9\%$ & $20.0\%$ & $-9.11\pp$  \\
+    aggressive   & conclusion   & $37.3\%$ & $27.1\%$ & $-15.03\pp$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{The \texttt{adaptive\_event\_probe} frontier on dev. Worst
+  per-model/per-benchmark drops for the three points are
+  $-9.70/-10.42$, $-13.65/-12.50$, and $-19.28/-18.75\pp$ respectively.
+  Reproduced exactly from the released sweep archive.}
+  \label{tab:adaptive}
+\end{table}
+
+\subsection{Main comparison}
+Table~\ref{tab:main} places our best rule-based operating points against
+reference methods on the $18$ dev environments. The full comparison against
+prior-work early-stoppers is completed in Section~\ref{sec:baselines}.
+
+\begin{table}[t]
+  \centering\small
+  \begin{tabular}{lccc}
+    \toprule
+    Method & Accuracy & $\Delta$acc & Token saving \\
+    \midrule
+    Full generation & \pending{macro, recompute} & --- & $0\%$ \\
+    Fixed budget    & \pending{} & \pending{} & \pending{} \\
+    \midrule
+    Governor (conservative) & \pending{} & $\approx -0.9\pp$ & $\approx -4\%$ \\
+    Governor (balanced)     & \pending{} & \pending{} & \pending{} \\
+    Governor (aggressive)   & \pending{} & $\approx -5.6\pp$ & $\approx 19.6\%$ \\
+    \midrule
+    CertaIndex (raw)  & \pending{colleague run} & \pending{} & \pending{} \\
+    Entropy threshold & \pending{} & \pending{} & \pending{} \\
+    Patience consensus & \pending{} & \pending{} & \pending{} \\
+    \bottomrule
+  \end{tabular}
+  \caption{Main comparison on dev (macro-averaged over $18$ environments).
+  Governor rows are our rule family at three operating points; the most
+  conservative is roughly accuracy-neutral but spends $\sim 4\%$ \emph{extra}
+  tokens because of the probe tax (Section~\ref{sec:mechanism}). Baseline rows
+  are reproduced in a common harness in Section~\ref{sec:baselines}.}
+  \label{tab:main}
+\end{table}
+
+\subsection{Held-out confirmation}
+Per commitment~C3, confirmation on the test split and on the two unseen models
+(Llama-8B, Qwen-32B) is \pending{run only after a frozen rule set / operating
+point is fixed; see Section~\ref{sec:discussion}}. Because the development
+result is that \emph{no} rule clears the conservative gate, confirmation is
+framed as validating the frontier lower bound rather than a selected rule.

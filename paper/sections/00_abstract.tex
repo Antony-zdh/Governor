@@ -1,0 +1,27 @@
+\begin{abstract}
+Reasoning language models produce long chains of thought, making
+\emph{early exit}---stopping generation once the answer is settled---an
+attractive way to cut inference cost. A popular family of methods
+(e.g., Dynasor / Certaindex) periodically probes the partial trajectory for
+its current answer and stops once probes \emph{agree}, betting that
+intermediate consensus signals termination. We show this bet is unsafe in a
+way that is not fixable by tuning the stopping rule. First, on
+\textsc{MATH}500 we document \emph{false consensus}: even a unanimous window of
+recent probes is correct only $93.5\%$ of the time, and a naive
+consensus-based stop loses $16.4$ percentage points (pp) of accuracy
+($85.6\%\!\rightarrow\!69.2\%$) because continued reasoning frequently
+overturns the intermediate answer. Second, we run a \emph{preregistered}
+search over a seven-dimensional rule schema ($17{,}712$ candidate rules) on
+frozen reasoning trajectories from two models and three math benchmarks, with
+problem-grouped train/dev/test splits and stopping gates fixed in advance.
+No rule clears the preregistered safety-and-savings bar: the safest stop still
+costs $1.85\pp$ per model, any rule with positive net token savings costs at
+least $4.87\pp$, and---counterintuitively---adaptive, event-triggered probing
+is \emph{strictly worse} than simple window consensus. We decompose the cost
+into an intrinsic \emph{accuracy tax} (independent of probing) and a
+\emph{probe tax} (a function of probe density), and show that raw prior-work
+early-stoppers collapse by up to \pending{CertaIndex baseline, colleague run}
+on our held-out setting. Our results indicate that safe early exit for
+reasoning models requires a fundamentally different termination signal, not a
+better-tuned confidence threshold.
+\end{abstract}

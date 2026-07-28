@@ -1,0 +1,39 @@
+\section*{Limitations}
+\label{sec:limitations}
+
+\paragraph{Development-set scope.}
+The central result---no rule clears the conservative gate---is established on the
+$18$ development environments (two models, three benchmarks, seeds $42/43/44$)
+using the train and dev splits. Held-out confirmation on the test split and on
+the two unseen models (Llama-8B, Qwen-32B) is \pending{not yet run}; the claim
+is therefore currently a development-set finding. Because the effect sizes are
+large (median frontier drop $20.1\pp$), we expect confirmation to reproduce the
+direction, but the out-of-distribution magnitudes are not yet measured.
+
+\paragraph{Small held-out sets on hard benchmarks.}
+AIME24 and AMC23 are small; the dev split has only $6$ and $8$ problems per
+seed, so a single problem is a large fraction. A worst-case per-model drop on
+AIME24 can correspond to two or three problems, and is statistically noisy. We
+mitigate by aggregating over seeds and reporting macro averages, but individual
+per-benchmark cells should be read with this in mind.
+
+\paragraph{Probe-tax dependence of the savings axis.}
+Our net-savings numbers charge dense re-probing (every $64$ tokens, $32$-token
+probes). A different probe schedule---sparser, shorter, or with KV-cache
+reuse---would change the \emph{savings} axis and could move some rules from
+negative to positive net savings. We separate gross from net savings
+(Section~\ref{sec:mechanism}) precisely so that the probe-tax-dependent and
+probe-tax-independent parts of the result are distinguishable; the accuracy-tax
+result does not depend on the probe schedule.
+
+\paragraph{Single probe suffix and rule space.}
+We use one boxed-answer probe suffix (\simplek{}) and one preregistered rule
+schema. Other probe wordings (e.g., the original Certaindex phrasing) and rule
+dimensions outside this schema are not searched; a negative result is a
+statement about the space searched, which we report explicitly ($17{,}712$
+rules, four families, seven dimensions).
+
+\paragraph{Domain.}
+All benchmarks are competition mathematics with checkable final answers. Whether
+false consensus and the accuracy tax transfer to open-ended reasoning, code, or
+agentic tasks is out of scope here.

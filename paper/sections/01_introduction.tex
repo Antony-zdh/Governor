@@ -1,0 +1,83 @@
+\section{Introduction}
+\label{sec:intro}
+
+Reasoning language models such as \dsseven{} and \qweneight{}
+\citep{deepseekr1,qwen3,openai_o1} solve hard problems by emitting long
+chains of thought, often thousands of tokens per query. Much of this
+computation is spent \emph{after} the model has effectively decided on an
+answer, which makes \emph{early exit}---halting generation once the answer is
+settled---an appealing lever for reducing inference cost
+\citep{overthinking,dynasor_certaindex}.
+
+A widely used family of early-exit methods works by \emph{probing}. At regular
+intervals during generation, the partial trajectory is queried for its current
+answer (e.g., by appending a short ``\texttt{Final Answer:}'' suffix), and the
+decoder is halted once these probes \emph{agree}---the same answer appears in
+several consecutive probes, or a share threshold over a recent window is
+exceeded \citep{dynasor_certaindex}. The implicit assumption is that
+\emph{intermediate consensus is a reliable signal of termination}: once the
+model repeatedly says the answer is $x$, further reasoning is unlikely to
+change it.
+
+This paper asks whether that assumption holds, and whether any probe-based
+stopping rule can exploit it \emph{safely}. We answer both in the negative, and
+we do so under a preregistered protocol designed to make the negative result
+credible rather than an artifact of a poorly chosen heuristic.
+
+\paragraph{Finding 1: False consensus.}
+On \textsc{MATH}500 with \dsseven{}, we log a dense probe stream for every
+problem without ever intervening (Section~\ref{sec:falseconsensus}). Perfect
+whole-trajectory consensus is nearly trustworthy ($98.9\%$ correct), but the
+signal a stopping rule actually sees online---agreement over a recent
+window---is not: a unanimous last-five-probe window is correct only $93.5\%$ of
+the time, with $6.5\%$ \emph{false consensus}. Simulating a Dynasor-style stop
+(three consecutive agreeing, certain, non-empty probes) fires on $416/500$
+problems and commits to an answer that is correct only $69.2\%$ of the time,
+whereas letting those same problems run to completion reaches $85.6\%$---a
+$16.4\pp$ loss. The mechanism is recovery: of problems whose first probe is
+wrong, $76.3\%$ eventually flip to correct. Intermediate consensus is simply
+not terminal.
+
+\paragraph{Finding 2: No safe-and-saving rule exists (preregistered).}
+A natural response is that a smarter rule---higher maturity thresholds,
+persistence requirements, certainty filters, adaptive probing---would recover
+safety while keeping the savings. We test this exhaustively
+(Sections~\ref{sec:method}--\ref{sec:results}). We freeze one reasoning
+trajectory per problem, re-probe it offline so that no stopping schedule can
+alter the underlying reasoning, and sweep a seven-dimensional rule schema of
+$17{,}712$ candidate rules across two models and three benchmarks. Splits are
+problem-grouped ($60/20/20$ train/dev/test) and the operating-point gates are
+fixed in advance; the test split and two confirmation models are never visible
+to selection. \emph{No rule clears the preregistered conservative gate.} The
+safest rule in the entire space still costs $1.85\pp$ per model, every rule with
+positive net token savings costs at least $4.87\pp$, and sophisticated
+event-triggered (``adaptive'') probing is strictly worse than a simple window
+share.
+
+\paragraph{Finding 3: Two taxes, one intrinsic.}
+We separate the cost of stopping into an \emph{accuracy tax}---you lose
+accuracy purely because you commit before reasoning finishes, independent of
+how you probe---and a \emph{probe tax}---the token cost of the probes
+themselves, which turns the savings of conservative rules negative
+(Section~\ref{sec:mechanism}). The accuracy tax is intrinsic and survives any
+probing scheme; the probe tax is a function of probe density. This distinction
+is what makes the negative result robust: the $1.85\pp$ floor is not an artifact
+of dense probing.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+  \item We define and quantify \textbf{false consensus} in reasoning models,
+  including a calibration analysis showing window share systematically
+  overstates reliability, and an error taxonomy of stopped-but-wrong cases
+  (Section~\ref{sec:falseconsensus}).
+  \item We introduce a \textbf{preregistered, probe-independent evaluation
+  protocol} for early-exit rules---frozen trajectories, offline dense
+  re-probing, a seven-dimensional rule schema, and fixed selection gates---and
+  release the design and sweep artifacts (Section~\ref{sec:method}).
+  \item We report a \textbf{near-impossibility result}: across $17{,}712$
+  rules, no stop is simultaneously safe and token-saving, and we characterize
+  the full accuracy--savings frontier (Section~\ref{sec:results}).
+  \item We provide a \textbf{mechanism}: a direction-of-effect analysis and an
+  accuracy-tax/probe-tax decomposition, and we compare against raw prior-work
+  early-stoppers (Sections~\ref{sec:mechanism}--\ref{sec:baselines}).
+\end{enumerate}

@@ -1,0 +1,81 @@
+\section{A Preregistered Test for Safe Early Exit}
+\label{sec:method}
+
+Section~\ref{sec:falseconsensus} refutes one heuristic. To ask whether
+\emph{any} probe-based rule can succeed, we need (i) an evaluation that a rule
+cannot game by changing the reasoning it observes, and (ii) a selection
+procedure that cannot silently overfit to a lucky operating point. We
+preregister both.
+
+\subsection{Probe-independent, frozen trajectories}
+For each problem we generate exactly \emph{one} main trajectory in a single
+request (caps: $16$K tokens for \textsc{MATH}500 and AMC23, $32$K for AIME24)
+and freeze it. All probing is then performed \emph{offline} against fixed text
+prefixes of that frozen trajectory. Because probes never re-enter the decode,
+changing a probe schedule---or a stopping rule---cannot change the underlying
+reasoning; every rule is scored against the same trajectories. We build two
+offline probe banks: a \emph{dense} bank that re-probes every $64$ tokens with
+\simplek{} (a $32$-sample boxed-answer probe), and an \emph{adaptive} bank that
+additionally fires event-triggered probes at entropy drops and at
+conclusion/reflection/answer markers. Token accounting charges every probe's
+output tokens to the rule that consumes it (Section~\ref{sec:mechanism}).
+
+\subsection{A seven-dimensional rule schema}
+A stopping rule is a point in a schema with seven independent dimensions:
+\textbf{(1) probe schedule} (fixed interval, or adaptive event triggers);
+\textbf{(2) maturity} (minimum tokens or budget fraction before any stop is
+allowed, incl.\ an online-instability floor); \textbf{(3) evidence} (window
+share vs.\ latest-persistence vs.\ entropy-budget-fraction);
+\textbf{(4) persistence} (minimum consistent accepts and consensus span);
+\textbf{(5) certainty} (minimum fraction of supporting probes flagged certain);
+\textbf{(6) validity} (answer-shape filter, e.g., rejecting empty/letter
+answers); and \textbf{(7) history} (maximum answer switches, minimum stable
+span). Enumerating the preregistered grid over these dimensions yields
+$\mathbf{17{,}712}$ candidate rules spanning four families
+(\texttt{window\_share}, \texttt{latest\_persistence},
+\texttt{entropy\_budget\_fraction}, \texttt{adaptive\_event\_probe}).
+
+\subsection{Models, benchmarks, splits}
+Development uses two models---\dsseven{} and \qweneight{}---on three benchmarks
+(\textsc{MATH}500, AMC23, AIME24), each at seeds $42/43/44$: $18$
+model$\times$benchmark$\times$seed environments. Problems are partitioned
+\emph{by problem id} into $60/20/20$ train/dev/test splits
+(\textsc{MATH}500 $300/100/100$, AMC23 $24/8/8$, AIME24 $18/6/6$), so no problem
+leaks across splits. Confirmation reserves seeds $45/46/47$ plus two unseen
+models---\mbox{DeepSeek-R1-Distill-Llama-8B} and \mbox{Distill-Qwen-32B}---all
+evaluated on the \emph{test} split only.
+
+\subsection{Preregistered operating points and gates}
+We fix three operating points and their acceptance gates \emph{before} looking
+at held-out data (Table~\ref{tab:gates}). Selection maximizes worst-case token
+savings subject to worst-case accuracy-drop caps and a positive-savings-fraction
+(psf) floor. A rule is accepted at an operating point only if it satisfies that
+point's gate on train+dev.
+
+\begin{table}[t]
+  \centering\small
+  \begin{tabular}{lccc}
+    \toprule
+    Operating point & Max model & Max bench & psf \\
+                    & drop      & drop      & floor \\
+    \midrule
+    conservative     & $1.5\pp$ & $2.0\pp$ & $0.80$ \\
+    balanced         & $2.5\pp$ & $3.0\pp$ & $0.80$ \\
+    token\_efficient & $4.0\pp$ & $5.0\pp$ & $0.70$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{Preregistered acceptance gates. ``Max model/bench drop'' cap the
+  worst per-model and per-benchmark accuracy loss; psf is the fraction of
+  environments with strictly positive net savings. Gates are fixed in advance
+  and \emph{not} relaxed post hoc.}
+  \label{tab:gates}
+\end{table}
+
+\subsection{Preregistration commitments}
+Three commitments make the result interpretable. \textbf{(C1)} The test split
+and both confirmation models are never read during rule selection.
+\textbf{(C2)} The gates in Table~\ref{tab:gates} are not relaxed after seeing
+results; if no rule passes, that is reported as the finding rather than
+engineered away. \textbf{(C3)} The frozen rule set is fixed on train+dev and its
+hash recorded before any test/confirmation evaluation. Section~\ref{sec:results}
+reports what happened when we applied C2.

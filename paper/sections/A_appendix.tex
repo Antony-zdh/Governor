@@ -1,0 +1,52 @@
+\section{Rule Schema Details}
+\label{sec:appendix-schema}
+
+The seven-dimensional schema of Section~\ref{sec:method} enumerates to
+$17{,}712$ candidate rules. Each rule fixes:
+\begin{enumerate}
+  \item \textbf{Probe schedule}: fixed interval $\in\{64,128,256\}$ tokens, or
+  \texttt{adaptive\_event} with entropy-drop and marker triggers and a fallback
+  interval.
+  \item \textbf{Maturity}: \texttt{fixed\_tokens} (minimum tokens),
+  \texttt{budget\_fraction} (minimum fraction of the decode budget), or
+  \texttt{online\_instability} (a floor plus a same-answer stability check).
+  \item \textbf{Evidence}: window share, latest persistence, or
+  entropy-budget-fraction candidate selection.
+  \item \textbf{Persistence}: minimum consistent accepts and minimum consensus
+  span in tokens.
+  \item \textbf{Certainty}: minimum fraction of supporting probes flagged
+  certain.
+  \item \textbf{Validity}: answer-shape filter (reject empty / single-letter
+  answers to suppress the Type-E probe artifact of
+  Section~\ref{sec:falseconsensus}).
+  \item \textbf{History}: maximum answer switches within a window and minimum
+  stable span since the last switch.
+\end{enumerate}
+
+\section{Preregistration Text}
+\label{sec:appendix-prereg}
+
+The protocol version, split manifest hash, candidate-rule generation script, and
+the three operating-point gates (Table~\ref{tab:gates}) were fixed before any
+held-out evaluation. Commitments C1--C3 (Section~\ref{sec:method}) were recorded
+with the protocol. When the conservative gate proved empty, we followed C2 and
+report the empty gate as the finding rather than relaxing it; any relaxation
+(e.g., the balanced/token\_efficient points) is reported as a separate,
+clearly-labeled analysis and re-preregistered if used for selection.
+
+\section{Reproducibility}
+\label{sec:appendix-repro}
+
+Frozen trajectories, offline probe banks, the sweep archive
+($637{,}632$ metric rows), and the aggregation scripts are released.
+Table~\ref{tab:adaptive} was reproduced to the reported precision directly from
+the released sweep archive. Grading uses a robust answer-equivalence check that
+tries the raw and normalized reference forms and both string and
+math-expression equality; per-problem correctness for the frozen baseline is
+recomputed at replay time rather than trusted from collection.
+
+\section{Additional Tables}
+\label{sec:appendix-tables}
+
+\pending{per-model $\times$ benchmark full-accuracy table; direction-of-effect
+counts; gross/net decomposition by family; baseline sweeps.}

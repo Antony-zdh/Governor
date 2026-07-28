@@ -1,0 +1,53 @@
+\section{Comparison to Prior Early-Stoppers}
+\label{sec:baselines}
+
+Our rule family is deliberately broad, but a reader will still ask how
+\emph{prior-work} early-stoppers behave on the same trajectories. We reproduce
+three external methods in a common harness---the same frozen trajectories, the
+same \simplek{} probe bank, and the same token accounting (probe output tokens
+included)---so that every method is compared apples-to-apples.
+
+\paragraph{Methods.}
+\textbf{(i) CertaIndex / Dynasor} \citep{dynasor_certaindex}: a share-threshold
+stop over recent probe answers. \textbf{(ii) Entropy threshold}: stop when the
+probe-answer distribution's entropy drops below a threshold. \textbf{(iii)
+Patience consensus}: stop after $k$ consecutive identical probe answers. Each is
+instantiated at the operating point its authors recommend, plus a
+conservative/moderate/aggressive sweep.
+
+\paragraph{Results.}
+\pending{full baseline table; colleague is running CertaIndex, and we reproduce
+it plus Entropy/Patience from our own sweep once parameters are fixed.}
+Table~\ref{tab:baselines} will report accuracy, main tokens, total tokens, stop
+coverage, and false-stop rate for each. The expected qualitative picture, from
+the false-consensus analysis of Section~\ref{sec:falseconsensus}, is that raw
+share-threshold stopping fires on nearly every problem and very early, achieving
+large token savings at a catastrophic accuracy cost on the harder benchmarks
+(AIME24, AMC23), whereas our rule family, tuned toward the safe end of the
+frontier, is far more robust but---consistent with
+Section~\ref{sec:results}---still cannot clear the conservative gate. We report
+the confirmed numbers rather than this expectation.
+
+\begin{table}[t]
+  \centering\small
+  \begin{tabular}{lccc}
+    \toprule
+    Method & Accuracy & Total tok. & Stop rate \\
+    \midrule
+    Full generation & \pending{} & --- & $0\%$ \\
+    CertaIndex (mid) & \pending{} & \pending{} & \pending{} \\
+    Entropy threshold & \pending{} & \pending{} & \pending{} \\
+    Patience consensus & \pending{} & \pending{} & \pending{} \\
+    Governor (best safe) & \pending{} & \pending{} & \pending{} \\
+    \bottomrule
+  \end{tabular}
+  \caption{Prior-work early-stoppers vs.\ our best safe operating point,
+  macro-averaged over the $18$ dev environments in a common,
+  probe-tax-inclusive harness. \pending{numbers}}
+  \label{tab:baselines}
+\end{table}
+
+\paragraph{Provenance note (to remove before submission).}
+An earlier CertaIndex comparison circulated internally could not be reproduced
+from our committed pipeline and is treated as unverified; the numbers reported
+here are regenerated in the harness above.

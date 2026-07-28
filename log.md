@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-07-28 · 论文骨架搭建（ACL 模板）+ 合并同事 related-work baseline
+
+- **合并**：`git fetch` 发现 origin/main 领先 18 commit——同事的 related-work
+  已完成并推送：`related_work/{certaindex_mid,deer,tje}.py` 三个 baseline +
+  `results/related_work/` + report，另有 final-eval-multiseed、DEER online 等。
+  fast-forward 合并（本地 paper/ 为新增路径，无冲突）。
+- **论文骨架**：按冻结叙事（`benchmark/FalseConsensus/PAPER_STORYLINE.md`）搭
+  `paper/`，ACL 会议模板，模块化 `sections/*.tex`（00_abstract … A_appendix，共 11 节）。
+  FROZEN 数字内联（Stage 1-5 抠自 FINDINGS.md、v2 前沿抠自 BLOCKERS.md、
+  adaptive 三档表今日从本地 `sweep_*.jsonl.gz` 逐位复现）；PENDING 部分
+  （baseline/confirmation/主对比表）一律红色 `\pending{}` 占位，不编造数字。
+- **编译**：pdflatex + bibtex 通过，9 页，0 undefined 引用（bibtex 0 错/0 警告）。
+- **下一步**：① ACL 审稿 subagent 循环审核 paper（只读 paper/）→ 逐轮改 + push；
+  ② 集成已合并的 3 个真实 baseline 数字替换 §7/§5 占位（需先核对同事 replay
+  的口径：probe 税、判分、split 是否与我方一致）。
+
+---
+
 ## 2026-07-27 (深夜) · sweep 完成 → select 触发预注册硬阻塞（重要负结果）
 
 - sweep 8 shard 全部完成：637,632 行指标（17,712 规则 × 36 环境×budget 组合），
