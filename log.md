@@ -4,6 +4,74 @@
 
 ---
 
+## 2026-07-28 (续2) · 分支结论盘点 → paper 升级为"负→正"两幕
+
+- **盘点所有 GitHub 分支**:除 `deer-inspired-online-dev-vast-20260728`(2 commit
+  未合并)外全部已并入 main。逐个读结论文件,按"对方向的影响"归类:
+  - **强化负结果**:related_work `CertaIndex mid` 在 dev 崩塌 −56~−70pp(省 77~90%)
+    —— 正是"consensus/share 早停不安全"的实锤;Stage 11-12 跨模型/数据集/probe
+    措辞复现 False Consensus。
+  - **更新方向(正面)**:related_work `DEER`(冻结回放,不同信号=边界置信度)
+    Qwen3 **+0.78pp / 省 16%**;未合并分支的 **DEER-inspired 在线控制器**
+    (fast-path commit + 保留式 verification branch)456 题:宏 **ΔAcc −0.36% / 省 44%**,
+    Qwen3 **+2.78% / 省 46%**,配对比官方 DEER 多省 15.3%(CI[+7.3,+22.9])。
+    机制洞察:DEER confidence 测 trial answer 却交付另一条 readout(15% 不一致、
+    readout 无净增益),fast-path + verification branch 修掉。
+  - 进行中:Governor-v2 confirmation(test,seed45/46/47)数据已推,尚无聚合。
+- **paper 两幕重构**(用户拍板):retitle Confidence-→Consensus-Based;摘要/intro
+  加 Finding 4 + C5;**§7 用 related_work 真实数字填实**(CertaIndex/DEER/TJE 对照表,
+  含 Signal 列);**新增 §8 "A Signal That Works"**(在线 DEER-inspired 结果 + 机制 +
+  预注册分离声明);discussion/conclusion 改"换信号已有正面证据";limitations 加
+  boundary-confidence 的 exploratory caveat(单 seed/模型依赖/invalid 21.7%/无 test)。
+- 编译 12 页,0 undefined;修了 Table 7 长模型名溢出。
+- 诚实边界:DEER 结果 exploratory、在预注册 sweep 之外,作为"正面信号"而非已确认方法。
+
+---
+
+## 2026-07-28 (续) · paper ACL 审稿 R1 + 修订
+
+- 3 个 subagent 扮演 ACL 审稿人（方法/统计、novelty/related、清晰度），**只读
+  `paper/`**。三人独立收敛出同批问题。已修的 BLOCKING/MAJOR：
+  ① 全文前置 "development set / held-out 待确认" scoping；② 拆开"安全"(准确率,
+  探针无关) 与"省钱"(探针依赖) 两个 claim；③ §3.3 去掉 "Dynasor-style" 稻草人
+  归因，改"naive consecutive-agreement"，真 Certaindex 复现放 §7；④ 表格 PDF
+  重叠 → tab:main 改全宽 `table*` + 紧凑 `\tbd` 占位；⑤ 统一操作点命名、把
+  "Governor" 改 "Ours"（也利于匿名）；⑥ related work 补最近邻（Adaptive-Consistency、
+  ESC、PRM/verifier、test-time scaling、置信度估计、self-correction）；⑦ 软化
+  "impossibility"→"searched space 内无"；⑧ 修 637,632=17,712×18×2(train+dev)、
+  percentile 口径(全候选非前沿)、taxonomy 四类+原始计数;⑨ §4 加 per-benchmark
+  量化分辨率讨论(AIME 6 题/seed→per-model gate 为主);⑩ 去掉会渲染的 provenance
+  note、`\pp` 正体、CCE 展开、certainty/entropy 触发定义入附录。
+- 仍 PENDING(诚实占位)：baseline 数字、direction-of-effect 比值、confirmation、
+  frontier/calibration 图、grader 误判率。编译 11 页,0 undefined。
+- **R2 重审(同 3 人带记忆重审)**：三人全部上调至 borderline-accept
+  （A soundness 2→3、B 2→3、C 3→4），**无遗留 BLOCKING/MAJOR,仅剩 pending-data
+  与缺图**。R2 收尾 MINOR：§5.1 点明 per-model 单独 binding + 薄边际(1.85 vs 1.5)
+  需 CI 的 caveat、§6.4 补探针可达性前提、§6.1 澄清判分对 ground truth。
+- 审稿循环收敛。下一步(需真实数据,非改文字)：① 集成已合并 related_work 的
+  CertaIndex/DEER/TJE 真实 baseline(先核口径)；② confirmation 结果(同事在跑)；
+  ③ 补 frontier/calibration 图(需装 matplotlib)；④ bootstrap CI + direction-of-effect。
+
+---
+
+## 2026-07-28 · 论文骨架搭建（ACL 模板）+ 合并同事 related-work baseline
+
+- **合并**：`git fetch` 发现 origin/main 领先 18 commit——同事的 related-work
+  已完成并推送：`related_work/{certaindex_mid,deer,tje}.py` 三个 baseline +
+  `results/related_work/` + report，另有 final-eval-multiseed、DEER online 等。
+  fast-forward 合并（本地 paper/ 为新增路径，无冲突）。
+- **论文骨架**：按冻结叙事（`benchmark/FalseConsensus/PAPER_STORYLINE.md`）搭
+  `paper/`，ACL 会议模板，模块化 `sections/*.tex`（00_abstract … A_appendix，共 11 节）。
+  FROZEN 数字内联（Stage 1-5 抠自 FINDINGS.md、v2 前沿抠自 BLOCKERS.md、
+  adaptive 三档表今日从本地 `sweep_*.jsonl.gz` 逐位复现）；PENDING 部分
+  （baseline/confirmation/主对比表）一律红色 `\pending{}` 占位，不编造数字。
+- **编译**：pdflatex + bibtex 通过，9 页，0 undefined 引用（bibtex 0 错/0 警告）。
+- **下一步**：① ACL 审稿 subagent 循环审核 paper（只读 paper/）→ 逐轮改 + push；
+  ② 集成已合并的 3 个真实 baseline 数字替换 §7/§5 占位（需先核对同事 replay
+  的口径：probe 税、判分、split 是否与我方一致）。
+
+---
+
 ## 2026-07-27 (深夜) · sweep 完成 → select 触发预注册硬阻塞（重要负结果）
 
 - sweep 8 shard 全部完成：637,632 行指标（17,712 规则 × 36 环境×budget 组合），

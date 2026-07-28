@@ -1,0 +1,71 @@
+\section{Mechanism: Two Taxes, One Intrinsic}
+\label{sec:mechanism}
+
+Why is the safe-and-saving corner empty? We separate two distinct costs of
+stopping and argue that only one of them depends on how we probe.
+
+\subsection{Accounting}
+For a rule that stops a problem at token position $s$ after consuming probe
+output $p$, we charge total decode tokens $T = s + p$ and compare against the
+frozen baseline $B$ (the full trajectory, capped at budget). Net savings is
+$(B-T)/B$; the accuracy drop compares the correctness against ground truth of
+the committed answer at $s$ with that of the frozen final answer (it is not an
+agreement rate between the two). Two quantities therefore move independently:
+\emph{where}
+the rule stops (which sets both the accuracy drop and the main-token saving
+$s$) and \emph{how much it probes} to get there (which adds $p$).
+
+\subsection{The accuracy tax is intrinsic}
+The accuracy drop depends only on the stop position $s$, not on $p$: committing
+to the answer at $s$ forgoes whatever correction the trajectory would have made
+after $s$. This is the quantity that never reaches zero---the $1.85\pp$ floor of
+Section~\ref{sec:results} is an \emph{accuracy tax} that no probing scheme can
+remove, because it is a property of the reasoning trajectory, not of the probe.
+A \emph{direction-of-effect} test operationalizes this: among stops where the
+committed answer differs from the final answer, we measure the ratio of
+(final-correct, stop-wrong) to (final-wrong, stop-correct). Pure sampling noise
+predicts $\approx 1{:}1$; a genuine ``continued reasoning corrects'' effect
+predicts a ratio $\gg 1$. On the frozen sweep this ratio is
+\pending{direction-of-effect ratio, offline compute}; we currently support the
+intrinsic-tax claim with the intervention-study recovery statistics of
+Section~\ref{sec:falseconsensus} ($65.5\%$, $76.3\%$), noting those were
+measured under a different budget/probe regime and treating the sweep ratio as
+the direct test to be reported.
+
+\subsection{The probe tax is a design choice}
+The second cost is the probe output $p$. Under dense re-probing (every $64$
+tokens, $32$-token probes), a rule that stops late pays $p$ over a long prefix,
+which is what turns the \emph{net} savings of the safe (entropy) family negative
+even though its \emph{gross} savings $(B-s)/B$ is positive. Unlike the accuracy
+tax, the probe tax scales with probe density and is reducible (sparser probes,
+shorter probes, or KV-cache reuse). We therefore report savings two ways:
+
+\begin{table}[t]
+  \centering\small
+  \begin{tabular}{lcc}
+    \toprule
+    Operating point & Gross saving & Net saving \\
+                    & $(B-s)/B$    & $(B-s-p)/B$ \\
+    \midrule
+    Ours (target conservative)  & \tbd & $\approx -4\%$ \\
+    Ours (target balanced)      & \tbd & \tbd \\
+    Ours (target token\_efficient) & \tbd & $\approx 19.6\%$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{Gross vs.\ net savings. The gap is the probe tax. The
+  target-conservative point's negative net saving is a probing-density artifact,
+  not evidence that stopping wastes tokens; the accuracy tax above it is not.}
+  \label{tab:grossnet}
+\end{table}
+
+\subsection{Why the distinction matters}
+Separating the taxes pre-empts the natural objection that our negative result is
+an artifact of dense probing. It is not: the \emph{savings collapse} is partly a
+probe-tax artifact and is addressable, but the \emph{accuracy floor}---the
+finding that even the safest stop costs $\ge 1.85\pp$---is probe-independent and
+survives any probing scheme. This probe-independence rests on one premise: the
+sweep's probe grid (intervals $64/128/256$ tokens) makes essentially every stop
+position reachable, and the $1.85\pp$ floor is the minimum over these schedules;
+a sparser schedule can only stop later or at a subset of positions, never at a
+safer one that the grid missed. The two families of prior work we test next fail
+on the accuracy axis, not the probe axis.

@@ -1,0 +1,88 @@
+\section{The False Consensus Phenomenon}
+\label{sec:falseconsensus}
+
+We first establish, in an intervention-free setting, that intermediate probe
+consensus is not a reliable stopping signal.
+
+\subsection{Setup}
+\label{sec:fc-setup}
+We run \dsseven{} (vLLM, one A100-80G) on all $500$ \textsc{MATH}500 problems
+\citep{lightman2024verify,hendrycks2021math} with a decode budget of $3072$
+tokens, temperature $0.6$, top-$p$ $0.95$, and seed $42$. Every $128$ generated
+tokens (at most $24$ probes per problem) we append the boxed-answer probe
+suffix and read off the model's current answer. The probe is a separate forward
+pass: the controller only \emph{observes}, never halting or altering the main
+trajectory. This yields, per problem, the full answer trajectory a stopping rule
+would have access to. This exploratory study uses a deliberately tight $3072$
+budget so that many trajectories are truncated and the ``continue vs.\ stop''
+contrast is visible within one A100; the preregistered sweep
+(Section~\ref{sec:method}) re-examines the phenomenon at the $16$K/$32$K budgets
+used for the main results, and we report the recovery statistics there as well.
+
+\subsection{Agreement is not correctness}
+We compare two notions of probe agreement.
+\emph{Cumulative} agreement (all non-empty probes so far concur) is nearly
+trustworthy: on the $87$ problems that reach unanimous cumulative agreement,
+$98.9\%$ are correct, with a single whole-trajectory false consensus. But
+cumulative agreement is not what an online stopping rule sees. The operative
+signal is \emph{window} agreement---the last five probes concurring---and it is
+markedly less reliable: of the $338$ problems reaching a unanimous last-five
+window, only $93.5\%$ are correct, giving a $6.5\%$ ($22/338$) false-consensus
+rate. Perfect \emph{global} consensus is almost safe; the \emph{local} consensus
+a controller must act on is not.
+
+\subsection{The cost lands at the stopping decision}
+We simulate a \emph{naive consecutive-agreement} stop: halt at the first point
+where three consecutive probes agree, are non-empty, and are \emph{certain}
+(the model emits the boxed answer with high token-level confidence; formal
+definition in Appendix~\ref{sec:appendix-schema}). This is a simplified
+heuristic, \emph{not} the Certaindex algorithm, which we reproduce faithfully in
+Section~\ref{sec:baselines}. It fires on $416/500$ problems. The committed
+answers are correct only $69.2\%$ of the time, whereas letting those same
+problems run to completion (within the $3072$ budget) reaches $85.6\%$---a
+\textbf{$16.4\pp$ accuracy loss} in exchange for an average saving of $1321$
+tokens, with $128$ problems stopped on an outright wrong answer.
+
+\subsection{Recovery is common, and early stopping kills it}
+The loss is driven by \emph{recovery}: continued reasoning overturns the
+intermediate answer far more often than intuition suggests. Of the $145$
+problems that at some point formed a three-probe consensus \emph{different} from
+their final answer, $95$ ($65.5\%$) ended up correct; and of the $375$ problems
+whose \emph{first} probe was wrong, $76.3\%$ eventually flipped to correct.
+Neither ``first impression'' nor ``local consensus'' is close to terminal.
+
+Counterintuitively, \emph{later} consensus is \emph{less} trustworthy:
+consensus formed before $512$ tokens is $87.4\%$ correct, but consensus that
+only forms after $2048$ tokens is $58.1\%$ correct. Hard problems both converge
+slowly and converge to worse answers---exactly the problems on which an
+aggressive stopping rule does most damage.
+
+\subsection{Miscalibration}
+Window share is a poorly calibrated confidence estimate. Its calibration
+error---the gap between share and empirical accuracy, averaged over share bins
+(CCE)---is $0.080$ (versus $0.149$ for cumulative share), but the error is
+concentrated where a rule would act: at window share $0.8$ the empirical
+accuracy is only $47.2\%$ ($n{=}36$). A threshold tuned to ``looks nearly
+unanimous'' is operating precisely in the band where the signal is least
+reliable.
+
+\subsection{An error taxonomy}
+Hand-inspecting stopped-but-wrong cases ($28$ cases from the first $100$
+problems; AI-assisted initial labeling, \pending{full human review of the
+$134$-case export}) yields \emph{four} non-empty types out of five categories.
+By count: \textbf{(A)} numeric collapse---stable convergence to a wrong
+number---$14/28$; \textbf{(D)} derivation gaps---dropped roots/cases, unverified
+solutions---$7/28$; \textbf{(E)} format/option hallucination---a
+non-multiple-choice problem stably emitting a letter such as ``B''---$6/28$,
+which is an artifact of the probe mechanism itself rather than a model belief;
+and \textbf{(B)} expression collapse---$1/28$. Type~\textbf{(C)} (sign errors)
+did not occur in this sample. Type~E is itself a methodological finding: roughly
+one in five ``false consensuses'' is a probe formatting artifact, implying that
+any deployed rule should filter answer \emph{shape}.
+
+\paragraph{Takeaway.}
+These observations---local consensus unreliable, recovery common, late
+consensus worse, confidence miscalibrated---suggest that a good stopping rule
+must be much more than ``agreement.'' The rest of the paper asks whether the
+\emph{best possible} such rule, drawn from a large preregistered space, can be
+both safe and economical. In the searched space, it cannot.

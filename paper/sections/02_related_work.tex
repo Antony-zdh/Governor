@@ -1,0 +1,69 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Probe-based early exit for reasoning.}
+The methods we scrutinize periodically query a partial reasoning trajectory for
+its current answer and halt on agreement. Dynasor / Certaindex
+\citep{dynasor_certaindex} formalize this with a ``certainty index'' over
+recent probe answers and use it to schedule early termination when serving
+reasoning programs; related work targets the \emph{overthinking} of reasoning
+models \citep{overthinking} and proposes dynamic early exit
+\citep{deer}. Our study is built on a fork of this line of work: we adopt the
+same probe mechanism (a short boxed-answer suffix) and the same notion of
+probe agreement, and ask how far \emph{any} rule in this family can be pushed
+before it becomes unsafe.
+
+\paragraph{Early-stopping self-consistency.}
+The nearest neighbors to our setting stop \emph{self-consistency}
+\citep{wang2023selfconsistency} early: Adaptive-Consistency
+\citep{aggarwal2023adaptive} and Early-Stopping Self-Consistency
+\citep{li2024esc} halt sampling once a majority among \emph{completed} samples
+is statistically settled. Probe-based early exit is the online,
+\emph{single-trajectory} analogue: it votes across snapshots of one in-progress
+trajectory rather than across finished samples. This difference is exactly why
+their stopping criteria do not transfer---snapshots of an unfinished trajectory
+are not exchangeable draws from a stable answer distribution, because the
+trajectory is still correcting itself (Section~\ref{sec:falseconsensus}).
+
+\paragraph{Self-correction.}
+Our ``recovery'' statistic---most wrong intermediate answers are later
+overturned---is a form of intrinsic self-correction, but it differs from the
+prompted, post-hoc self-correction that \citet{huang2024selfcorrect} find
+unreliable: we measure answer evolution \emph{within} a single uninterrupted
+trajectory, not a second corrective pass. Our result is complementary: even
+when a model is not asked to self-correct, its mid-trajectory answer is not yet
+final.
+
+\paragraph{Test-time scaling and verification.}
+A large literature trades inference compute for accuracy via repeated sampling
+and search \citep{snell2024scaling,brown2024monkeys}; early exit is the dual
+problem of \emph{spending less} without losing accuracy. Process reward models
+and verifier-guided decoding \citep{lightman2024verify,wang2024mathshepherd}
+score partial reasoning and are a natural source of a termination signal; we
+return to this in Section~\ref{sec:discussion} as an alternative to
+consensus-based stopping.
+
+\paragraph{Adaptive computation and token-level early exit.}
+Adaptive computation time \citep{graves2016act} and confident adaptive language
+modeling \citep{schuster2022confident} let models spend variable compute per
+input via a learned or thresholded halting signal at the \emph{token or layer}
+level. Answer-level early exit for reasoning operates at the much coarser
+granularity of a whole answer and must contend with non-monotone answer
+trajectories; we quantify exactly this non-monotonicity.
+
+\paragraph{Confidence and calibration.}
+That model confidence overstates correctness is well documented for classifiers
+\citep{guo2017calibration} and studied for LLMs via self-reported confidence
+\citep{kadavath2022know} and semantic uncertainty \citep{kuhn2023semantic}. We
+report an analogous miscalibration for \emph{probe consensus}: the share of
+recent probes agreeing on an answer is a poorly calibrated estimate of that
+answer's correctness, and is worst precisely in the regime a stopping rule would
+act on.
+
+\paragraph{Preregistration.}
+To keep an exhaustive rule search from silently overfitting to a favorable
+operating point, we fix the rule schema, splits, and acceptance gates before
+looking at held-out data \citep{preregistration_ml}. To our knowledge this is
+among the first preregistered evaluations of early-exit rules for reasoning
+models; the protocol (Section~\ref{sec:method}) makes a \emph{negative} result
+interpretable.

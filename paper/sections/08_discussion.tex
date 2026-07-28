@@ -1,0 +1,42 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{What the negative result does and does not say.}
+It says: within a large, preregistered space of \emph{consensus-based} stopping
+rules, and under a dense-probe measurement regime, no rule on the development
+set is both safe (per-model drop $\le 1.5\pp$) and net token-saving. It does
+\emph{not} say early exit is impossible in principle, nor that it is impossible
+outside the searched schema. The result localizes the failure: the signal these
+rules consume---agreement among probes of an unfinished trajectory---is
+intrinsically non-terminal, so no threshold on that signal escapes the accuracy
+tax.
+
+\paragraph{Implication: change the signal, not the threshold.}
+Much prior effort has gone into \emph{tuning} consensus-based stops
+\citep{dynasor_certaindex,aggarwal2023adaptive,li2024esc}. Our frontier shows the
+ceiling of that approach is low, and Section~\ref{sec:boundary} gives direct
+evidence that a different termination signal---one about whether the
+\emph{trajectory itself} will still change---does better: boundary confidence
+with a verification branch saves $\sim\!44\%$ of tokens at neutral accuracy.
+Other candidates point the same way: verifier- or process-reward-based
+termination \citep{lightman2024verify,wang2024mathshepherd} and learned halting
+in the spirit of adaptive computation \citep{graves2016act,schuster2022confident}.
+The lesson is not that early exit is hopeless but that it should read the
+model's own forward-looking confidence, not the agreement of backward-looking
+probes.
+
+\paragraph{Two live extensions.}
+Two follow-ups are compatible with the preregistration and would strengthen the
+paper without touching the test split. \textbf{(A)} \emph{Confirmation as
+lower-bound validation}: evaluate the family-best points on the held-out test
+split and on the two unseen models, showing the $\ge 4.87\pp$ price of savings
+reproduces out of distribution. \textbf{(B)} \emph{Attacking the probe tax}: a
+newly preregistered extension with sparser probes / KV-cache reuse could recover
+positive \emph{net} savings at the safe end, converting ``no safe-and-saving
+stop in the searched space'' into ``\ldots exists only if probing is made this
+much cheaper.'' \textbf{(C)} \emph{Validating boundary confidence}: the
+online controller of Section~\ref{sec:boundary} is single-seed and
+model-dependent ($+2.8\pp$ on \qweneight{} but $-3.5\pp$ on \dsseven{}); a
+multi-seed train/dev$\rightarrow$test evaluation would turn the positive signal
+into a confirmed method. All three are additive to the frozen findings of
+Sections~\ref{sec:falseconsensus}--\ref{sec:mechanism}.
