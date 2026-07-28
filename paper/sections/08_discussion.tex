@@ -3,21 +3,25 @@
 
 \paragraph{What the negative result does and does not say.}
 It says: within a large, preregistered space of \emph{consensus-based} stopping
-rules, and under a dense-probe measurement regime, there is no rule that is both
-safe (per-model drop $\le 1.5\pp$) and net token-saving. It does \emph{not} say
-early exit is impossible in principle. The result localizes the failure: the
-signal these rules consume---agreement among probes of an unfinished
-trajectory---is intrinsically non-terminal, so no threshold on that signal
-escapes the accuracy tax.
+rules, and under a dense-probe measurement regime, no rule on the development
+set is both safe (per-model drop $\le 1.5\pp$) and net token-saving. It does
+\emph{not} say early exit is impossible in principle, nor that it is impossible
+outside the searched schema. The result localizes the failure: the signal these
+rules consume---agreement among probes of an unfinished trajectory---is
+intrinsically non-terminal, so no threshold on that signal escapes the accuracy
+tax.
 
 \paragraph{Implication: change the signal, not the threshold.}
-The community's effort has largely gone into \emph{tuning} confidence-based
-stops. Our frontier suggests the ceiling of that approach is low. Progress more
-likely requires a different termination signal---one that predicts whether the
-\emph{trajectory itself} will still change, rather than whether recent probes
-happen to agree. Candidate directions include answer-shape and stability
-predictors, verifier- or process-reward-based termination, and training the
-model to emit a calibrated ``done'' signal.
+Much prior effort has gone into \emph{tuning} confidence-based stops
+\citep{dynasor_certaindex,aggarwal2023adaptive,li2024esc}. Our frontier suggests
+the ceiling of that approach is low, and points toward a different termination
+signal---one that predicts whether the \emph{trajectory itself} will still
+change, rather than whether recent probes happen to agree. Natural candidates
+already exist as research areas: verifier- or process-reward-based termination
+\citep{lightman2024verify,wang2024mathshepherd}, a learned halting signal in the
+spirit of adaptive computation \citep{graves2016act,schuster2022confident}, and
+answer-shape/stability predictors. We frame these as hypotheses motivated by the
+frontier, not as claims we test here.
 
 \paragraph{Two live extensions.}
 Two follow-ups are compatible with the preregistration and would strengthen the
@@ -27,6 +31,6 @@ split and on the two unseen models, showing the $\ge 4.87\pp$ price of savings
 reproduces out of distribution. \textbf{(B)} \emph{Attacking the probe tax}: a
 newly preregistered extension with sparser probes / KV-cache reuse could recover
 positive \emph{net} savings at the safe end, converting ``no safe-and-saving
-stop exists'' into ``\ldots exists only if probing is made this much cheaper.''
-Both are additive to the frozen findings of
+stop in the searched space'' into ``\ldots exists only if probing is made this
+much cheaper.'' Both are additive to the frozen findings of
 Sections~\ref{sec:falseconsensus}--\ref{sec:mechanism}.

@@ -1,12 +1,13 @@
-\section{Results: No Safe-and-Saving Stop Exists}
+\section{Results: No Safe-and-Saving Stop in the Searched Space}
 \label{sec:results}
 
-We aggregate the sweep into per-environment metrics ($637{,}632$ metric rows
-over the $17{,}712$ rules $\times$ $18$ dev environments) and compute, for each
-rule, its worst per-model and per-benchmark accuracy drop and its net token
-savings (Section~\ref{sec:mechanism} defines the accounting). Applying
-commitment~C2 to the preregistered conservative gate yields the paper's central
-result.
+We aggregate the sweep into per-environment metrics---$637{,}632$ rows
+$=17{,}712$ rules $\times$ $18$ environments $\times$ $2$ splits (train, dev)---
+and compute, for each rule, its worst per-model and per-benchmark accuracy drop
+and its net token savings (Section~\ref{sec:mechanism} defines the accounting).
+All numbers below are on the development set; held-out confirmation is
+\pending{deferred to C3}. Applying commitment~C2 to the preregistered
+conservative gate yields the paper's central result.
 
 \subsection{The conservative gate is empty}
 \textbf{No rule in the $17{,}712$-candidate space clears the conservative gate}
@@ -16,20 +17,25 @@ none is admissible. The obstruction is not a narrow miss:
 
 \begin{itemize}
   \item the \emph{smallest} per-model accuracy drop anywhere in the space is
-  $1.85\pp$---already above the $1.5\pp$ gate---and the rules achieving it have
-  \emph{negative} net savings (20th-percentile saving $\approx -11\%$; only
-  $2.8\%$ of environments save at all);
-  \item \emph{no} rule achieves a near-zero drop: the per-model drop
-  distribution over the frontier has percentiles $p_1{=}3.37$, $p_5{=}4.26$,
+  $1.85\pp$ (a pooled per-model quantity, not a single-problem artifact;
+  Section~\ref{sec:resolution})---already above the $1.5\pp$ gate---and the rules
+  achieving it have \emph{negative} net savings (20th-percentile saving
+  $\approx -11\%$; only $2.8\%$ of environments save at all);
+  \item \emph{no} rule achieves a near-zero drop: over all $17{,}712$ candidate
+  rules the per-model drop has percentiles $p_1{=}3.37$, $p_5{=}4.26$,
   $p_{25}{=}10.7$, median $20.1\pp$;
   \item obtaining even three distinct rules with \emph{positive} net savings
   requires accepting a per-model drop of at least $4.87\pp$---and this holds
   whether the psf floor is set to $0.8$, $0.7$, $0.6$, or $0.5$.
 \end{itemize}
 
-In other words, within the preregistered space one must choose between a stop
-that is (nearly) safe but costs tokens and a stop that saves tokens but is
-unsafe; the safe-and-saving corner is empty.
+Two claims should be kept separate. The \textbf{safety} result---no rule reaches
+even $1.5\pp$, the floor being $1.85\pp$---is a statement about accuracy and, as
+Section~\ref{sec:mechanism} argues, is independent of how densely we probe. The
+\textbf{savings} result---positive net savings costs $\ge 4.87\pp$---additionally
+depends on our dense-probe accounting and is therefore the more caveated of the
+two. Within the preregistered space one must choose between a stop that is
+(nearly) safe but costs tokens and a stop that saves tokens but is unsafe.
 
 \subsection{Family frontier}
 Table~\ref{tab:frontier} gives each family's best attainable operating point.
@@ -38,15 +44,15 @@ The ordering is informative. The simplest evidence signal
 ($4.87\pp$); \texttt{entropy\_budget\_fraction} can push the drop down to
 $1.85\pp$ but only by stopping so rarely that savings go negative; and
 \texttt{adaptive\_event\_probe}---the most sophisticated family, with
-entropy- and marker-triggered probing---is the \emph{worst}, needing $9.70\pp$
-for a positive-savings point.
+entropy- and marker-triggered probing---is dominated, needing $9.70\pp$ for a
+positive-savings point.
 
 \begin{table}[t]
   \centering\small
   \begin{tabular}{lcc}
     \toprule
-    Rule family & Min per-model & Net savings \\
-                & drop (pp)     & at that point \\
+    Rule family & Per-model & Net savings \\
+                & drop (pp) & at that point \\
     \midrule
     \texttt{entropy\_budget\_fraction} & $1.85$ & negative ($q_{20}{\approx}{-}11\%$) \\
     \texttt{window\_share}             & $4.87$ & $\approx 0$ ($q_{20}{\approx}0.3\%$) \\
@@ -54,9 +60,12 @@ for a positive-savings point.
     \texttt{adaptive\_event\_probe}    & $9.70$ & $q_{20}{\approx}4.5\%$ \\
     \bottomrule
   \end{tabular}
-  \caption{Best operating point per rule family on dev. Lower drop is safer;
-  the safest family (entropy) cannot save, and the most complex family
-  (adaptive) is dominated by the simplest (window share).}
+  \caption{Best operating point per rule family on dev. For
+  \texttt{entropy\_budget\_fraction} we show its \emph{absolute} minimum drop
+  (which has no positive-savings point); for the other three families we show
+  the minimum worst-case per-model drop \emph{among positive-savings points}.
+  The safest family cannot save; the most complex family (adaptive) is dominated
+  by the simplest (window share).}
   \label{tab:frontier}
 \end{table}
 
@@ -66,8 +75,9 @@ frontier (Table~\ref{tab:adaptive}). Even its most conservative point loses
 $5.88\pp$ on average (worst environment $-9.70\pp$) for a $14.2\%$ mean saving;
 becoming more aggressive trades linearly into larger losses ($-15.03\pp$ macro
 for a $37.3\%$ saving). Entropy-drop and conclusion-marker triggers buy savings
-only by paying accuracy---they do not locate a safer place to stop. Sophistication
-in \emph{where} to probe cannot fix the fact that the answer is still moving.
+only by paying accuracy---at its best positive-savings point the adaptive family
+is dominated by simple window consensus. Sophistication in \emph{where} to probe
+cannot fix the fact that the answer is still moving.
 
 \begin{table}[t]
   \centering\small
@@ -90,34 +100,39 @@ in \emph{where} to probe cannot fix the fact that the answer is still moving.
 
 \subsection{Main comparison}
 Table~\ref{tab:main} places our best rule-based operating points against
-reference methods on the $18$ dev environments. The full comparison against
-prior-work early-stoppers is completed in Section~\ref{sec:baselines}.
+reference methods on the $18$ dev environments. ``Ours'' denotes the best rule
+in our schema \emph{targeting} each operating point; none passes the
+conservative gate ($\Delta$acc is macro-averaged, whereas the $1.85\pp$ floor
+above is the worst-case per-model drop for the same rule). The full comparison
+against prior-work early-stoppers is completed in Section~\ref{sec:baselines}.
 
-\begin{table}[t]
+\begin{table*}[t]
   \centering\small
   \begin{tabular}{lccc}
     \toprule
-    Method & Accuracy & $\Delta$acc & Token saving \\
+    Method & Accuracy & $\Delta$acc (macro) & Net token saving \\
     \midrule
-    Full generation & \pending{macro, recompute} & --- & $0\%$ \\
-    Fixed budget    & \pending{} & \pending{} & \pending{} \\
+    Full generation & \tbd & --- & $0\%$ \\
+    Fixed budget    & \tbd & \tbd & \tbd \\
     \midrule
-    Governor (conservative) & \pending{} & $\approx -0.9\pp$ & $\approx -4\%$ \\
-    Governor (balanced)     & \pending{} & \pending{} & \pending{} \\
-    Governor (aggressive)   & \pending{} & $\approx -5.6\pp$ & $\approx 19.6\%$ \\
+    Ours (target conservative) & \tbd & $\approx -0.9\pp$ & $\approx -4\%$ \\
+    Ours (target balanced)     & \tbd & \tbd & \tbd \\
+    Ours (target token\_efficient) & \tbd & $\approx -5.6\pp$ & $\approx 19.6\%$ \\
     \midrule
-    CertaIndex (raw)  & \pending{colleague run} & \pending{} & \pending{} \\
-    Entropy threshold & \pending{} & \pending{} & \pending{} \\
-    Patience consensus & \pending{} & \pending{} & \pending{} \\
+    CertaIndex (raw)  & \tbd & \tbd & \tbd \\
+    Entropy threshold & \tbd & \tbd & \tbd \\
+    Patience consensus & \tbd & \tbd & \tbd \\
     \bottomrule
   \end{tabular}
   \caption{Main comparison on dev (macro-averaged over $18$ environments).
-  Governor rows are our rule family at three operating points; the most
-  conservative is roughly accuracy-neutral but spends $\sim 4\%$ \emph{extra}
-  tokens because of the probe tax (Section~\ref{sec:mechanism}). Baseline rows
-  are reproduced in a common harness in Section~\ref{sec:baselines}.}
+  ``Ours'' rows are the best rule in our schema targeting each operating point;
+  the target-conservative rule is roughly accuracy-neutral in macro but spends
+  $\sim\!4\%$ \emph{extra} tokens because of the probe tax
+  (Section~\ref{sec:mechanism}) and does not pass the per-model gate. Baseline
+  rows are reproduced in a common harness in Section~\ref{sec:baselines}.
+  Cells marked \tbd{} are being filled from the merged baseline sweep.}
   \label{tab:main}
-\end{table}
+\end{table*}
 
 \subsection{Held-out confirmation}
 Per commitment~C3, confirmation on the test split and on the two unseen models

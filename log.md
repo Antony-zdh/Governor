@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-07-28 (续) · paper ACL 审稿 R1 + 修订
+
+- 3 个 subagent 扮演 ACL 审稿人（方法/统计、novelty/related、清晰度），**只读
+  `paper/`**。三人独立收敛出同批问题。已修的 BLOCKING/MAJOR：
+  ① 全文前置 "development set / held-out 待确认" scoping；② 拆开"安全"(准确率,
+  探针无关) 与"省钱"(探针依赖) 两个 claim；③ §3.3 去掉 "Dynasor-style" 稻草人
+  归因，改"naive consecutive-agreement"，真 Certaindex 复现放 §7；④ 表格 PDF
+  重叠 → tab:main 改全宽 `table*` + 紧凑 `\tbd` 占位；⑤ 统一操作点命名、把
+  "Governor" 改 "Ours"（也利于匿名）；⑥ related work 补最近邻（Adaptive-Consistency、
+  ESC、PRM/verifier、test-time scaling、置信度估计、self-correction）；⑦ 软化
+  "impossibility"→"searched space 内无"；⑧ 修 637,632=17,712×18×2(train+dev)、
+  percentile 口径(全候选非前沿)、taxonomy 四类+原始计数;⑨ §4 加 per-benchmark
+  量化分辨率讨论(AIME 6 题/seed→per-model gate 为主);⑩ 去掉会渲染的 provenance
+  note、`\pp` 正体、CCE 展开、certainty/entropy 触发定义入附录。
+- 仍 PENDING(诚实占位)：baseline 数字、direction-of-effect 比值、confirmation、
+  frontier/calibration 图、grader 误判率。编译 11 页,0 undefined。
+- 下一步：R2 审稿 → 收敛;之后集成已合并的 related_work 真实 baseline。
+
+---
+
 ## 2026-07-28 · 论文骨架搭建（ACL 模板）+ 合并同事 related-work baseline
 
 - **合并**：`git fetch` 发现 origin/main 领先 18 commit——同事的 related-work

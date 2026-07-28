@@ -7,7 +7,11 @@ chains of thought, often thousands of tokens per query. Much of this
 computation is spent \emph{after} the model has effectively decided on an
 answer, which makes \emph{early exit}---halting generation once the answer is
 settled---an appealing lever for reducing inference cost
-\citep{overthinking,dynasor_certaindex}.
+\citep{overthinking,dynasor_certaindex}.\footnote{We use ``false consensus'' for
+the phenomenon that intermediate probe agreement is non-terminal; the term is
+unrelated to the social-psychology ``false consensus effect'' \citep{ross1977false}.
+We also mean answer-level early exit (stopping a chain of thought), not
+token- or layer-level early exit \citep{graves2016act,schuster2022confident}.}
 
 A widely used family of early-exit methods works by \emph{probing}. At regular
 intervals during generation, the partial trajectory is queried for its current
@@ -20,9 +24,10 @@ model repeatedly says the answer is $x$, further reasoning is unlikely to
 change it.
 
 This paper asks whether that assumption holds, and whether any probe-based
-stopping rule can exploit it \emph{safely}. We answer both in the negative, and
-we do so under a preregistered protocol designed to make the negative result
-credible rather than an artifact of a poorly chosen heuristic.
+stopping rule can exploit it \emph{safely}. We answer both in the negative for
+the family of rules we search, and we do so under a preregistered protocol
+designed to make the negative result credible rather than an artifact of a
+poorly chosen heuristic.
 
 \paragraph{Finding 1: False consensus.}
 On \textsc{MATH}500 with \dsseven{}, we log a dense probe stream for every
@@ -30,39 +35,40 @@ problem without ever intervening (Section~\ref{sec:falseconsensus}). Perfect
 whole-trajectory consensus is nearly trustworthy ($98.9\%$ correct), but the
 signal a stopping rule actually sees online---agreement over a recent
 window---is not: a unanimous last-five-probe window is correct only $93.5\%$ of
-the time, with $6.5\%$ \emph{false consensus}. Simulating a Dynasor-style stop
-(three consecutive agreeing, certain, non-empty probes) fires on $416/500$
-problems and commits to an answer that is correct only $69.2\%$ of the time,
-whereas letting those same problems run to completion reaches $85.6\%$---a
-$16.4\pp$ loss. The mechanism is recovery: of problems whose first probe is
-wrong, $76.3\%$ eventually flip to correct. Intermediate consensus is simply
-not terminal.
+the time, with $6.5\%$ \emph{false consensus}. A naive stop that halts at the
+first three consecutive agreeing, non-empty probes fires on $416/500$ problems
+and commits to an answer that is correct only $69.2\%$ of the time, whereas
+letting those same problems run to completion reaches $85.6\%$---a $16.4\pp$
+loss. (This is a simplified simulation, not the Certaindex algorithm, which we
+reproduce faithfully in Section~\ref{sec:baselines}.) The mechanism is recovery:
+of problems whose first probe is wrong, $76.3\%$ eventually flip to correct.
+Intermediate consensus is simply not terminal.
 
-\paragraph{Finding 2: No safe-and-saving rule exists (preregistered).}
+\paragraph{Finding 2: No safe-and-saving rule in the searched space (preregistered).}
 A natural response is that a smarter rule---higher maturity thresholds,
 persistence requirements, certainty filters, adaptive probing---would recover
-safety while keeping the savings. We test this exhaustively
-(Sections~\ref{sec:method}--\ref{sec:results}). We freeze one reasoning
-trajectory per problem, re-probe it offline so that no stopping schedule can
-alter the underlying reasoning, and sweep a seven-dimensional rule schema of
-$17{,}712$ candidate rules across two models and three benchmarks. Splits are
-problem-grouped ($60/20/20$ train/dev/test) and the operating-point gates are
-fixed in advance; the test split and two confirmation models are never visible
-to selection. \emph{No rule clears the preregistered conservative gate.} The
-safest rule in the entire space still costs $1.85\pp$ per model, every rule with
-positive net token savings costs at least $4.87\pp$, and sophisticated
-event-triggered (``adaptive'') probing is strictly worse than a simple window
-share.
+safety while keeping the savings. We test this exhaustively over a large
+preregistered space (Sections~\ref{sec:method}--\ref{sec:results}). We freeze
+one reasoning trajectory per problem, re-probe it offline so that no stopping
+schedule can alter the underlying reasoning, and sweep a seven-dimensional rule
+schema of $17{,}712$ candidate rules across two models and three benchmarks.
+Splits are problem-grouped ($60/20/20$ train/dev/test) and the operating-point
+gates are fixed in advance; the test split and two confirmation models are never
+visible to selection. \emph{On the development set, no rule clears the
+preregistered conservative gate.} The safest rule in the entire space still
+costs $1.85\pp$ per model; separately, under dense-probe accounting every rule
+with positive net token savings costs at least $4.87\pp$, and sophisticated
+event-triggered (``adaptive'') probing is dominated by a simple window share.
 
 \paragraph{Finding 3: Two taxes, one intrinsic.}
 We separate the cost of stopping into an \emph{accuracy tax}---you lose
 accuracy purely because you commit before reasoning finishes, independent of
 how you probe---and a \emph{probe tax}---the token cost of the probes
-themselves, which turns the savings of conservative rules negative
-(Section~\ref{sec:mechanism}). The accuracy tax is intrinsic and survives any
-probing scheme; the probe tax is a function of probe density. This distinction
-is what makes the negative result robust: the $1.85\pp$ floor is not an artifact
-of dense probing.
+themselves, which turns the net savings of conservative rules negative under
+dense probing (Section~\ref{sec:mechanism}). The accuracy tax is intrinsic and
+survives any probing scheme; the probe tax is a function of probe density. This
+distinction is what keeps the negative result robust: the $1.85\pp$ accuracy
+floor is not an artifact of dense probing.
 
 \paragraph{Contributions.}
 \begin{enumerate}
@@ -74,10 +80,11 @@ of dense probing.
   protocol} for early-exit rules---frozen trajectories, offline dense
   re-probing, a seven-dimensional rule schema, and fixed selection gates---and
   release the design and sweep artifacts (Section~\ref{sec:method}).
-  \item We report a \textbf{near-impossibility result}: across $17{,}712$
-  rules, no stop is simultaneously safe and token-saving, and we characterize
-  the full accuracy--savings frontier (Section~\ref{sec:results}).
-  \item We provide a \textbf{mechanism}: a direction-of-effect analysis and an
-  accuracy-tax/probe-tax decomposition, and we compare against raw prior-work
-  early-stoppers (Sections~\ref{sec:mechanism}--\ref{sec:baselines}).
+  \item We report that, across $17{,}712$ rules, \textbf{no stop in the searched
+  space is simultaneously safe and token-saving} on the development set, and we
+  characterize the full accuracy--savings frontier (Section~\ref{sec:results}).
+  \item We provide a \textbf{mechanism} (a direction-of-effect analysis and an
+  accuracy-tax/probe-tax decomposition) and specify a \textbf{common harness}
+  for comparing prior-work early-stoppers on identical frozen trajectories
+  (Sections~\ref{sec:mechanism}--\ref{sec:baselines}).
 \end{enumerate}

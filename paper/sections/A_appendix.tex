@@ -23,6 +23,21 @@ $17{,}712$ candidate rules. Each rule fixes:
   stable span since the last switch.
 \end{enumerate}
 
+\paragraph{Certainty.}
+A probe is \emph{certain} when its boxed answer is emitted with high token-level
+confidence: concretely, the mean probability of the answer tokens under the
+probe forward pass exceeds a fixed threshold (the Certaindex certainty flag).
+For the \simplek{} bank this is aggregated over the $32$ samples as the fraction
+agreeing on the modal answer. Dimension~5 gates a stop on the fraction of the
+supporting probes that are certain.
+
+\paragraph{Entropy triggers.}
+The \texttt{adaptive\_event} schedule fires an extra probe when the token-level
+predictive entropy of the main decode drops by at least $\Delta H$ relative to a
+trailing baseline (an ``the model just committed'' signal), and at
+conclusion/reflection/answer marker tokens (e.g., ``therefore'', ``the answer
+is''), subject to a minimum inter-probe gap and a fallback interval.
+
 \section{Preregistration Text}
 \label{sec:appendix-prereg}
 
@@ -30,9 +45,9 @@ The protocol version, split manifest hash, candidate-rule generation script, and
 the three operating-point gates (Table~\ref{tab:gates}) were fixed before any
 held-out evaluation. Commitments C1--C3 (Section~\ref{sec:method}) were recorded
 with the protocol. When the conservative gate proved empty, we followed C2 and
-report the empty gate as the finding rather than relaxing it; any relaxation
-(e.g., the balanced/token\_efficient points) is reported as a separate,
-clearly-labeled analysis and re-preregistered if used for selection.
+report the empty gate as the finding rather than relaxing it; the
+balanced/token\_efficient points are reported only as clearly-labeled post-hoc
+analysis and would be re-preregistered if used for selection.
 
 \section{Reproducibility}
 \label{sec:appendix-repro}
@@ -43,10 +58,14 @@ Table~\ref{tab:adaptive} was reproduced to the reported precision directly from
 the released sweep archive. Grading uses a robust answer-equivalence check that
 tries the raw and normalized reference forms and both string and
 math-expression equality; per-problem correctness for the frozen baseline is
-recomputed at replay time rather than trusted from collection.
+recomputed at replay time rather than trusted from collection. The grader's
+measured error rate against a hand-checked sample is \pending{report grader
+error rate}.
 
-\section{Additional Tables}
+\section{Additional Tables and Figures}
 \label{sec:appendix-tables}
 
-\pending{per-model $\times$ benchmark full-accuracy table; direction-of-effect
-counts; gross/net decomposition by family; baseline sweeps.}
+\pending{frontier scatter (worst-case drop vs.\ net savings, families colored);
+window-share reliability diagram; per-model $\times$ benchmark full-accuracy
+table; direction-of-effect counts; gross/net decomposition by family; baseline
+sweeps.}

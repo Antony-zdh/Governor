@@ -2,7 +2,7 @@
 \label{sec:mechanism}
 
 Why is the safe-and-saving corner empty? We separate two distinct costs of
-stopping and show that only one of them depends on how we probe.
+stopping and argue that only one of them depends on how we probe.
 
 \subsection{Accounting}
 For a rule that stops a problem at token position $s$ after consuming probe
@@ -19,14 +19,16 @@ to the answer at $s$ forgoes whatever correction the trajectory would have made
 after $s$. This is the quantity that never reaches zero---the $1.85\pp$ floor of
 Section~\ref{sec:results} is an \emph{accuracy tax} that no probing scheme can
 remove, because it is a property of the reasoning trajectory, not of the probe.
-A \emph{direction-of-effect} test makes this concrete: among stops where the
+A \emph{direction-of-effect} test operationalizes this: among stops where the
 committed answer differs from the final answer, we measure the ratio of
 (final-correct, stop-wrong) to (final-wrong, stop-correct). Pure sampling noise
-would give $\approx 1{:}1$; a genuine ``continued reasoning corrects'' effect
-gives a ratio $\gg 1$. We observe \pending{direction-of-effect ratio, offline
-compute} , consistent with the recovery statistics of
-Section~\ref{sec:falseconsensus} and inconsistent with the drop being an
-inference-noise artifact.
+predicts $\approx 1{:}1$; a genuine ``continued reasoning corrects'' effect
+predicts a ratio $\gg 1$. On the frozen sweep this ratio is
+\pending{direction-of-effect ratio, offline compute}; we currently support the
+intrinsic-tax claim with the intervention-study recovery statistics of
+Section~\ref{sec:falseconsensus} ($65.5\%$, $76.3\%$), noting those were
+measured under a different budget/probe regime and treating the sweep ratio as
+the direct test to be reported.
 
 \subsection{The probe tax is a design choice}
 The second cost is the probe output $p$. Under dense re-probing (every $64$
@@ -43,14 +45,14 @@ shorter probes, or KV-cache reuse). We therefore report savings two ways:
     Operating point & Gross saving & Net saving \\
                     & $(B-s)/B$    & $(B-s-p)/B$ \\
     \midrule
-    Governor (conservative) & \pending{local gross/net} & $\approx -4\%$ \\
-    Governor (balanced)     & \pending{} & \pending{} \\
-    Governor (aggressive)   & \pending{} & $\approx 19.6\%$ \\
+    Ours (target conservative)  & \tbd & $\approx -4\%$ \\
+    Ours (target balanced)      & \tbd & \tbd \\
+    Ours (target token\_efficient) & \tbd & $\approx 19.6\%$ \\
     \bottomrule
   \end{tabular}
-  \caption{Gross vs.\ net savings. The gap is the probe tax. The conservative
-  point's negative net saving is a probing-density artifact, not evidence that
-  stopping wastes tokens; the accuracy tax above it is not.}
+  \caption{Gross vs.\ net savings. The gap is the probe tax. The
+  target-conservative point's negative net saving is a probing-density artifact,
+  not evidence that stopping wastes tokens; the accuracy tax above it is not.}
   \label{tab:grossnet}
 \end{table}
 
