@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Restartable CPU-only postprocess orchestrator.
 
-Only after ALL 54 collector manifests pass the strict completion checker
-(manifest_check: complete=true, observed=expected, missing=0, failures=0,
-invalid_readouts=0), runs replay for every method × model × benchmark × seed,
+Only after ALL 54 collector manifests pass the completion checker
+(manifest_check: complete=true, observed=expected, missing=0,
+recorded_failures=0), runs replay for every method x model x benchmark x seed,
 validates exactly 8,208 replay rows (2,736 per method), runs the preregistered
 10,000-sample paired hierarchical bootstrap (on dev-pooled + train+dev only --
 NOT per-environment, to avoid redundant work), and writes aggregate artifacts.
+Both invalid_readouts and truncated_readouts are diagnostic method outcomes
+(capped/invalid readout at readout_cap=8192 = a complete per-problem record
+delivered as empty/incorrect in replay); only request errors, corrupt/missing
+rows, and context overflow/budget errors are hard failures.
 
 Does NOT touch, restart, interrupt, or write into any active collector output
 file. Does NOT read test/confirmation data. Does NOT modify frozen trajectories,

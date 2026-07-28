@@ -65,6 +65,11 @@ skip complete per-problem files), fails loudly, uses absolute
 /localdata/dzhaoah/Governor paths, never selects/resets/touches GPUs or other
 processes, and writes per-method/environment logs + machine-readable
 status_<key>.json / progress_<key>.json under the full-results runtime area.
+The manifest gate requires complete coverage (observed=expected, missing=0),
+zero recorded request failures, and complete=true; both invalid_readouts and
+truncated_readouts are diagnostic method outcomes (capped readout at
+readout_cap=8192 = a complete record delivered as empty/incorrect in replay),
+not infrastructure failures.
 
 ```bash
 # DeepSeek (GPU 0, port 18000)
