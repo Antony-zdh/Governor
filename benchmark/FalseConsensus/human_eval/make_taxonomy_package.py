@@ -14,9 +14,10 @@ from itertools import groupby
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from build_interactive import render_page
+from build_interactive import render_page, load_figmap, problem_to_parts
 
 FC = HERE.parent
+figmap = load_figmap()
 cases = json.load(open(FC/"results/stage1_logging/analysis/false_consensus_cases.json"))
 cls = json.load(open(FC/"results/stage1_logging/analysis/classification.json"))
 ai = {c["problem_id"]: c for c in cls["cases"]}
@@ -53,7 +54,8 @@ for c in cases:
         "stop": str(c.get("stop_answer")), "final": str(c.get("final_answer")),
         "fc": bool(c.get("final_correct")), "nprobes": len(c.get("probe_answers", [])),
         "rle": rle_str, "ai_type": a.get("type", ""), "ai_reason": a.get("reason", ""),
-        "problem": c["problem"], "full_text": c.get("full_text", ""),
+        "parts": problem_to_parts(c["problem"], figmap),
+        "full_text": c.get("full_text", ""), "rlen": len(c.get("full_text", "")),
         # fixed CSV cells, in COLUMNS order up to the human fields:
         "csv": [c["problem_id"], str(c["target"]), str(c.get("stop_answer")),
                 str(c.get("final_answer")), bool(c.get("final_correct")),

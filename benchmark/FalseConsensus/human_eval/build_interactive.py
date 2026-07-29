@@ -4,20 +4,48 @@
 One HTML per task = the ONLY file you send an annotator. It embeds:
   - the instructions/codebook (INTRO),
   - every case (DATA, inline JSON),
+  - KaTeX (vendored, fonts inlined) so all $...$ / \\[...\\] math RENDERS,
+  - each [asy] figure compiled to an inline <svg> (via asy_render.py) so
+    annotators see the actual diagram instead of Asymptote source,
   - per-case form controls (FIELDS),
 and generates the filled CSV client-side (Download button). Progress auto-saves
-to the browser's localStorage, so a refresh never loses work. No server, no
-internet, no extra files: double-click to open.
+to the browser's localStorage. No server, no internet, no extra files.
 
 `?selftest=1` runs the real export path in-browser and dumps the resulting CSV
-(base64) into <pre id=selftest> so a headless Chrome check can verify it.
+(base64) into <pre id=selftest> so a headless check can verify it.
 """
-import json
+import json, re, hashlib
+from pathlib import Path
 
-# %%TOKENS%% are replaced with str.replace (NOT an f-string), so all the CSS/JS
-# braces below stay literal. DATA is injected last (it may contain arbitrary text).
+HERE = Path(__file__).resolve().parent
+ASY_RE = re.compile(r"\[asy\](.*?)\[/asy\]", re.S | re.I)
+
+
+def load_figmap():
+    """{block_hash: inline_svg} produced by asy_render.py; {} if not yet rendered."""
+    fp = HERE / "fig_svgs.json"
+    return json.load(open(fp)) if fp.exists() else {}
+
+
+def problem_to_parts(problem, figmap):
+    """Split a problem into text/figure segments; figures carry rendered SVG (or None)."""
+    parts, last = [], 0
+    for m in ASY_RE.finditer(problem):
+        if m.start() > last:
+            parts.append({"t": "text", "v": problem[last:m.start()]})
+        h = hashlib.sha1(m.group(1).encode("utf-8")).hexdigest()[:16]
+        parts.append({"t": "fig", "v": figmap.get(h)})
+        last = m.end()
+    if last < len(problem):
+        parts.append({"t": "text", "v": problem[last:]})
+    return parts or [{"t": "text", "v": problem}]
+
+
+# %%TOKENS%% are replaced with str.replace (NOT an f-string), so all CSS/JS braces
+# below stay literal. DATA is injected last (may contain arbitrary text).
 _TEMPLATE = r"""<meta charset="utf-8">
 <title>%%TITLE%%</title>
+<style>%%KATEX_CSS%%</style>
 <style>
 :root{color-scheme:light dark}
 *{box-sizing:border-box}
@@ -40,7 +68,12 @@ button:hover{background:#096}
 .wrong{color:#c00}.right{color:#080}
 .ai{background:#fff7e6;border-left:3px solid #e0a800;padding:.4rem .8rem;margin:.4rem 0;font-size:14px}
 details>summary{cursor:pointer;color:#06c;margin:.4rem 0}
-pre{white-space:pre-wrap;background:#fafafa;border:1px solid #eee;border-radius:6px;padding:.7rem;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;max-height:340px;overflow:auto}
+.prob{white-space:pre-wrap;background:#fafafa;border:1px solid #eee;border-radius:6px;padding:.8rem;margin:.3rem 0;font-size:14.5px}
+.prob .tx{white-space:pre-wrap}
+.fig{display:block;background:#fff;border:1px solid #e6e6e6;border-radius:8px;padding:10px;margin:.6rem 0;text-align:center}
+.fig svg{max-width:100%;height:auto}
+.fig.nofig{color:#999;font-style:italic;background:#f7f7f7}
+pre.rzpre{white-space:pre-wrap;background:#fafafa;border:1px solid #eee;border-radius:6px;padding:.7rem;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;max-height:360px;overflow:auto}
 .fields{display:flex;flex-wrap:wrap;gap:.7rem 1.2rem;align-items:center;margin-top:.8rem;padding-top:.7rem;border-top:1px dashed #ddd}
 .fields label{font-size:14px;font-weight:600}
 .fields select{font-size:14px;padding:.3rem .4rem;border-radius:6px;border:1px solid #bbb}
@@ -50,9 +83,11 @@ body.hideDone .card.done{display:none}
 @media (prefers-color-scheme:dark){
   body{background:#161618;color:#e6e6e6}#intro{background:#222}#intro code{background:#333}
   .card{background:#1c1c1f;border-color:#333}.card.done{background:#16201b}.card h2{color:#bbb}
-  .meta{background:#252528}.ai{background:#2a2410}pre{background:#111;border-color:#333;color:#ddd}
+  .meta{background:#252528}.ai{background:#2a2410}.prob{background:#111;border-color:#333}
+  pre.rzpre{background:#111;border-color:#333;color:#ddd}
   .fields select,.fields label.notes input{background:#222;color:#eee;border-color:#555}
   .wrong{color:#ff7b7b}.right{color:#5cd68a}
+  .katex{color:#e6e6e6}
 }
 </style>
 
@@ -70,8 +105,9 @@ body.hideDone .card.done{display:none}
 
 <div id="list"></div>
 
+<script>%%KATEX_JS%%</script>
 <script type="application/json" id="data">%%DATA%%</script>
-<script>
+<script id="app">
 const COLUMNS = %%COLUMNS%%;
 const FIELDS  = %%FIELDS%%;
 const TASK_ID = "%%TASK_ID%%";
@@ -83,6 +119,54 @@ const KEY = 'fc_annot_' + TASK_ID;
 function escHtml(v){ return String(v==null?'':v)
   .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function esc(v){ v=(v==null?'':String(v)); return /[",\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }
+// wrap a short answer in \( \) so KaTeX renders it, iff it looks like TeX
+function M(v){ v=String(v==null?'':v).replace(/^\$+|\$+$/g,'');
+  return /[\\^_{}]/.test(v) ? '\\('+escHtml(v)+'\\)' : escHtml(v); }
+// build the problem block from text/figure parts (figure = trusted inline SVG)
+function renderProblem(parts){
+  let h='<div class="prob">';
+  for(const p of parts){
+    if(p.t==='fig') h += p.v ? '<span class="fig">'+p.v+'</span>' : '<span class="fig nofig">［配图无法渲染，请看原题］</span>';
+    else h += '<span class="tx">'+escHtml(p.v)+'</span>';
+  }
+  return h+'</div>';
+}
+// Self-rolled math renderer using katex core (the contrib auto-render's
+// renderMathInElement no-ops in this build, but katex.renderToString works).
+// Walks text nodes under `el`, splits on $$..$$ / \[..\] / \(..\) / $..$, and
+// replaces each math run with a rendered span. Skips .rle/.rzpre and already
+// rendered .katex subtrees; safe to call more than once.
+function typeset(el){
+  if(!el || typeof katex==='undefined' || typeof document.createTreeWalker!=='function') return;
+  var SKIP={SCRIPT:1,STYLE:1,TEXTAREA:1};
+  var walker=document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {acceptNode:function(n){
+    if(!/\$|\\\(|\\\[/.test(n.nodeValue)) return NodeFilter.FILTER_REJECT;
+    for(var p=n.parentNode; p && p!==el.parentNode; p=p.parentNode){
+      if(SKIP[p.nodeName]) return NodeFilter.FILTER_REJECT;
+      var cl=''+(p.className||'');
+      if(cl.indexOf('katex')>=0 || cl.indexOf('rle')>=0 || cl.indexOf('rzpre')>=0) return NodeFilter.FILTER_REJECT;
+    }
+    return NodeFilter.FILTER_ACCEPT;
+  }});
+  var todo=[], n; while(n=walker.nextNode()) todo.push(n);
+  var RE=/\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\\\(([\s\S]+?)\\\)|\$([^$\n]+?)\$/g;
+  todo.forEach(function(tn){
+    var s=tn.nodeValue, frag=document.createDocumentFragment(), last=0, m, any=false;
+    RE.lastIndex=0;
+    while(m=RE.exec(s)){
+      any=true;
+      if(m.index>last) frag.appendChild(document.createTextNode(s.slice(last,m.index)));
+      var disp=(m[1]!=null||m[2]!=null), tex=m[1]||m[2]||m[3]||m[4]||'';
+      var span=document.createElement('span');
+      try{ span.innerHTML=katex.renderToString(tex,{displayMode:disp,throwOnError:false}); }
+      catch(e){ span.textContent=m[0]; }
+      frag.appendChild(span); last=RE.lastIndex;
+    }
+    if(!any) return;
+    if(last<s.length) frag.appendChild(document.createTextNode(s.slice(last)));
+    tn.parentNode.replaceChild(frag, tn);
+  });
+}
 
 %%RENDER_INFO%%
 
@@ -93,6 +177,7 @@ function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e
 const listEl = document.getElementById('list');
 const progEl = document.getElementById('prog');
 const nameEl = document.getElementById('annot');
+const cards = [];
 
 DATA.forEach(function(rec, i){
   const card = document.createElement('div');
@@ -108,10 +193,9 @@ DATA.forEach(function(rec, i){
     }
   });
   card.innerHTML = h + '</div>';
-  listEl.appendChild(card);
+  listEl.appendChild(card); cards.push(card);
 });
 
-// restore saved values into the controls (no HTML-attr escaping headaches)
 function applyState(){
   DATA.forEach(function(_, i){
     const st = state[i]; if(!st) return;
@@ -124,7 +208,7 @@ function applyState(){
 }
 function markCard(i){
   const done = !!(state[i] && state[i][REQ]);
-  document.getElementById('card'+i).classList.toggle('done', done);
+  cards[i].classList.toggle('done', done);
 }
 function updateProgress(){
   let n=0; for(let i=0;i<DATA.length;i++){ if(state[i] && state[i][REQ]) n++; }
@@ -142,7 +226,6 @@ listEl.addEventListener('input', function(e){
 
 nameEl.value = state.__name__ || '';
 nameEl.addEventListener('input', function(){ state.__name__ = nameEl.value; save(); });
-
 document.getElementById('onlyTodo').addEventListener('change', function(e){
   document.body.classList.toggle('hideDone', e.target.checked);
 });
@@ -167,10 +250,18 @@ document.getElementById('dl').addEventListener('click', function(){
 
 applyState(); updateProgress();
 
+// render math: problem+meta eagerly; heavy reasoning lazily on first open
+cards.forEach(function(card){
+  typeset(card);
+  const rz = card.querySelector && card.querySelector('details.rz');
+  if(rz) rz.addEventListener('toggle', function(){
+    if(rz.open && !rz._done){ rz._done = 1; typeset(rz.querySelector('pre')); }
+  });
+});
+
 // ---- headless self-test: exercise the REAL export path and dump the CSV ----
 if (location.search.indexOf('selftest') >= 0){
-  state = {};
-  state[0] = {};
+  state = {}; state[0] = {};
   FIELDS.forEach(function(f){
     state[0][f.key] = (f.type==='text') ? 'has, comma "quote"\nand newline 中文' : f.options[1].value;
   });
@@ -183,51 +274,50 @@ if (location.search.indexOf('selftest') >= 0){
 
 
 def render_page(*, title, intro_html, columns, fields, data, task_id, file_prefix):
-    """Assemble the interactive HTML string.
-
-    columns: list[str] full CSV header (fixed cols + the human cols, in order).
-    fields:  list[{key,label,type('select'|'text'),options?:[{value,label}]}].
-             fields[0] is the required label used for progress/done state.
-    data:    list[dict]; each MUST carry rec['csv'] = the fixed cell values in
-             header order (len == len(columns) - len(fields)). Other keys feed
-             the task-specific renderInfo(rec, i) JS.
-    """
+    """Assemble the interactive HTML string. Each rec in `data` MUST carry
+    rec['csv'] (fixed cell values in header order) and rec['parts'] (problem
+    segments from problem_to_parts). Task-specific renderInfo is in RENDER_INFO."""
+    vendor = HERE / "vendor"
+    katex_css = (vendor / "katex.min.css").read_text(encoding="utf-8")
+    katex_js = (vendor / "katex.min.js").read_text(encoding="utf-8")
     data_json = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     html = (_TEMPLATE
             .replace("%%TITLE%%", title)
+            .replace("%%KATEX_CSS%%", katex_css)
             .replace("%%INTRO%%", intro_html)
             .replace("%%COLUMNS%%", json.dumps(columns, ensure_ascii=False))
             .replace("%%FIELDS%%", json.dumps(fields, ensure_ascii=False))
             .replace("%%TASK_ID%%", task_id)
             .replace("%%FILE_PREFIX%%", file_prefix)
             .replace("%%RENDER_INFO%%", RENDER_INFO[task_id])
+            .replace("%%KATEX_JS%%", katex_js)
             .replace("%%DATA%%", data_json))     # DATA last: may contain arbitrary text
     return html
 
 
-# Task-specific JS that turns a record into the card's info block. Kept here so
-# the make_* scripts stay tiny. Must define `function renderInfo(rec, i){...}`.
+# Task-specific JS: turn a record into the card's info block. Must define
+# `function renderInfo(rec, i){...}` and use renderProblem(rec.parts) + M().
 RENDER_INFO = {
     "taxonomy": r"""
 function renderInfo(rec, i){
   var fc = rec.fc ? 'right' : 'wrong';
   var ai = rec.ai_type ? '<div class="ai">AI 初判: <b>'+escHtml(rec.ai_type)+'</b> — '+escHtml(rec.ai_reason||'')+'（可推翻）</div>' : '';
   return '<h2>#'+(i+1)+' · problem '+escHtml(rec.pid)+'</h2>'
-    + '<div class="meta">gold 正解: <b>'+escHtml(rec.target)+'</b> &nbsp;|&nbsp; 错误停在: <b class="wrong">'+escHtml(rec.stop)+'</b>'
-    + ' &nbsp;|&nbsp; 完整推理答案: <b class="'+fc+'">'+escHtml(rec.final)+'</b> ('+(rec.fc?'correct':'incorrect')+')</div>'
-    + '<div class="meta">probe 流 ('+rec.nprobes+'): '+escHtml(rec.rle)+'</div>'
+    + '<div class="meta">gold 正解: <b>'+M(rec.target)+'</b> &nbsp;|&nbsp; 错误停在: <b class="wrong">'+M(rec.stop)+'</b>'
+    + ' &nbsp;|&nbsp; 完整推理答案: <b class="'+fc+'">'+M(rec.final)+'</b> ('+(rec.fc?'correct':'incorrect')+')</div>'
+    + '<div class="meta rle">probe 流 ('+rec.nprobes+'): '+escHtml(rec.rle)+'</div>'
     + ai
-    + '<details open><summary>题目</summary><pre>'+escHtml(rec.problem)+'</pre></details>'
-    + '<details><summary>完整模型推理（'+(rec.full_text?rec.full_text.length:0)+' 字符）</summary><pre>'+escHtml(rec.full_text||'')+'</pre></details>';
+    + '<div><b>题目:</b></div>' + renderProblem(rec.parts)
+    + '<details class="rz"><summary>完整模型推理（'+(rec.rlen||0)+' 字符）</summary><pre class="rzpre">'+escHtml(rec.full_text||'')+'</pre></details>';
 }
 """,
     "grader": r"""
 function renderInfo(rec, i){
   var v = rec.correct ? 'right' : 'wrong';
   return '<h2>Row '+rec.row+' · '+escHtml(rec.model)+' / '+escHtml(rec.benchmark)+' / problem '+escHtml(rec.pid)+'</h2>'
-    + '<div class="meta">gold 正解: <b>'+escHtml(rec.gold)+'</b> &nbsp;|&nbsp; 模型答案: <b>'+escHtml(rec.ans)+'</b>'
+    + '<div class="meta">gold 正解: <b>'+M(rec.gold)+'</b> &nbsp;|&nbsp; 模型答案: <b>'+M(rec.ans)+'</b>'
     + ' &nbsp;|&nbsp; grader 判定: <b class="'+v+'">'+(rec.correct?'correct':'incorrect')+'</b></div>'
-    + '<details><summary>题目（等价性不明时再看）</summary><pre>'+escHtml(rec.problem)+'</pre></details>';
+    + '<details class="rz"><summary>题目（等价性不明时再看）</summary>' + renderProblem(rec.parts) + '</details>';
 }
 """,
 }

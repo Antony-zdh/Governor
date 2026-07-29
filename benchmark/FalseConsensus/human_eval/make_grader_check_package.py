@@ -18,9 +18,10 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from build_interactive import render_page
+from build_interactive import render_page, load_figmap, problem_to_parts
 
 FC = HERE.parent
+figmap = load_figmap()
 SEED = 20260729
 N_EQUIV, N_CLOSE, N_RANDOM = 34, 26, 30      # ~90 total
 DEV = [
@@ -92,7 +93,7 @@ for i, r in enumerate(sample, 1):
     records_out.append({
         "row": i, "model": r["model"], "benchmark": r["benchmark"], "pid": r["problem_id"],
         "gold": r["target"], "ans": r["final_answer"], "correct": bool(r["final_correct"]),
-        "problem": r["problem"],
+        "parts": problem_to_parts(r["problem"], figmap),
         "csv": [i, r["model"], r["benchmark"], r["problem_id"], r["target"],
                 r["final_answer"], verdict],
     })
