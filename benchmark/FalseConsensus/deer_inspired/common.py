@@ -339,18 +339,31 @@ def load_config(path: Path) -> dict[str, Any]:
     return config
 
 
-def formal_dev_ids(split_manifest: Path, benchmark: str) -> set[int]:
+def formal_split_ids(split_manifest: Path, benchmark: str, split: str = "dev") -> set[int]:
     payload = load_json(split_manifest)
     assignments = payload["assignments"] if isinstance(payload, dict) else payload
     return {
         int(row["dataset_index"])
         for row in assignments
-        if row["benchmark"] == benchmark and row["split"] == "dev"
+        if row["benchmark"] == benchmark and row["split"] == split
     }
 
 
+def formal_dev_ids(split_manifest: Path, benchmark: str) -> set[int]:
+    return formal_split_ids(split_manifest, benchmark, "dev")
+
+
 def expected_dev_count(benchmark: str) -> int:
-    return {"math500": 100, "amc23": 8, "aime24": 6}[benchmark]
+    return expected_split_count(benchmark, "dev")
+
+
+def expected_split_count(benchmark: str, split: str = "dev") -> int:
+    counts = {
+        "train": {"math500": 300, "amc23": 24, "aime24": 18},
+        "dev": {"math500": 100, "amc23": 8, "aime24": 6},
+        "test": {"math500": 100, "amc23": 8, "aime24": 6},
+    }
+    return counts[split][benchmark]
 
 
 def quarantine(path: Path) -> Path:

@@ -25,7 +25,9 @@ from .common import (
     branch_is_allowed,
     derive_accounting,
     expected_dev_count,
+    expected_split_count,
     formal_dev_ids,
+    formal_split_ids,
     load_config,
     load_json,
     load_jsonl,
@@ -86,6 +88,7 @@ class OnlineController:
         answers_equal_fn: Any = None,
         sleep_fn: Any = time.sleep,
         allow_nonformal_seed: bool = False,
+        split: str = "dev",
     ):
         if method not in METHODS:
             raise ValueError(f"unknown method {method!r}")
@@ -102,6 +105,7 @@ class OnlineController:
         self.benchmark = benchmark
         self.base_seed = int(base_seed)
         self.allow_nonformal_seed = bool(allow_nonformal_seed)
+        self.split = str(split)
         self.cap = int(cap)
         self.max_model_len = int(max_model_len)
         self.output = Path(output)
@@ -655,9 +659,13 @@ class OnlineController:
             "server_command": self.server_command,
             "benchmark": self.benchmark,
             "base_seed": self.base_seed,
-            "formal": not self.allow_nonformal_seed,
+            "formal": (
+                self.base_seed == 42
+                and self.split == "dev"
+                and not self.allow_nonformal_seed
+            ),
             "problem_id": int(problem_id),
-            "split": "dev",
+            "split": self.split,
             "problem": problem,
             "target": target,
             "metadata": dict(metadata),
@@ -705,13 +713,19 @@ def run(args: argparse.Namespace) -> None:
     bench_cfg = config["benchmarks"][args.benchmark]
     if args.model_revision != model_cfg["revision"]:
         raise ValueError("model revision differs from frozen config")
+    split = args.split
+    if split == "test" and not args.allow_test_read:
+        raise ValueError(
+            "reading the held-out test split requires --allow-test-read "
+            "(preregistration confirmation gate)"
+        )
     dataset = _dataset(config, args.benchmark)
-    dev_ids = formal_dev_ids(Path(config["split_manifest"]), args.benchmark)
-    if len(dev_ids) != expected_dev_count(args.benchmark):
-        raise ValueError("split manifest Dev count mismatch")
-    selected = set(args.problem_id) if args.smoke else dev_ids
-    if not selected <= dev_ids:
-        raise ValueError("Train/Test problem ID supplied to Dev-only runner")
+    split_ids = formal_split_ids(Path(config["split_manifest"]), args.benchmark, split)
+    if len(split_ids) != expected_split_count(args.benchmark, split):
+        raise ValueError(f"split manifest {split} count mismatch")
+    selected = set(args.problem_id) if args.smoke else split_ids
+    if not selected <= split_ids:
+        raise ValueError(f"problem ID outside requested {split} split supplied to runner")
     output = Path(args.output)
     settings = {
         "protocol_version": PROTOCOL_VERSION,
@@ -720,11 +734,14 @@ def run(args: argparse.Namespace) -> None:
         "model_revision": args.model_revision,
         "benchmark": args.benchmark,
         "base_seed": args.seed,
-        "formal": (args.seed == 42 and not args.allow_nonformal_seed),
+        "formal": (
+            args.seed == 42 and split == "dev" and not args.allow_nonformal_seed
+        ),
+        "test_read": split == "test",
         "dtype": "bfloat16",
         "cap": bench_cfg["cap"],
         "max_model_len": model_cfg["max_model_len"],
-        "split": "dev",
+        "split": split,
         "config_hash": sha256_json(config),
         "smoke": bool(args.smoke),
         "problem_ids": sorted(selected) if args.smoke else None,
@@ -757,6 +774,7 @@ def run(args: argparse.Namespace) -> None:
         api_key=args.api_key,
         server_command=args.server_command,
         allow_nonformal_seed=args.allow_nonformal_seed,
+        split=split,
     )
     try:
         served = controller.client.models.list()
@@ -823,6 +841,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser.add_argument("--model", required=True)
     parser.add_argument("--model-revision", required=True)
     parser.add_argument("--benchmark", choices=("math500", "amc23", "aime24"), required=True)
+    parser.add_argument("--split", choices=("train", "dev", "test"), default="dev")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--url", required=True)
     parser.add_argument("--api-key", default="token-abc123")
@@ -836,6 +855,12 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         action="store_true",
         help="permit seeds other than 42 for a declared, non-formal robustness "
         "diagnostic; runs are stamped formal=false and must use a separate output tree",
+    )
+    parser.add_argument(
+        "--allow-test-read",
+        action="store_true",
+        help="required to read the held-out test split; stamps test_read=true and "
+        "must use a separate output tree (preregistration confirmation gate)",
     )
     return parser.parse_args(argv)
 

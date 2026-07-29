@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-07-29（续）· ARR 复审 + ① test-split 确认 + 主表补全 + ④③ 备料
+
+- **两个 subagent 独立 ARR 复审（只看 paper 不看 repo）**：均 Soundness 2.5 / Excitement 3 /
+  borderline-lean-reject。共识弱点：(1) 主表 `\tbd` 是致命伤；(2) 1.5pp gate vs 1.85pp floor
+  仅 0.35pp、低于测量分辨率、bootstrap CI[0,5.6] 含 break-even、同规则 test 上 0.11pp；
+  (3) 标题过度泛化（只证了 ≤32B 数学蒸馏模型）；(4) §8 boundary-confidence 是弱半却扛标题；
+  (5) Certaindex 复现疑似 strawman（无阈值 sweep）；(6) r=0.96 是机械相关。P0 实验 = 用户选的 ①②③。
+- **用户确认昨晚 DEER 只跑了 dev split**（`online_controller.py:709` `formal_dev_ids`，硬编码
+  `split:dev`）→ test 从未读，预注册完好。**① = 补 test split + 10 seed**。
+- **给 `online_controller.py` 加 `--split {train,dev,test}` + `--allow-test-read` 预注册闸**
+  （generalize `formal_split_ids`/`expected_split_count`；默认 dev 路径字节不变；formal 戳
+  改为 seed==42 且 split==dev；34 单测全过；1 题 smoke 验证 split=test/test_read=True/formal=False/correct=True）。
+- **① v2 dispatch 上线**（`~/deer_v2_dispatch.sh`，8 卡全开，输出独立树 `online_v2_multiseed`）：
+  proposed+reference × 10 seed(42-51) × test split × 3 bench + proposed dev seed45-51（补足 10 seed dev CI）。
+  共 162 job。**阈值配置 a priori 冻结、未在 dev 上调过 → 无需再引入 tuning step；test 是干净确认。**
+- **主表补全（复现 sweep frontier，锚点全中）**：用 repo 自带 `selection_candidates`/`pareto_frontier`
+  在 637,632 行 sweep 上重建 frontier(93 规则)，三个"target"行取 frontier 的 min-drop / 中点 /
+  high-saving 代表：conservative=`entropy_budget_fraction__547ada5ee6fe`（1.85pp worst-model、
+  Δacc−0.87、gross+0.6/net−4.0 ✓复现）、token_efficient=`latest_persistence_fixed_maturity__45b50fd6f010`
+  （Δacc−5.57、net+19.6 ✓复现）、balanced=`window_share_budget_fraction__5e0df6e55cf3`（Δacc−3.6、net+7.8，
+  自选中点，可改）。full-gen macro dev baseline=82.7%。填 §5 Table `tab:main` + §6 Table `tab:grossnet`；
+  只剩 fixed-budget 行（需 truncation pass + budget 选择，待定）。14 页 0 error。
+- **④③ 备料**（subagent 后台）：④=32B 升为一等 dev（development matrix + run_matrix + 17,712 规则 sweep +
+  32B frontier/floor，seed42 起）；③=复用现有 7B/8B 轨迹、换 3-4 种 probe 后缀重建 probe bank 后重跑
+  false-consensus/frontier/Certaindex。均 ① 跑完释放 8 卡后启动。
+
+---
+
 ## 2026-07-29 · ① DEER 多 seed robustness（用户授权松锁，8 卡全开）
 
 - **用户授权**跑 ①。做法上不动 formal seed-42 语义:给 `online_controller.py` 加

@@ -133,12 +133,12 @@ against prior-work early-stoppers is completed in Section~\ref{sec:baselines}.
     \toprule
     Method & Accuracy & $\Delta$acc (macro) & Net token saving \\
     \midrule
-    Full generation & \tbd & --- & $0\%$ \\
+    Full generation & $82.7\%$ & --- & $0\%$ \\
     Fixed budget    & \tbd & \tbd & \tbd \\
     \midrule
-    Ours (target conservative) & \tbd & $\approx -0.9\pp$ & $\approx -4\%$ \\
-    Ours (target balanced)     & \tbd & \tbd & \tbd \\
-    Ours (target token\_efficient) & \tbd & $\approx -5.6\pp$ & $\approx 19.6\%$ \\
+    Ours (target conservative) & $81.8\%$ & $-0.9\pp$ & $-4.0\%$ \\
+    Ours (target balanced)     & $79.1\%$ & $-3.6\pp$ & $+7.8\%$ \\
+    Ours (target token\_efficient) & $77.1\%$ & $-5.6\pp$ & $+19.6\%$ \\
     \bottomrule
   \end{tabular}
   \caption{Our best swept operating points on dev (macro over $18$
@@ -147,8 +147,14 @@ against prior-work early-stoppers is completed in Section~\ref{sec:baselines}.
   macro but spends $\sim\!4\%$ \emph{extra} tokens because of the probe tax
   (Section~\ref{sec:mechanism}) and does not pass the per-model gate. Prior-work
   early-stoppers on the same trajectories are reported in
-  Table~\ref{tab:baselines} (Section~\ref{sec:baselines}). Accuracy cells marked
-  \tbd{} are being finalized from the sweep aggregation.}
+  Table~\ref{tab:baselines} (Section~\ref{sec:baselines}). The three ``Ours''
+  rows are the min-accuracy-drop, mid-frontier, and high-saving representatives
+  of the dev Pareto frontier (rules \texttt{entropy\_budget\_fraction},
+  \texttt{window\_share\_budget\_fraction}, and
+  \texttt{latest\_persistence\_fixed\_maturity} respectively); the
+  target-conservative rule is the safest in the entire space ($1.85\pp$
+  worst-case per model). The fixed-budget row (\tbd) is a uniform-truncation
+  baseline finalized from the frozen dense-probe bank.}
   \label{tab:main}
 \end{table*}
 
