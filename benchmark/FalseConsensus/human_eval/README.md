@@ -1,24 +1,31 @@
-# Human-eval packages (paper §3 error taxonomy + appendix grader error)
+# Human-eval — 两个自包含标注页
 
-Two independent, self-contained human-review tasks. Both use already-committed data — they
-do **not** depend on any running experiment. Regenerate either package with its
-`make_*_package.py` script.
+每个任务就是**一个 HTML 文件**,里面已经含:说明书 + 全部案例 + 页内标注 + 一键导出 CSV。
+数据全部来自**已冻结、已提交**的结果,**不跑任何实验、不占 GPU**——双击打开即可用。
 
-## Task A — error-taxonomy review (paper §3)  →  ~30–45 min
-Label the 134 stopped-but-wrong cases into 5 types (A–E). AI pre-labeled 28; the rest are fresh.
-- **Send:** `CODEBOOK.md`, `taxonomy_reference.html` (open in browser), `taxonomy_review.csv`.
-- **They do:** fill `HUMAN_type`, `HUMAN_confident`, `HUMAN_notes` for all 134 rows.
-- **Back:** filled `taxonomy_review.csv`. We re-tally the A–E counts (currently 14/1/0/7/6 on
-  the AI-labeled 28) and, importantly, whether type **E** (probe-format artifact) rate holds.
+| 文件 | 任务 | 量 | 用时 | 导出 |
+|---|---|---|---|---|
+| `taskA_taxonomy.html` | 错误类型标注(论文 §3) | 134 例 | ~40 min | `taxonomy_review_<名字>.csv` |
+| `taskB_grader.html` | grader 判分核对(附录) | 89 行 | ~25 min | `grader_check_review_<名字>.csv` |
 
-## Task B — grader-error hand-check (appendix)  →  ~20–30 min
-Verify the automatic grader's verdict on a stratified sample of 89 baseline decisions.
-- **Send:** `CODEBOOK_grader.md`, `grader_check_reference.html`, `grader_check_review.csv`.
-- **They do:** fill `HUMAN_grader_correct?` (y/n) + `HUMAN_true_verdict` if the grader erred.
-- **Back:** filled `grader_check_review.csv`. We report grader error rate = fraction wrong,
-  with a 95% CI — this backs the thin accuracy margin the reviewers questioned.
+## 怎么用（发给同学）
+1. 双击打开 HTML（离线即可，无需联网/装东西）。
+2. 顶栏填**自己的名字**;逐条在卡片底部标注(进度自动存在浏览器,刷新不丢)。
+3. 全标完点顶栏 **⬇ 下载 CSV**,把导出的 CSV 发回。
 
-## Handoff tips
-- Each `*_reference.html` is self-contained (open by double-clicking; no internet needed).
-- The CSVs open directly in Excel / Google Sheets.
-- Two reviewers on the same sheets would let us report inter-annotator agreement (bonus, not required).
+## 4 人分工（2+2 双标 → 可报标注者一致性）
+- **Task A**:P1、P2 各发一份 `taskA_taxonomy.html`,**各标全部 134**。
+- **Task B**:P3、P4 各发一份 `taskB_grader.html`,**各标全部 89**。
+- 同一任务两人的表**互不相见**(否则一致性作废);同一个 HTML 发给两人即可,各自导出带自己名字的 CSV。
+- 若只做一个任务,优先 **Task A**(论文正文点名要的就是它)。
+
+## 回收后
+- Task A:合并 P1/P2 → A–E 计数 + 两人 κ + 逐条裁定分歧(人工复核 of record)。
+- Task B:合并 P3/P4 → grader 错误率 = 判错比例 + 95% CI(支撑那个薄边际)。
+
+## 重新生成
+```
+python3 make_taxonomy_package.py      # -> taskA_taxonomy.html
+python3 make_grader_check_package.py  # -> taskB_grader.html
+```
+两者都调用 `build_interactive.py`(共享的交互页生成器)。确定性、可复现。
