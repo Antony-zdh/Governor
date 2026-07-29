@@ -1,0 +1,177 @@
+{
+  "schema_version": "deer-inspired-online-result-1",
+  "protocol_version": "deer-inspired-online-dev-2026-07-28.1",
+  "method": "deer_online_reference",
+  "config_hash": "fb238f6a78144a99a92700b8cfd46ddd7df165d83b694d76ebbb15a57928f0c1",
+  "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+  "model_revision": "916b56a44061fd5cd7d6a8fb632557ed4f724f60",
+  "dtype": "bfloat16",
+  "server_command": "",
+  "benchmark": "math500",
+  "base_seed": 44,
+  "formal": false,
+  "problem_id": 271,
+  "split": "dev",
+  "problem": "Compute $997^{-1}$ modulo $1000$. Express your answer as an integer from $0$ to $999$.",
+  "target": "333",
+  "metadata": {
+    "id": null,
+    "unique_id": "test/number_theory/634.json",
+    "level": 4,
+    "subject": "Number Theory",
+    "url": null
+  },
+  "chat_template_sha256": "7db0bd6dad8537652dbe92811ff0d3d79c1643f574025b3226218b64a2fc2d9a",
+  "main_segments": [
+    {
+      "role": "main",
+      "seed": 315,
+      "request_hash": "0aa0f3a43b873f1d27f53551d2b9eeb31f092eb490c469a54c4657d7aae7790a",
+      "max_tokens": 16384,
+      "temperature": 0.6,
+      "top_p": 0.95,
+      "stop": [
+        "wait",
+        "Wait",
+        "wAit",
+        "WAit",
+        "waIt",
+        "WaIt",
+        "wAIt",
+        "WAIt",
+        "waiT",
+        "WaiT",
+        "wAiT",
+        "WAiT",
+        "waIT",
+        "WaIT",
+        "wAIT",
+        "WAIT"
+      ],
+      "include_stop_str_in_output": true,
+      "prompt_tokens": 33,
+      "output_tokens": 1005,
+      "latency_seconds": 12.64880605880171,
+      "retry_count": 0,
+      "prior_errors": [],
+      "text": "<think>\nOkay, so I need to find the inverse of 997 modulo 1000. Hmm, that means I need to find an integer x such that when I multiply 997 by x and then divide by 1000, the remainder is 1. In other words, 997 * x ≡ 1 mod 1000. \n\nI remember that to find a modular inverse, the number and the modulus need to be coprime, which means their greatest common divisor (GCD) should be 1. Let me check if 997 and 1000 are coprime. \n\nFirst, I'll list the prime factors of both numbers. 1000 is 10^3, which is (2*5)^3, so 2^3 * 5^3. Now, 997 is a prime number, I think. Let me confirm that. Is 997 divisible by any primes? Let's see: 997 divided by 2 is 498.5, so no. 997 divided by 3 is about 332.333, not an integer. Divided by 5 is 199.4, nope. 7? 997 divided by 7 is around 142.428, still not an integer. 11? 997/11 is approximately 90.636, which isn't an integer. 13? 997/13 ≈ 76.692, not an integer. I can keep going, but since 31^2 is 961 and 32^2 is 1024, I only need to check primes up to 31. Since none of them divide 997, it must be prime. So, 997 is prime, and 1000 is 2^3 * 5^3. They don't share any common prime factors, so GCD(997, 1000) is 1. Great, so an inverse exists.\n\nNow, how do I find this inverse? I think the Extended Euclidean Algorithm is the way to go. It helps find integers x and y such that ax + by = GCD(a, b). In this case, a is 997 and b is 1000, so we can write 997x + 1000y = 1. The x here will be the inverse we need.\n\nLet me set up the algorithm steps. I need to perform a series of divisions and keep track of the coefficients.\n\nFirst, divide the larger number by the smaller one:\n\n1000 divided by 997 is 1 with a remainder of 3. So, 1000 = 1*997 + 3.\n\nNow, take the previous divisor (997) and divide it by the remainder (3):\n\n997 divided by 3 is 332 with a remainder of 1. So, 997 = 332*3 + 1.\n\nNext, take the previous remainder (3) and divide it by the last remainder (1):\n\n3 divided by 1 is 3 with a remainder of 0. So, 3 = 3*1 + 0.\n\nSince the remainder is now 0, the last non-zero remainder is 1, which is the GCD. That confirms our earlier conclusion.\n\nNow, we need to work backwards to express 1 as a combination of 997 and 1000. Let's start from the second to last equation:\n\n1 = 997 - 332*3.\n\nBut from the first equation, we know that 3 = 1000 - 1*997. Let me substitute that into the equation above:\n\n1 = 997 - 332*(1000 - 1*997).\n\nLet's expand that:\n\n1 = 997 - 332*1000 + 332*997.\n\nCombine like terms:\n\n1 = (1 + 332)*997 - 332*1000.\n\nWhich simplifies to:\n\n1 = 333*997 - 332*1000.\n\nSo, this equation shows that 333*997 ≡ 1 mod 1000. Therefore, 333 is the inverse of 997 modulo 1000. \n\nWait",
+      "finish_reason": "stop",
+      "stop_reason": "Wait",
+      "main_call_index": 0
+    }
+  ],
+  "wait_events": [
+    {
+      "candidate_id": 1,
+      "observed_text": "Wait",
+      "native_main_token_position": 1004,
+      "probed": true,
+      "schedule_mode": "official_first_10",
+      "skip_reason": null,
+      "trial": {
+        "text": "{333}\n",
+        "answer": "333",
+        "raw_parsed_answer": "333",
+        "confidence": 0.999900965470395,
+        "valid": true,
+        "policy": "avg1",
+        "require_think_close": false,
+        "last_token_decoded": "}\n",
+        "think_close_emitted": false,
+        "logprobs": [
+          {
+            "token": "{",
+            "logprob": -3.2186455882765586e-06
+          },
+          {
+            "token": "3",
+            "logprob": -0.00033456450910307467
+          },
+          {
+            "token": "3",
+            "logprob": -6.437280717364047e-06
+          },
+          {
+            "token": "3",
+            "logprob": -2.169585604860913e-05
+          },
+          {
+            "token": "}\n",
+            "logprob": -3.349725011503324e-05
+          }
+        ],
+        "finish_reason": "stop",
+        "prompt_tokens": 1043,
+        "output_tokens": 5,
+        "role": "stage1_trial",
+        "seed": 269049516,
+        "request_hash": "27ecd38dabac64210df009115e434f963e58142598641ff7c2dcd9d6618b05f7",
+        "max_tokens": 20,
+        "temperature": 0.0,
+        "top_p": 1.0,
+        "stop": [
+          " }",
+          "}\n",
+          "}\n\n",
+          "}.",
+          "}.\n",
+          "}\\",
+          "}}",
+          ")}",
+          ")}.",
+          ")}\n"
+        ],
+        "include_stop_str_in_output": true,
+        "latency_seconds": 0.09951526299118996,
+        "retry_count": 0,
+        "prior_errors": []
+      },
+      "action": "reference_readout"
+    }
+  ],
+  "branches": [],
+  "reference_readout": {
+    "role": "reference_readout",
+    "seed": 716088236,
+    "request_hash": "47b8cc958ab9b8fbfa140b2fb95fe462e2e6554ea0b32bc74e0a4fac760142b7",
+    "max_tokens": 4096,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "stop": [],
+    "include_stop_str_in_output": false,
+    "prompt_tokens": 1039,
+    "output_tokens": 28,
+    "latency_seconds": 0.37367281783372164,
+    "retry_count": 0,
+    "prior_errors": [],
+    "text": "The inverse of 997 modulo 1000 is 333. \n\n$\\boxed{333}$",
+    "answer": "333",
+    "valid": true,
+    "truncated": false,
+    "completed_boxed": true,
+    "finish_reason": "stop",
+    "context_budget_exceeded": false
+  },
+  "native_main_text": "<think>\nOkay, so I need to find the inverse of 997 modulo 1000. Hmm, that means I need to find an integer x such that when I multiply 997 by x and then divide by 1000, the remainder is 1. In other words, 997 * x ≡ 1 mod 1000. \n\nI remember that to find a modular inverse, the number and the modulus need to be coprime, which means their greatest common divisor (GCD) should be 1. Let me check if 997 and 1000 are coprime. \n\nFirst, I'll list the prime factors of both numbers. 1000 is 10^3, which is (2*5)^3, so 2^3 * 5^3. Now, 997 is a prime number, I think. Let me confirm that. Is 997 divisible by any primes? Let's see: 997 divided by 2 is 498.5, so no. 997 divided by 3 is about 332.333, not an integer. Divided by 5 is 199.4, nope. 7? 997 divided by 7 is around 142.428, still not an integer. 11? 997/11 is approximately 90.636, which isn't an integer. 13? 997/13 ≈ 76.692, not an integer. I can keep going, but since 31^2 is 961 and 32^2 is 1024, I only need to check primes up to 31. Since none of them divide 997, it must be prime. So, 997 is prime, and 1000 is 2^3 * 5^3. They don't share any common prime factors, so GCD(997, 1000) is 1. Great, so an inverse exists.\n\nNow, how do I find this inverse? I think the Extended Euclidean Algorithm is the way to go. It helps find integers x and y such that ax + by = GCD(a, b). In this case, a is 997 and b is 1000, so we can write 997x + 1000y = 1. The x here will be the inverse we need.\n\nLet me set up the algorithm steps. I need to perform a series of divisions and keep track of the coefficients.\n\nFirst, divide the larger number by the smaller one:\n\n1000 divided by 997 is 1 with a remainder of 3. So, 1000 = 1*997 + 3.\n\nNow, take the previous divisor (997) and divide it by the remainder (3):\n\n997 divided by 3 is 332 with a remainder of 1. So, 997 = 332*3 + 1.\n\nNext, take the previous remainder (3) and divide it by the last remainder (1):\n\n3 divided by 1 is 3 with a remainder of 0. So, 3 = 3*1 + 0.\n\nSince the remainder is now 0, the last non-zero remainder is 1, which is the GCD. That confirms our earlier conclusion.\n\nNow, we need to work backwards to express 1 as a combination of 997 and 1000. Let's start from the second to last equation:\n\n1 = 997 - 332*3.\n\nBut from the first equation, we know that 3 = 1000 - 1*997. Let me substitute that into the equation above:\n\n1 = 997 - 332*(1000 - 1*997).\n\nLet's expand that:\n\n1 = 997 - 332*1000 + 332*997.\n\nCombine like terms:\n\n1 = (1 + 332)*997 - 332*1000.\n\nWhich simplifies to:\n\n1 = 333*997 - 332*1000.\n\nSo, this equation shows that 333*997 ≡ 1 mod 1000. Therefore, 333 is the inverse of 997 modulo 1000. \n\n",
+  "native_main_text_sha256": "df018509261342eda5c1e9b578f574ef65adcef5458a10405cefc6a4f80bfca1",
+  "terminal_state": "reference_readout",
+  "delivered_answer": "333",
+  "correct": true,
+  "capped": false,
+  "right_censored": false,
+  "infrastructure_errors": [],
+  "accounting": {
+    "native_committed_main_output_tokens": 1004,
+    "main_request_output_tokens": 1005,
+    "stage1_trial_output_tokens": 5,
+    "verification_output_tokens": 0,
+    "stage2_trial_output_tokens": 0,
+    "reference_readout_output_tokens": 28,
+    "all_generated_tokens": 1037,
+    "all_prompt_tokens": 2115,
+    "controller_cue_tokens": 0,
+    "committed_reasoning_model_tokens": 1004,
+    "committed_reasoning_context_tokens": 1004
+  },
+  "created_at": "2026-07-29T02:30:50+0000"
+}

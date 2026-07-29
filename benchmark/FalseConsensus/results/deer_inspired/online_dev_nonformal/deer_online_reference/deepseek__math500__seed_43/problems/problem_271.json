@@ -1,0 +1,177 @@
+{
+  "schema_version": "deer-inspired-online-result-1",
+  "protocol_version": "deer-inspired-online-dev-2026-07-28.1",
+  "method": "deer_online_reference",
+  "config_hash": "fb238f6a78144a99a92700b8cfd46ddd7df165d83b694d76ebbb15a57928f0c1",
+  "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+  "model_revision": "916b56a44061fd5cd7d6a8fb632557ed4f724f60",
+  "dtype": "bfloat16",
+  "server_command": "",
+  "benchmark": "math500",
+  "base_seed": 43,
+  "formal": false,
+  "problem_id": 271,
+  "split": "dev",
+  "problem": "Compute $997^{-1}$ modulo $1000$. Express your answer as an integer from $0$ to $999$.",
+  "target": "333",
+  "metadata": {
+    "id": null,
+    "unique_id": "test/number_theory/634.json",
+    "level": 4,
+    "subject": "Number Theory",
+    "url": null
+  },
+  "chat_template_sha256": "7db0bd6dad8537652dbe92811ff0d3d79c1643f574025b3226218b64a2fc2d9a",
+  "main_segments": [
+    {
+      "role": "main",
+      "seed": 314,
+      "request_hash": "dc28e26fece6125a6b87c8836e8ff238e1a12824cb248005ab0cd2cab76ff4e1",
+      "max_tokens": 16384,
+      "temperature": 0.6,
+      "top_p": 0.95,
+      "stop": [
+        "wait",
+        "Wait",
+        "wAit",
+        "WAit",
+        "waIt",
+        "WaIt",
+        "wAIt",
+        "WAIt",
+        "waiT",
+        "WaiT",
+        "wAiT",
+        "WAiT",
+        "waIT",
+        "WaIT",
+        "wAIT",
+        "WAIT"
+      ],
+      "include_stop_str_in_output": true,
+      "prompt_tokens": 33,
+      "output_tokens": 1015,
+      "latency_seconds": 12.800959185697138,
+      "retry_count": 0,
+      "prior_errors": [],
+      "text": "<think>\nOkay, so I need to find the inverse of 997 modulo 1000. Hmm, that means I need to find an integer x such that when I multiply 997 by x and then divide by 1000, the remainder is 1. In other words, 997 * x ≡ 1 mod 1000. \n\nI remember that to find an inverse modulo something, the number and the modulus need to be coprime. So first, I should check if 997 and 1000 are coprime. Let me see, 1000 factors into 2^3 * 5^3, and 997 is a prime number, right? I think 997 is prime because it doesn't divide evenly by any primes less than its square root, which is around 31.5. Let me check: 997 divided by 2 is 498.5, nope. Divided by 3 is about 332.333, not an integer. Divided by 5 is 199.4, still not integer. Divided by 7 is approximately 142.428, not integer. 11? 90.636, nope. 13? 76.692, not. 17? 58.647, nope. 19? 52.473, still not. 23? 43.347, nope. 29? 34.379, nope. 31? 32.129, not integer. So yeah, 997 is prime and doesn't share any factors with 1000 except 1. So they are coprime, which means an inverse exists. Great.\n\nNow, how do I find this inverse? I remember the extended Euclidean algorithm is a way to find integers x and y such that ax + by = gcd(a, b). Since gcd(997, 1000) is 1, this algorithm can help find x, which will be the inverse.\n\nSo, let's set up the Euclidean algorithm steps for 1000 and 997.\n\nFirst, divide 1000 by 997. 997 goes into 1000 once with a remainder. Let me compute that:\n\n1000 = 997 * 1 + 3\n\nSo, remainder is 3.\n\nNow, replace the numbers: divide 997 by 3.\n\n997 divided by 3 is 332 with a remainder. Let me check: 3 * 332 = 996, so 997 - 996 = 1. So, remainder is 1.\n\nSo, 997 = 3 * 332 + 1\n\nNow, replace again: divide 3 by 1.\n\n3 divided by 1 is 3 with a remainder of 0.\n\nSo, 3 = 1 * 3 + 0\n\nSince the remainder is 0, the last non-zero remainder is 1, which is the gcd. As expected, gcd(997, 1000) is 1.\n\nNow, to apply the extended Euclidean algorithm, I need to work backwards to express 1 as a linear combination of 997 and 1000.\n\nStarting from the step where remainder is 1:\n\n1 = 997 - 3 * 332\n\nBut 3 is from the previous step: 3 = 1000 - 997 * 1\n\nSo substitute that into the equation:\n\n1 = 997 - (1000 - 997 * 1) * 332\n\nLet me expand that:\n\n1 = 997 - 1000 * 332 + 997 * 332\n\nCombine like terms:\n\n1 = 997 * (1 + 332) + 1000 * (-332)\n\nCompute 1 + 332, which is 333:\n\n1 = 997 * 333 + 1000 * (-332)\n\nSo, this expresses 1 as a combination of 997 and 1000. Therefore, the coefficient for 997 is 333, which means that 333 is the multiplicative inverse of 997 modulo 1000.\n\nBut wait",
+      "finish_reason": "stop",
+      "stop_reason": "wait",
+      "main_call_index": 0
+    }
+  ],
+  "wait_events": [
+    {
+      "candidate_id": 1,
+      "observed_text": "wait",
+      "native_main_token_position": 1015,
+      "probed": true,
+      "schedule_mode": "official_first_10",
+      "skip_reason": null,
+      "trial": {
+        "text": "{333}\n",
+        "answer": "333",
+        "raw_parsed_answer": "333",
+        "confidence": 0.9989215523223123,
+        "valid": true,
+        "policy": "avg1",
+        "require_think_close": false,
+        "last_token_decoded": "}\n",
+        "think_close_emitted": false,
+        "logprobs": [
+          {
+            "token": "{",
+            "logprob": -2.7656173188006505e-05
+          },
+          {
+            "token": "3",
+            "logprob": -0.0023671959061175585
+          },
+          {
+            "token": "3",
+            "logprob": -1.9550132492440753e-05
+          },
+          {
+            "token": "3",
+            "logprob": -0.0001691436773398891
+          },
+          {
+            "token": "}\n",
+            "logprob": -0.001762266969308257
+          }
+        ],
+        "finish_reason": "stop",
+        "prompt_tokens": 1054,
+        "output_tokens": 5,
+        "role": "stage1_trial",
+        "seed": 1773205283,
+        "request_hash": "461fbf76665f33fbede87540c294cd88b1c5e61596c5e6c5fa899c4effe37c78",
+        "max_tokens": 20,
+        "temperature": 0.0,
+        "top_p": 1.0,
+        "stop": [
+          " }",
+          "}\n",
+          "}\n\n",
+          "}.",
+          "}.\n",
+          "}\\",
+          "}}",
+          ")}",
+          ")}.",
+          ")}\n"
+        ],
+        "include_stop_str_in_output": true,
+        "latency_seconds": 0.10490553826093674,
+        "retry_count": 0,
+        "prior_errors": []
+      },
+      "action": "reference_readout"
+    }
+  ],
+  "branches": [],
+  "reference_readout": {
+    "role": "reference_readout",
+    "seed": 18208182,
+    "request_hash": "1b008bf2bf6cae1a0b78aa6e739a0bcadc4ee77b27e08f4875a9873909f6d0d8",
+    "max_tokens": 4096,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "stop": [],
+    "include_stop_str_in_output": false,
+    "prompt_tokens": 1050,
+    "output_tokens": 28,
+    "latency_seconds": 0.39275003876537085,
+    "retry_count": 0,
+    "prior_errors": [],
+    "text": "The inverse of 997 modulo 1000 is 333. \n\n$\\boxed{333}$",
+    "answer": "333",
+    "valid": true,
+    "truncated": false,
+    "completed_boxed": true,
+    "finish_reason": "stop",
+    "context_budget_exceeded": false
+  },
+  "native_main_text": "<think>\nOkay, so I need to find the inverse of 997 modulo 1000. Hmm, that means I need to find an integer x such that when I multiply 997 by x and then divide by 1000, the remainder is 1. In other words, 997 * x ≡ 1 mod 1000. \n\nI remember that to find an inverse modulo something, the number and the modulus need to be coprime. So first, I should check if 997 and 1000 are coprime. Let me see, 1000 factors into 2^3 * 5^3, and 997 is a prime number, right? I think 997 is prime because it doesn't divide evenly by any primes less than its square root, which is around 31.5. Let me check: 997 divided by 2 is 498.5, nope. Divided by 3 is about 332.333, not an integer. Divided by 5 is 199.4, still not integer. Divided by 7 is approximately 142.428, not integer. 11? 90.636, nope. 13? 76.692, not. 17? 58.647, nope. 19? 52.473, still not. 23? 43.347, nope. 29? 34.379, nope. 31? 32.129, not integer. So yeah, 997 is prime and doesn't share any factors with 1000 except 1. So they are coprime, which means an inverse exists. Great.\n\nNow, how do I find this inverse? I remember the extended Euclidean algorithm is a way to find integers x and y such that ax + by = gcd(a, b). Since gcd(997, 1000) is 1, this algorithm can help find x, which will be the inverse.\n\nSo, let's set up the Euclidean algorithm steps for 1000 and 997.\n\nFirst, divide 1000 by 997. 997 goes into 1000 once with a remainder. Let me compute that:\n\n1000 = 997 * 1 + 3\n\nSo, remainder is 3.\n\nNow, replace the numbers: divide 997 by 3.\n\n997 divided by 3 is 332 with a remainder. Let me check: 3 * 332 = 996, so 997 - 996 = 1. So, remainder is 1.\n\nSo, 997 = 3 * 332 + 1\n\nNow, replace again: divide 3 by 1.\n\n3 divided by 1 is 3 with a remainder of 0.\n\nSo, 3 = 1 * 3 + 0\n\nSince the remainder is 0, the last non-zero remainder is 1, which is the gcd. As expected, gcd(997, 1000) is 1.\n\nNow, to apply the extended Euclidean algorithm, I need to work backwards to express 1 as a linear combination of 997 and 1000.\n\nStarting from the step where remainder is 1:\n\n1 = 997 - 3 * 332\n\nBut 3 is from the previous step: 3 = 1000 - 997 * 1\n\nSo substitute that into the equation:\n\n1 = 997 - (1000 - 997 * 1) * 332\n\nLet me expand that:\n\n1 = 997 - 1000 * 332 + 997 * 332\n\nCombine like terms:\n\n1 = 997 * (1 + 332) + 1000 * (-332)\n\nCompute 1 + 332, which is 333:\n\n1 = 997 * 333 + 1000 * (-332)\n\nSo, this expresses 1 as a combination of 997 and 1000. Therefore, the coefficient for 997 is 333, which means that 333 is the multiplicative inverse of 997 modulo 1000.\n\nBut ",
+  "native_main_text_sha256": "e386f1181298b8cc0dde940097ec6097b33cdd1579ffb5760e1f8a4316663bd7",
+  "terminal_state": "reference_readout",
+  "delivered_answer": "333",
+  "correct": true,
+  "capped": false,
+  "right_censored": false,
+  "infrastructure_errors": [],
+  "accounting": {
+    "native_committed_main_output_tokens": 1015,
+    "main_request_output_tokens": 1015,
+    "stage1_trial_output_tokens": 5,
+    "verification_output_tokens": 0,
+    "stage2_trial_output_tokens": 0,
+    "reference_readout_output_tokens": 28,
+    "all_generated_tokens": 1048,
+    "all_prompt_tokens": 2137,
+    "controller_cue_tokens": 0,
+    "committed_reasoning_model_tokens": 1015,
+    "committed_reasoning_context_tokens": 1015
+  },
+  "created_at": "2026-07-29T02:30:52+0000"
+}

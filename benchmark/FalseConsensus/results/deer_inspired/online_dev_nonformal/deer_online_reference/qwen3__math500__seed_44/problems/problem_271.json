@@ -1,0 +1,326 @@
+{
+  "schema_version": "deer-inspired-online-result-1",
+  "protocol_version": "deer-inspired-online-dev-2026-07-28.1",
+  "method": "deer_online_reference",
+  "config_hash": "fb238f6a78144a99a92700b8cfd46ddd7df165d83b694d76ebbb15a57928f0c1",
+  "model": "Qwen/Qwen3-8B",
+  "model_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+  "dtype": "bfloat16",
+  "server_command": "",
+  "benchmark": "math500",
+  "base_seed": 44,
+  "formal": false,
+  "problem_id": 271,
+  "split": "dev",
+  "problem": "Compute $997^{-1}$ modulo $1000$. Express your answer as an integer from $0$ to $999$.",
+  "target": "333",
+  "metadata": {
+    "id": null,
+    "unique_id": "test/number_theory/634.json",
+    "level": 4,
+    "subject": "Number Theory",
+    "url": null
+  },
+  "chat_template_sha256": "7db0bd6dad8537652dbe92811ff0d3d79c1643f574025b3226218b64a2fc2d9a",
+  "main_segments": [
+    {
+      "role": "main",
+      "seed": 315,
+      "request_hash": "4c4c7d108a31c8e3a46fdcfacc8b10904af1ea4815b8312263738864f3d59067",
+      "max_tokens": 16384,
+      "temperature": 0.6,
+      "top_p": 0.95,
+      "stop": [
+        "wait",
+        "Wait",
+        "wAit",
+        "WAit",
+        "waIt",
+        "WaIt",
+        "wAIt",
+        "WAIt",
+        "waiT",
+        "WaiT",
+        "wAiT",
+        "WAiT",
+        "waIT",
+        "WaIT",
+        "wAIT",
+        "WAIT"
+      ],
+      "include_stop_str_in_output": true,
+      "prompt_tokens": 41,
+      "output_tokens": 145,
+      "latency_seconds": 2.5182444751262665,
+      "retry_count": 0,
+      "prior_errors": [],
+      "text": "<think>\nOkay, so I need to find the inverse of 997 modulo 1000. That means I need to find an integer x such that 997 * x ≡ 1 mod 1000. Hmm, inverses modulo... Right, this is related to solving the congruence equation. \n\nFirst, I remember that for an inverse to exist, 997 and 1000 must be coprime. Let me check their greatest common divisor (gcd). Since 1000 factors into 2^3 * 5^3, and 997 is... Well, 997 is a prime number? Wait",
+      "finish_reason": "stop",
+      "stop_reason": "Wait",
+      "main_call_index": 0
+    },
+    {
+      "role": "main",
+      "seed": 1326027271,
+      "request_hash": "b950b348b2bd50613e1262780a104a3279a68e79e80f9174b989e5630e7358fc",
+      "max_tokens": 16239,
+      "temperature": 0.6,
+      "top_p": 0.95,
+      "stop": [
+        "wait",
+        "Wait",
+        "wAit",
+        "WAit",
+        "waIt",
+        "WaIt",
+        "wAIt",
+        "WAIt",
+        "waiT",
+        "WaiT",
+        "wAiT",
+        "WAiT",
+        "waIT",
+        "WaIT",
+        "wAIT",
+        "WAIT"
+      ],
+      "include_stop_str_in_output": true,
+      "prompt_tokens": 186,
+      "output_tokens": 878,
+      "latency_seconds": 14.852631204761565,
+      "retry_count": 0,
+      "prior_errors": [],
+      "text": ", is it? Let me think. 997... Let me check if it's divisible by small primes. Divided by 2? No, it's odd. Divided by 3? 9+9+7=25, which isn't divisible by 3. Divided by 5? Ends with 7, so no. 7? Let me do 997 divided by 7. 7*142 is 994, so 997 - 994 is 3, so remainder 3. Not divisible by 7. 11? Let's see, 9 - 9 + 7 = 7, not divisible by 11. 13? Let me try 13*76 is 988, 988 +13=1001, so 997 is 1001 - 4, so remainder -4, so not divisible by 13. Maybe 17? 17*58 is 986, 986 +17=1003, so 997 is 1003 -6, so remainder -6. Not divisible by 17. Maybe 19? 19*52 is 988, 988 +19=1007, so 997 is 1007 -10, remainder -10. Not divisible by 19. 23? 23*43 is 989, 989 +23=1012, so 997 is 1012 -15, remainder -15. Not divisible by 23. So maybe 997 is prime? If it's prime, then since 1000 is 2^3*5^3, and 997 is not divisible by 2 or 5, so gcd(997,1000)=1. Therefore, the inverse exists. Okay, so that's good.\n\nNow, how do I find the inverse? Well, the standard method is to use the Extended Euclidean Algorithm. Let me recall how that works. The idea is to find integers x and y such that 997x + 1000y = 1. Then x mod 1000 would be the inverse. So let me try applying the Extended Euclidean Algorithm on 1000 and 997.\n\nLet me start by dividing 1000 by 997. \n\n1000 = 1*997 + 3. \n\nThen, divide 997 by 3. \n\n997 = 332*3 + 1. \n\nThen divide 3 by 1. \n\n3 = 3*1 + 0. \n\nSo the gcd is 1, as expected. Now, working backwards to express 1 as a combination of 1000 and 997.\n\nStarting from the second equation: 1 = 997 - 332*3. \n\nBut from the first equation, 3 = 1000 - 1*997. Substitute that into the equation above:\n\n1 = 997 - 332*(1000 - 1*997) = 997 - 332*1000 + 332*997 = (1 + 332)*997 - 332*1000 = 333*997 - 332*1000.\n\nTherefore, 1 = 333*997 - 332*1000. \n\nSo modulo 1000, this equation becomes 333*997 ≡ 1 mod 1000. Therefore, the inverse of 997 modulo 1000 is 333. Wait",
+      "finish_reason": "stop",
+      "stop_reason": "Wait",
+      "main_call_index": 1
+    }
+  ],
+  "wait_events": [
+    {
+      "candidate_id": 1,
+      "observed_text": "Wait",
+      "native_main_token_position": 145,
+      "probed": true,
+      "schedule_mode": "official_first_10",
+      "skip_reason": null,
+      "trial": {
+        "text": "{873}\n\nWait, hold on. Let me verify that. Is 997",
+        "answer": "",
+        "raw_parsed_answer": "873",
+        "confidence": 0.0,
+        "valid": false,
+        "policy": "avg2",
+        "require_think_close": true,
+        "last_token_decoded": "7",
+        "think_close_emitted": false,
+        "logprobs": [
+          {
+            "token": "{",
+            "logprob": 0.0
+          },
+          {
+            "token": "8",
+            "logprob": -0.01063618902117014
+          },
+          {
+            "token": "7",
+            "logprob": -0.7763226628303528
+          },
+          {
+            "token": "3",
+            "logprob": -0.0013669917825609446
+          },
+          {
+            "token": "}\n\n",
+            "logprob": -0.2519344091415405
+          },
+          {
+            "token": "Wait",
+            "logprob": -0.010572612285614014
+          },
+          {
+            "token": ",",
+            "logprob": -3.576278118089249e-07
+          },
+          {
+            "token": " hold",
+            "logprob": -0.6327776908874512
+          },
+          {
+            "token": " on",
+            "logprob": 0.0
+          },
+          {
+            "token": ".",
+            "logprob": -0.5814412236213684
+          },
+          {
+            "token": " Let",
+            "logprob": -0.14015823602676392
+          },
+          {
+            "token": " me",
+            "logprob": 0.0
+          },
+          {
+            "token": " verify",
+            "logprob": -0.37026846408843994
+          },
+          {
+            "token": " that",
+            "logprob": -0.19260390102863312
+          },
+          {
+            "token": ".",
+            "logprob": -0.1506432294845581
+          },
+          {
+            "token": " Is",
+            "logprob": -1.0716807842254639
+          },
+          {
+            "token": " ",
+            "logprob": -4.768370445162873e-07
+          },
+          {
+            "token": "9",
+            "logprob": 0.0
+          },
+          {
+            "token": "9",
+            "logprob": 0.0
+          },
+          {
+            "token": "7",
+            "logprob": 0.0
+          }
+        ],
+        "finish_reason": "length",
+        "prompt_tokens": 192,
+        "output_tokens": 20,
+        "role": "stage1_trial",
+        "seed": 126192246,
+        "request_hash": "b7dcb73637c25145493c9a368f461557956e2746dc868a5b344771d3b84b3348",
+        "max_tokens": 20,
+        "temperature": 0.0,
+        "top_p": 1.0,
+        "stop": [
+          "</think>"
+        ],
+        "include_stop_str_in_output": true,
+        "latency_seconds": 0.39237091690301895,
+        "retry_count": 0,
+        "prior_errors": []
+      },
+      "action": "commit_wait_continue"
+    },
+    {
+      "candidate_id": 2,
+      "observed_text": "Wait",
+      "native_main_token_position": 1023,
+      "probed": true,
+      "schedule_mode": "official_first_10",
+      "skip_reason": null,
+      "trial": {
+        "text": "{333}\n</think>",
+        "answer": "333",
+        "raw_parsed_answer": "333",
+        "confidence": 0.9996111581297858,
+        "valid": true,
+        "policy": "avg2",
+        "require_think_close": true,
+        "last_token_decoded": "</think>",
+        "think_close_emitted": true,
+        "logprobs": [
+          {
+            "token": "{",
+            "logprob": 0.0
+          },
+          {
+            "token": "3",
+            "logprob": 0.0
+          },
+          {
+            "token": "3",
+            "logprob": 0.0
+          },
+          {
+            "token": "3",
+            "logprob": 0.0
+          },
+          {
+            "token": "}\n",
+            "logprob": -0.0019289711490273476
+          },
+          {
+            "token": "</think>",
+            "logprob": -1.5616295058862306e-05
+          }
+        ],
+        "finish_reason": "stop",
+        "prompt_tokens": 1070,
+        "output_tokens": 6,
+        "role": "stage1_trial",
+        "seed": 119679648,
+        "request_hash": "a673a1c36a5db27821eea11abd40b1209666e11df5f808ba2d0d1586bc94a653",
+        "max_tokens": 20,
+        "temperature": 0.0,
+        "top_p": 1.0,
+        "stop": [
+          "</think>"
+        ],
+        "include_stop_str_in_output": true,
+        "latency_seconds": 0.14544870890676975,
+        "retry_count": 0,
+        "prior_errors": []
+      },
+      "action": "reference_readout"
+    }
+  ],
+  "branches": [],
+  "reference_readout": {
+    "role": "reference_readout",
+    "seed": 777674891,
+    "request_hash": "a0a3774f48427f72aedb870e4636913be01cb0d7175053b636da09fb17745fd6",
+    "max_tokens": 4096,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "stop": [],
+    "include_stop_str_in_output": false,
+    "prompt_tokens": 1066,
+    "output_tokens": 564,
+    "latency_seconds": 9.608031577430665,
+    "retry_count": 0,
+    "prior_errors": [],
+    "text": "To compute the modular inverse of $ 997 $ modulo $ 1000 $, we seek an integer $ x $ such that:\n\n$$\n997x \\equiv 1 \\pmod{1000}\n$$\n\nThis is equivalent to solving the linear Diophantine equation:\n\n$$\n997x + 1000y = 1\n$$\n\nfor integers $ x $ and $ y $. Since $ \\gcd(997, 1000) = 1 $, the inverse exists, and we can use the **Extended Euclidean Algorithm** to find it.\n\n---\n\n### Step 1: Apply the Euclidean Algorithm\n\nWe perform the Euclidean algorithm on $ 1000 $ and $ 997 $:\n\n$$\n\\begin{align*}\n1000 &= 1 \\cdot 997 + 3 \\\\\n997 &= 332 \\cdot 3 + 1 \\\\\n3 &= 3 \\cdot 1 + 0\n\\end{align*}\n$$\n\nThe last non-zero remainder is $ 1 $, confirming that $ \\gcd(997, 1000) = 1 $, and the inverse exists.\n\n---\n\n### Step 2: Work Backwards to Express 1 as a Linear Combination\n\nFrom the second step:\n\n$$\n1 = 997 - 332 \\cdot 3\n$$\n\nNow substitute $ 3 = 1000 - 1 \\cdot 997 $ from the first step:\n\n$$\n1 = 997 - 332 \\cdot (1000 - 997) = 997 - 332 \\cdot 1000 + 332 \\cdot 997\n$$\n\n$$\n1 = (1 + 332) \\cdot 997 - 332 \\cdot 1000 = 333 \\cdot 997 - 332 \\cdot 1000\n$$\n\n---\n\n### Step 3: Extract the Modular Inverse\n\nFrom the equation:\n\n$$\n1 = 333 \\cdot 997 - 332 \\cdot 1000\n$$\n\nTaking both sides modulo $ 1000 $, we get:\n\n$$\n333 \\cdot 997 \\equiv 1 \\pmod{1000}\n$$\n\nThus, the modular inverse of $ 997 $ modulo $ 1000 $ is:\n\n$$\n\\boxed{333}\n$$",
+    "answer": "333",
+    "valid": true,
+    "truncated": false,
+    "completed_boxed": true,
+    "finish_reason": "stop",
+    "context_budget_exceeded": false
+  },
+  "native_main_text": "<think>\nOkay, so I need to find the inverse of 997 modulo 1000. That means I need to find an integer x such that 997 * x ≡ 1 mod 1000. Hmm, inverses modulo... Right, this is related to solving the congruence equation. \n\nFirst, I remember that for an inverse to exist, 997 and 1000 must be coprime. Let me check their greatest common divisor (gcd). Since 1000 factors into 2^3 * 5^3, and 997 is... Well, 997 is a prime number? Wait, is it? Let me think. 997... Let me check if it's divisible by small primes. Divided by 2? No, it's odd. Divided by 3? 9+9+7=25, which isn't divisible by 3. Divided by 5? Ends with 7, so no. 7? Let me do 997 divided by 7. 7*142 is 994, so 997 - 994 is 3, so remainder 3. Not divisible by 7. 11? Let's see, 9 - 9 + 7 = 7, not divisible by 11. 13? Let me try 13*76 is 988, 988 +13=1001, so 997 is 1001 - 4, so remainder -4, so not divisible by 13. Maybe 17? 17*58 is 986, 986 +17=1003, so 997 is 1003 -6, so remainder -6. Not divisible by 17. Maybe 19? 19*52 is 988, 988 +19=1007, so 997 is 1007 -10, remainder -10. Not divisible by 19. 23? 23*43 is 989, 989 +23=1012, so 997 is 1012 -15, remainder -15. Not divisible by 23. So maybe 997 is prime? If it's prime, then since 1000 is 2^3*5^3, and 997 is not divisible by 2 or 5, so gcd(997,1000)=1. Therefore, the inverse exists. Okay, so that's good.\n\nNow, how do I find the inverse? Well, the standard method is to use the Extended Euclidean Algorithm. Let me recall how that works. The idea is to find integers x and y such that 997x + 1000y = 1. Then x mod 1000 would be the inverse. So let me try applying the Extended Euclidean Algorithm on 1000 and 997.\n\nLet me start by dividing 1000 by 997. \n\n1000 = 1*997 + 3. \n\nThen, divide 997 by 3. \n\n997 = 332*3 + 1. \n\nThen divide 3 by 1. \n\n3 = 3*1 + 0. \n\nSo the gcd is 1, as expected. Now, working backwards to express 1 as a combination of 1000 and 997.\n\nStarting from the second equation: 1 = 997 - 332*3. \n\nBut from the first equation, 3 = 1000 - 1*997. Substitute that into the equation above:\n\n1 = 997 - 332*(1000 - 1*997) = 997 - 332*1000 + 332*997 = (1 + 332)*997 - 332*1000 = 333*997 - 332*1000.\n\nTherefore, 1 = 333*997 - 332*1000. \n\nSo modulo 1000, this equation becomes 333*997 ≡ 1 mod 1000. Therefore, the inverse of 997 modulo 1000 is 333. ",
+  "native_main_text_sha256": "3520193eaf787d88147d8afc471f0dbfc5c136d995e093c8f32a705a8d117aeb",
+  "terminal_state": "reference_readout",
+  "delivered_answer": "333",
+  "correct": true,
+  "capped": false,
+  "right_censored": false,
+  "infrastructure_errors": [],
+  "accounting": {
+    "native_committed_main_output_tokens": 1023,
+    "main_request_output_tokens": 1023,
+    "stage1_trial_output_tokens": 26,
+    "verification_output_tokens": 0,
+    "stage2_trial_output_tokens": 0,
+    "reference_readout_output_tokens": 564,
+    "all_generated_tokens": 1613,
+    "all_prompt_tokens": 2555,
+    "controller_cue_tokens": 0,
+    "committed_reasoning_model_tokens": 1023,
+    "committed_reasoning_context_tokens": 1023
+  },
+  "created_at": "2026-07-29T02:32:47+0000"
+}

@@ -1,0 +1,196 @@
+{
+  "schema_version": "deer-inspired-online-result-1",
+  "protocol_version": "deer-inspired-online-dev-2026-07-28.1",
+  "method": "deer_inspired_online_v1",
+  "config_hash": "fb238f6a78144a99a92700b8cfd46ddd7df165d83b694d76ebbb15a57928f0c1",
+  "model": "Qwen/Qwen3-8B",
+  "model_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+  "dtype": "bfloat16",
+  "server_command": "",
+  "benchmark": "math500",
+  "base_seed": 44,
+  "formal": false,
+  "problem_id": 271,
+  "split": "dev",
+  "problem": "Compute $997^{-1}$ modulo $1000$. Express your answer as an integer from $0$ to $999$.",
+  "target": "333",
+  "metadata": {
+    "id": null,
+    "unique_id": "test/number_theory/634.json",
+    "level": 4,
+    "subject": "Number Theory",
+    "url": null
+  },
+  "chat_template_sha256": "7db0bd6dad8537652dbe92811ff0d3d79c1643f574025b3226218b64a2fc2d9a",
+  "main_segments": [
+    {
+      "role": "main",
+      "seed": 315,
+      "request_hash": "4c4c7d108a31c8e3a46fdcfacc8b10904af1ea4815b8312263738864f3d59067",
+      "max_tokens": 16384,
+      "temperature": 0.6,
+      "top_p": 0.95,
+      "stop": [
+        "wait",
+        "Wait",
+        "wAit",
+        "WAit",
+        "waIt",
+        "WaIt",
+        "wAIt",
+        "WAIt",
+        "waiT",
+        "WaiT",
+        "wAiT",
+        "WAiT",
+        "waIT",
+        "WaIT",
+        "wAIT",
+        "WAIT"
+      ],
+      "include_stop_str_in_output": true,
+      "prompt_tokens": 41,
+      "output_tokens": 145,
+      "latency_seconds": 2.3123733662068844,
+      "retry_count": 0,
+      "prior_errors": [],
+      "text": "<think>\nOkay, so I need to find the inverse of 997 modulo 1000. That means I need to find an integer x such that 997 * x ≡ 1 mod 1000. Hmm, inverses modulo... Right, this is related to solving the congruence equation. \n\nFirst, I remember that for an inverse to exist, 997 and 1000 must be coprime. Let me check their greatest common divisor (gcd). Since 1000 factors into 2^3 * 5^3, and 997 is... Well, 997 is a prime number? Wait",
+      "finish_reason": "stop",
+      "stop_reason": "Wait",
+      "main_call_index": 0
+    },
+    {
+      "role": "main",
+      "seed": 1326027271,
+      "request_hash": "b950b348b2bd50613e1262780a104a3279a68e79e80f9174b989e5630e7358fc",
+      "max_tokens": 16239,
+      "temperature": 0.6,
+      "top_p": 0.95,
+      "stop": [
+        "wait",
+        "Wait",
+        "wAit",
+        "WAit",
+        "waIt",
+        "WaIt",
+        "wAIt",
+        "WAIt",
+        "waiT",
+        "WaiT",
+        "wAiT",
+        "WAiT",
+        "waIT",
+        "WaIT",
+        "wAIT",
+        "WAIT"
+      ],
+      "include_stop_str_in_output": true,
+      "prompt_tokens": 186,
+      "output_tokens": 1048,
+      "latency_seconds": 16.798358970321715,
+      "retry_count": 0,
+      "prior_errors": [],
+      "text": ", is it? Let me think. 997... Let me check if it's divisible by small primes. Divided by 2? No, it's odd. Divided by 3? 9+9+7=25, which isn't divisible by 3. Divided by 5? Ends with 7, so no. 7? Let me do 997 divided by 7. 7*142 is 994, so 997 - 994 is 3, so remainder 3. Not divisible by 7. 11? Let's see, 9 - 9 + 7 = 7, not divisible by 11. 13? Let me try 13*76 is 988, 988 +13=1001, so 997 is 1001 - 4, so remainder -4, so not divisible by 13. Maybe 17? 17*58 is 986, 986 +17=1003, so 997 is 1003 -6, so remainder -6. Not divisible by 17. Maybe 19? 19*52 is 988, 988 +19=1007, so 997 is 1007 -10, remainder -10. Not divisible by 19. 23? 23*43 is 989, 989 +23=1012, so 997 is 1012 -15, remainder -15. Not divisible by 23. So maybe 997 is prime? If it's prime, then since 1000 is 2^3*5^3, and 997 is not divisible by 2 or 5, so gcd(997,1000)=1. Therefore, the inverse exists. Okay, so I can proceed.\n\nNow, how to compute the inverse? The standard method is to use the Extended Euclidean Algorithm. Let me recall how that works. The Extended Euclidean Algorithm not only finds the gcd of two numbers but also finds integers x and y such that ax + by = gcd(a,b). In this case, since gcd(997,1000)=1, we can find x and y such that 997x + 1000y = 1. Then x mod 1000 would be the inverse of 997 modulo 1000.\n\nAlright, let me try to apply the Extended Euclidean Algorithm step by step.\n\nFirst, let me write down the steps of the Euclidean Algorithm for 1000 and 997.\n\nSo, divide 1000 by 997:\n\n1000 = 1 * 997 + 3\n\nThen divide 997 by 3:\n\n997 = 332 * 3 + 1\n\nThen divide 3 by 1:\n\n3 = 3 * 1 + 0\n\nSo the gcd is 1, as expected. Now, to find the coefficients, we need to work backwards.\n\nStarting from the second last equation:\n\n1 = 997 - 332 * 3\n\nBut from the first equation, 3 = 1000 - 1 * 997. Substitute that into the above equation:\n\n1 = 997 - 332 * (1000 - 1 * 997)\n\nLet me compute that:\n\n1 = 997 - 332 * 1000 + 332 * 997\n\nCombine like terms:\n\n1 = (1 + 332) * 997 - 332 * 1000\n\nWhich is:\n\n1 = 333 * 997 - 332 * 1000\n\nTherefore, rearranged:\n\n333 * 997 ≡ 1 mod 1000\n\nSo, that would mean that x is 333. Therefore, the inverse of 997 modulo 1000 is 333? Let me check that.\n\nLet me compute 997 * 333 mod 1000. Let's see. Since 997 ≡ -3 mod 1000. So, -3 * 333 = -999. Then -999 mod 1000 is 1, because -999 + 1000 = 1. So yes, that works! So 333 is indeed the inverse. Wait",
+      "finish_reason": "stop",
+      "stop_reason": "Wait",
+      "main_call_index": 1
+    }
+  ],
+  "wait_events": [
+    {
+      "candidate_id": 1,
+      "observed_text": "Wait",
+      "native_main_token_position": 145,
+      "probed": false,
+      "schedule_mode": null,
+      "skip_reason": "before_minimum_tokens",
+      "action": "commit_wait_continue"
+    },
+    {
+      "candidate_id": 2,
+      "observed_text": "Wait",
+      "native_main_token_position": 1193,
+      "probed": true,
+      "schedule_mode": "dense",
+      "skip_reason": null,
+      "trial": {
+        "text": "{333}\n</think>",
+        "answer": "333",
+        "raw_parsed_answer": "333",
+        "confidence": 0.9999950647819698,
+        "valid": true,
+        "policy": "avg2",
+        "require_think_close": true,
+        "last_token_decoded": "</think>",
+        "think_close_emitted": true,
+        "logprobs": [
+          {
+            "token": "{",
+            "logprob": 0.0
+          },
+          {
+            "token": "3",
+            "logprob": 0.0
+          },
+          {
+            "token": "3",
+            "logprob": 0.0
+          },
+          {
+            "token": "3",
+            "logprob": 0.0
+          },
+          {
+            "token": "}\n",
+            "logprob": -1.6689160474925302e-05
+          },
+          {
+            "token": "</think>",
+            "logprob": -7.986990567587782e-06
+          }
+        ],
+        "finish_reason": "stop",
+        "prompt_tokens": 1240,
+        "output_tokens": 6,
+        "role": "stage1_trial",
+        "seed": 119679648,
+        "request_hash": "526530c82ca46018b857e06bcc2e116086185b564e3b029ab5568bde05ed1c1e",
+        "max_tokens": 20,
+        "temperature": 0.0,
+        "top_p": 1.0,
+        "stop": [
+          "</think>"
+        ],
+        "include_stop_str_in_output": true,
+        "latency_seconds": 0.14058429282158613,
+        "retry_count": 0,
+        "prior_errors": []
+      },
+      "action": "fast_commit"
+    }
+  ],
+  "branches": [],
+  "reference_readout": null,
+  "native_main_text": "<think>\nOkay, so I need to find the inverse of 997 modulo 1000. That means I need to find an integer x such that 997 * x ≡ 1 mod 1000. Hmm, inverses modulo... Right, this is related to solving the congruence equation. \n\nFirst, I remember that for an inverse to exist, 997 and 1000 must be coprime. Let me check their greatest common divisor (gcd). Since 1000 factors into 2^3 * 5^3, and 997 is... Well, 997 is a prime number? Wait, is it? Let me think. 997... Let me check if it's divisible by small primes. Divided by 2? No, it's odd. Divided by 3? 9+9+7=25, which isn't divisible by 3. Divided by 5? Ends with 7, so no. 7? Let me do 997 divided by 7. 7*142 is 994, so 997 - 994 is 3, so remainder 3. Not divisible by 7. 11? Let's see, 9 - 9 + 7 = 7, not divisible by 11. 13? Let me try 13*76 is 988, 988 +13=1001, so 997 is 1001 - 4, so remainder -4, so not divisible by 13. Maybe 17? 17*58 is 986, 986 +17=1003, so 997 is 1003 -6, so remainder -6. Not divisible by 17. Maybe 19? 19*52 is 988, 988 +19=1007, so 997 is 1007 -10, remainder -10. Not divisible by 19. 23? 23*43 is 989, 989 +23=1012, so 997 is 1012 -15, remainder -15. Not divisible by 23. So maybe 997 is prime? If it's prime, then since 1000 is 2^3*5^3, and 997 is not divisible by 2 or 5, so gcd(997,1000)=1. Therefore, the inverse exists. Okay, so I can proceed.\n\nNow, how to compute the inverse? The standard method is to use the Extended Euclidean Algorithm. Let me recall how that works. The Extended Euclidean Algorithm not only finds the gcd of two numbers but also finds integers x and y such that ax + by = gcd(a,b). In this case, since gcd(997,1000)=1, we can find x and y such that 997x + 1000y = 1. Then x mod 1000 would be the inverse of 997 modulo 1000.\n\nAlright, let me try to apply the Extended Euclidean Algorithm step by step.\n\nFirst, let me write down the steps of the Euclidean Algorithm for 1000 and 997.\n\nSo, divide 1000 by 997:\n\n1000 = 1 * 997 + 3\n\nThen divide 997 by 3:\n\n997 = 332 * 3 + 1\n\nThen divide 3 by 1:\n\n3 = 3 * 1 + 0\n\nSo the gcd is 1, as expected. Now, to find the coefficients, we need to work backwards.\n\nStarting from the second last equation:\n\n1 = 997 - 332 * 3\n\nBut from the first equation, 3 = 1000 - 1 * 997. Substitute that into the above equation:\n\n1 = 997 - 332 * (1000 - 1 * 997)\n\nLet me compute that:\n\n1 = 997 - 332 * 1000 + 332 * 997\n\nCombine like terms:\n\n1 = (1 + 332) * 997 - 332 * 1000\n\nWhich is:\n\n1 = 333 * 997 - 332 * 1000\n\nTherefore, rearranged:\n\n333 * 997 ≡ 1 mod 1000\n\nSo, that would mean that x is 333. Therefore, the inverse of 997 modulo 1000 is 333? Let me check that.\n\nLet me compute 997 * 333 mod 1000. Let's see. Since 997 ≡ -3 mod 1000. So, -3 * 333 = -999. Then -999 mod 1000 is 1, because -999 + 1000 = 1. So yes, that works! So 333 is indeed the inverse. ",
+  "native_main_text_sha256": "c2e75afd8225147621681d09b9bd8c4d6fd6c3af82c5a8d12e0d6c4ff5dde0a9",
+  "terminal_state": "fast_commit",
+  "delivered_answer": "333",
+  "correct": true,
+  "capped": false,
+  "right_censored": false,
+  "infrastructure_errors": [],
+  "accounting": {
+    "native_committed_main_output_tokens": 1193,
+    "main_request_output_tokens": 1193,
+    "stage1_trial_output_tokens": 6,
+    "verification_output_tokens": 0,
+    "stage2_trial_output_tokens": 0,
+    "reference_readout_output_tokens": 0,
+    "all_generated_tokens": 1199,
+    "all_prompt_tokens": 1467,
+    "controller_cue_tokens": 0,
+    "committed_reasoning_model_tokens": 1193,
+    "committed_reasoning_context_tokens": 1193
+  },
+  "created_at": "2026-07-29T02:32:06+0000"
+}

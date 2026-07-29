@@ -14,8 +14,20 @@
   19000-19007。24 个 run(seed{43,44}×method{inspired,ref}×bench{math500,amc23,aime24}
   ×2 模型)分 8 条并行流,每流固定一个(seed,method)跑 3 个 benchmark;math500 均摊
   到各副本负载均衡。1 分钟内 8 副本全就绪,8 卡 100%。dispatcher = `~/run_deer_multiseed.sh`。
-- 跑完后:多 seed 聚合(需绕过 formal aggregate 的 seed-42 门)+ 把 §8 boundary-confidence
-  从单 seed 升级为 {42,43,44} 三 seed,更新 exploratory caveat。**待补**。
+- **24 个 run 全 rc=0,~24 分钟跑完(8 卡并行)**,题数全对(math500=100/amc23=8/aime24=6)。
+- **多 seed 聚合**(自写 `deer_inspired/multiseed_aggregate.py`,复刻 aggregate.py 的
+  fair_saving/ΔAcc 公式 + 6-cell macro,绕过 seed-42 门;baseline 用同 seed 的
+  governor_v2 development main)。**seed 42 完全复现 paper**(−0.36pp/43.7%,Qwen3 +2.78/45.6)
+  → 聚合正确。
+- **关键(诚实)结论——boundary-confidence 比单 seed 看起来更 seed-敏感**:
+  inspired macro ΔAcc 三 seed = −0.36/+4.17/−6.06(均值 **−0.75pp**,range [−6.1,+4.2]),
+  省 43.7/33.8/25.1%(均值 **34.2%**)。三 seed 仍 **优于 DEER-ref**(−2.71pp/22.1%);
+  配对 bootstrap(18 env):省 token 优势 **+12.1% CI[+0.7,+22.9](显著)**、
+  ΔAcc 优势 +1.96pp CI[−5.0,+9.0](不显著)。即"换信号"正面主张在均值上成立,但
+  "+2.8pp on Qwen3"是 seed-42 偏乐观(Qwen3 三 seed 均值 −1.5pp)。
+- **并入 paper**:§8 表/正文改三 seed;abstract/intro/§8-discussion/§9/§10 各处 44%→34%、
+  单 seed→seed-敏感、去掉 seed-42 专属的 +2.8 头条。14 页 0 error。提交非正式 43/44 轨迹
+  + 多 seed 报告。
 
 ---
 

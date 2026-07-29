@@ -5,8 +5,9 @@ Section~\ref{sec:baselines} showed that the one prior method staying near full
 accuracy, DEER, reads a different signal. We now push that signal into a
 deployment-style online controller and find it recovers substantial savings at
 neutral accuracy---the constructive counterpart to our negative result. These
-results are exploratory (single seed, outside the preregistered sweep); we report
-them to establish that the failure is about the \emph{signal}, not early exit.
+results are exploratory (three dev seeds, outside the preregistered sweep, and
+seed-sensitive); we report them to establish that the failure is about the
+\emph{signal}, not early exit.
 
 \subsection{From trial-answer confidence to a verification branch}
 DEER emits a short trial answer at reasoning-boundary (``\texttt{Wait}'')
@@ -25,15 +26,17 @@ reasoning. Both run in a single online engine that generates the main trajectory
 live and probes only at scheduled boundaries---no frozen suffixes.
 
 \subsection{Online deployment results}
-Table~\ref{tab:boundary} reports an online run over the $18$-environment
-development set (seed $42$; $456$ trajectories). The inspired controller holds
-macro accuracy essentially flat ($-0.36\pp$; $+2.78\pp$ on \qweneight{}) while
-saving $\sim\!44\%$ of tokens, with $69\%$ of problems fast-committed and $15\%$
-routed through a verification branch. Against a faithful online DEER reference,
-a stratified paired bootstrap ($10{,}000$ resamples) gives an accuracy
-difference of $+0.97\pp$ (95\% CI $[-10.5, +12.6]$) and a token-saving advantage
-of $+15.3\%$ (95\% CI $[+7.3, +22.9]$): the controller saves significantly more
-at indistinguishable accuracy.
+Table~\ref{tab:boundary} reports online runs over the $18$-environment
+development set at three seeds ($42/43/44$; $1{,}368$ trajectories). Across seeds
+the inspired controller holds macro accuracy near-neutral ($-0.75\pp$; per-seed
+range $[-6.1, +4.2]\pp$) while saving $34\%$ of tokens (per-seed $25$--$44\%$),
+still dominating a faithful online DEER reference ($-2.7\pp$, $22\%$). A
+stratified paired bootstrap over the $18$ environments ($10{,}000$ resamples)
+gives a token-saving advantage of $+12.1\%$ (95\% CI $[+0.7, +22.9]$) at an
+accuracy difference of $+2.0\pp$ (95\% CI $[-5.0, +9.0]$): the controller saves
+significantly more at statistically indistinguishable accuracy. The single-seed
+$42$ point ($+2.8\pp$ on \qweneight{}, $44\%$ saving) sits at the favorable end
+of this spread.
 
 \begin{table}[t]
   \centering\small
@@ -41,18 +44,20 @@ at indistinguishable accuracy.
     \toprule
     Method & Model & $\Delta$acc & Fair saving \\
     \midrule
-    Inspired  & Qwen3-8B    & $+2.8\pp$ & $45.6\%$ \\
-    Inspired  & DeepSeek-7B & $-3.5\pp$ & $41.8\%$ \\
-    Inspired  & macro       & $-0.4\pp$ & $43.7\%$ \\
+    Inspired  & Qwen3-8B    & $-1.5\pp$ & $41.0\%$ \\
+    Inspired  & DeepSeek-7B & $+0.0\pp$ & $27.4\%$ \\
+    Inspired  & macro       & $-0.75\pp$ & $34.2\%$ \\
     \midrule
-    DEER ref. & macro       & $-1.3\pp$ & $28.3\%$ \\
+    DEER ref. & macro       & $-2.7\pp$ & $22.1\%$ \\
     \bottomrule
   \end{tabular}
-  \caption{Online boundary-confidence early exit (dev, seed $42$, $456$
-  trajectories). The inspired fast-path + verification-branch controller keeps
-  macro accuracy within $0.4\pp$ of full generation while saving $\sim\!44\%$ of
-  tokens, and dominates a faithful online DEER reference on savings at equal
-  accuracy. Exploratory: single seed, small AMC23/AIME24 sets.}
+  \caption{Online boundary-confidence early exit (dev, seeds $42/43/44$,
+  $1{,}368$ trajectories; macro over $18$ environments, per-model over three
+  seeds). The inspired fast-path + verification-branch controller keeps macro
+  accuracy near-neutral ($-0.75\pp$, per-seed range $[-6.1,+4.2]$) while saving
+  $34\%$ of tokens, and saves significantly more than a faithful online DEER
+  reference at indistinguishable accuracy. Exploratory: seed-sensitive, small
+  AMC23/AIME24 sets.}
   \label{tab:boundary}
 \end{table}
 
