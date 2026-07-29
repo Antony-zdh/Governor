@@ -164,15 +164,19 @@ that \emph{no} rule clears the gate, there is no selected rule to confirm; we
 instead ask whether the \emph{frontier} reproduces out of distribution, ranking
 rules on dev and only \emph{measuring} them on test---never selecting there.
 
-\paragraph{The frontier reproduces; the joint gate is empty.}
-Each rule's worst-case per-model accuracy drop on test is near-perfectly
-correlated with its dev value (Pearson $r=0.96$ over all $17{,}712$ rules), and
-every rule still loses in the worst case. \textbf{No rule clears the conservative
-gate on both splits}: $0$ on dev, and of the $272$ rules admissible on test
-alone, not one is admissible on dev---there they cost $4.98$--$5.65\pp$ per model
-(median $5.09$). These $272$ are exactly the in-sample winners the held-out split
-exists to reject: selecting directly on test would ``find'' safe rules that are
-not safe.
+\paragraph{The frontier reproduces globally; the safe boundary is noise-limited.}
+Across all $17{,}712$ rules, each rule's worst-case per-model accuracy drop on
+test tracks its dev value (Pearson $r=0.96$), and every rule still loses in the
+worst case. This global correlation is, however, dominated by dynamic range (dev
+drops span $0$--$60\pp$): restricted toward the decision boundary it decays and
+then vanishes ($r=0.65$ for dev drop $\le 10\pp$; $r\approx 0$ for $\le 5\pp$),
+and the $144$ rules with dev drop $\le 3\pp$ all collapse to a single test value
+($+0.11\pp$). The safe end is thus measurement-noise-limited on both splits---and
+that is precisely the point: \textbf{no rule clears the conservative gate on both
+splits} ($0$ on dev; of the $272$ rules admissible on test alone, not one is
+admissible on dev---there they cost $4.98$--$5.65\pp$ per model, median $5.09$).
+These $272$ are exactly the in-sample winners the held-out split exists to
+reject: selecting directly on test would ``find'' safe rules that are not safe.
 
 \paragraph{Unseen models.}
 The same structure holds for models never used in development---the $32$B distill
@@ -185,5 +189,7 @@ safe-and-saving on any held-out model.
 \paragraph{On the floor value.}
 We report the $1.85\pp$ minimum as a \emph{development} quantity: the same
 least-bad rule measures $0.11\pp$ on test (still with negative savings). The
-split-invariant claims are therefore the $r=0.96$ frontier stability and the
-empty joint gate, not the exact floor.
+split-invariant claims are therefore the empty joint gate and the collapse of
+every near-safe dev rule to $\approx\!0\pp$ on test---not the exact floor, and
+not a clean rank reproduction at the boundary, which is noise-limited on both
+sides.

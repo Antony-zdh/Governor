@@ -29,6 +29,12 @@
 - **④③ 备料**（subagent 后台）：④=32B 升为一等 dev（development matrix + run_matrix + 17,712 规则 sweep +
   32B frontier/floor，seed42 起）；③=复用现有 7B/8B 轨迹、换 3-4 种 probe 后缀重建 probe bank 后重跑
   false-consensus/frontier/Certaindex。均 ① 跑完释放 8 卡后启动。
+- **回应审稿弱点 #6（r=0.96 是机械相关）——offline CPU**：`analysis/near_boundary_corr.py`。
+  全 17,712 规则 Pearson=0.963,但受 dynamic range(dev drop 0–60pp)主导;**近边界处相关消失**:
+  dev drop≤10pp→0.645、≤5pp→**−0.02**、≤3pp 的 144 条规则 test drop **全为 +0.11**(常数)。
+  → 诚实改写 §5"held-out confirmation":全局 r=0.96 真但由激进规则驱动;安全端两个 split 都是
+  测量噪声极限,split-invariant 主张改为"空 joint gate + 近安全规则 test 上塌到 ≈0",不再claim
+  边界处 rank 复现。**不动负面结论**(仍无规则两 split 都 safe-and-saving)。
 
 ---
 
