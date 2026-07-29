@@ -85,10 +85,14 @@ class OnlineController:
         extract_answer_fn: Any = None,
         answers_equal_fn: Any = None,
         sleep_fn: Any = time.sleep,
+        allow_nonformal_seed: bool = False,
     ):
         if method not in METHODS:
             raise ValueError(f"unknown method {method!r}")
-        if base_seed != 42:
+        # Formal result is hard-locked to seed 42. A declared robustness diagnostic
+        # (seeds 43/44) may opt out via allow_nonformal_seed; such runs are stamped
+        # non-formal and must be kept in a separate, clearly labelled output tree.
+        if base_seed != 42 and not allow_nonformal_seed:
             raise ValueError("formal online experiment is hard-locked to seed 42")
         if len(model_revision) != 40:
             raise ValueError("model revision must be an exact 40-character commit SHA")
@@ -97,6 +101,7 @@ class OnlineController:
         self.model_revision = model_revision
         self.benchmark = benchmark
         self.base_seed = int(base_seed)
+        self.allow_nonformal_seed = bool(allow_nonformal_seed)
         self.cap = int(cap)
         self.max_model_len = int(max_model_len)
         self.output = Path(output)
@@ -650,6 +655,7 @@ class OnlineController:
             "server_command": self.server_command,
             "benchmark": self.benchmark,
             "base_seed": self.base_seed,
+            "formal": not self.allow_nonformal_seed,
             "problem_id": int(problem_id),
             "split": "dev",
             "problem": problem,
@@ -689,7 +695,7 @@ def _manifest_path(output: Path) -> Path:
 
 def run(args: argparse.Namespace) -> None:
     config = load_config(args.config)
-    if args.seed != 42:
+    if args.seed != 42 and not args.allow_nonformal_seed:
         raise ValueError("formal runner rejects base_seed != 42")
     if args.smoke and not args.problem_id:
         raise ValueError("--smoke requires at least one --problem-id")
@@ -714,6 +720,7 @@ def run(args: argparse.Namespace) -> None:
         "model_revision": args.model_revision,
         "benchmark": args.benchmark,
         "base_seed": args.seed,
+        "formal": (args.seed == 42 and not args.allow_nonformal_seed),
         "dtype": "bfloat16",
         "cap": bench_cfg["cap"],
         "max_model_len": model_cfg["max_model_len"],
@@ -749,6 +756,7 @@ def run(args: argparse.Namespace) -> None:
         url=args.url,
         api_key=args.api_key,
         server_command=args.server_command,
+        allow_nonformal_seed=args.allow_nonformal_seed,
     )
     try:
         served = controller.client.models.list()
@@ -823,6 +831,12 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser.add_argument("--server-command", default="")
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--problem-id", type=int, action="append", default=[])
+    parser.add_argument(
+        "--allow-nonformal-seed",
+        action="store_true",
+        help="permit seeds other than 42 for a declared, non-formal robustness "
+        "diagnostic; runs are stamped formal=false and must use a separate output tree",
+    )
     return parser.parse_args(argv)
 
 

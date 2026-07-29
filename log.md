@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-07-29 · ① DEER 多 seed robustness（用户授权松锁，8 卡全开）
+
+- **用户授权**跑 ①。做法上不动 formal seed-42 语义:给 `online_controller.py` 加
+  `--allow-nonformal-seed` 逃生舱——只在显式传入时放开两处硬锁(__init__ / run),
+  且把 run_manifest 与每题 payload 都戳 `formal=false`,结果单独写
+  `results/deer_inspired/online_dev_nonformal/`。默认行为不变,34 个单测全过。
+- **8 卡全用**:DeepSeek-7B ×4 副本(GPU0-3)+ Qwen3-8B ×4 副本(GPU4-7),端口
+  19000-19007。24 个 run(seed{43,44}×method{inspired,ref}×bench{math500,amc23,aime24}
+  ×2 模型)分 8 条并行流,每流固定一个(seed,method)跑 3 个 benchmark;math500 均摊
+  到各副本负载均衡。1 分钟内 8 副本全就绪,8 卡 100%。dispatcher = `~/run_deer_multiseed.sh`。
+- 跑完后:多 seed 聚合(需绕过 formal aggregate 的 seed-42 门)+ 把 §8 boundary-confidence
+  从单 seed 升级为 {42,43,44} 三 seed,更新 exploratory caveat。**待补**。
+
+---
+
 ## 2026-07-28 (续4) · ② held-out confirmation 结果 + 并入 paper
 
 - **数据齐活**:32B(held-out scale, seed45, test, 全3 benchmark)✅;Llama-8B
