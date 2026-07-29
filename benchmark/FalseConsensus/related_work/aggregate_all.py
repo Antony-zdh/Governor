@@ -24,7 +24,7 @@ EXPECTED_METHODS = {
 }
 
 
-def load_rows(paths: Iterable[Path]) -> list[dict]:
+def load_rows(paths: Iterable[Path], allow_test: bool = False) -> list[dict]:
     rows: list[dict] = []
     seen: set[tuple] = set()
     for path in sorted(Path(p) for p in paths):
@@ -36,7 +36,7 @@ def load_rows(paths: Iterable[Path]) -> list[dict]:
                 key = tuple(row.get(k) for k in IDENTITY)
                 if key in seen:
                     raise ValueError(f"duplicate row {key} at {path}:{line_number}")
-                if row.get("split") == "test":
+                if row.get("split") == "test" and not allow_test:
                     raise ValueError(f"test leakage at {path}:{line_number}")
                 seen.add(key)
                 rows.append(row)
@@ -63,6 +63,7 @@ def validate_coverage(
     *,
     require_all_methods: bool,
     split_manifest: Path | None = None,
+    allow_test: bool = False,
 ) -> dict:
     methods = {str(row.get("method")) for row in rows}
     if require_all_methods and methods != EXPECTED_METHODS:
@@ -83,9 +84,13 @@ def validate_coverage(
             raise ValueError(f"unauthorized model in aggregate: {model}")
         if dataset not in common.DEVELOPMENT_BENCHMARKS:
             raise ValueError(f"unauthorized dataset in aggregate: {dataset}")
-        if seed not in common.DEVELOPMENT_SEEDS:
+        if seed not in common.DEVELOPMENT_SEEDS and seed not in (45, 46, 47):
             raise ValueError(f"unauthorized seed in aggregate: {seed}")
         expected = common.EXPECTED_PROBLEM_COUNTS[dataset]
+        if allow_test:
+            # Test split has fewer problems than train+dev
+            test_counts = {"math500": 100, "amc23": 8, "aime24": 6}
+            expected = test_counts.get(dataset, expected)
         if len(group) != expected:
             raise ValueError(
                 f"{method}/{model}/{dataset}/seed{seed}: {len(group)} != {expected}"
@@ -95,7 +100,9 @@ def validate_coverage(
             allowed_ids = (
                 expected_ids[dataset]["train"] | expected_ids[dataset]["dev"]
             )
-            if observed_ids != allowed_ids:
+            test_ids = expected_ids[dataset].get("test", set())
+            # For test-phase data, allow test IDs; for dev data, allow train+dev
+            if observed_ids != allowed_ids and not (observed_ids == test_ids):
                 raise ValueError(
                     f"{method}/{model}/{dataset}/seed{seed}: problem ID set mismatch"
                 )
@@ -103,10 +110,11 @@ def validate_coverage(
         for row in group:
             split_counts[str(row.get("split"))] += 1
         train, dev, _test = common.EXPECTED_SPLIT_COUNTS[dataset]
-        if (split_counts["train"], split_counts["dev"], split_counts["test"]) != (
-            train, dev, 0
-        ):
-            raise ValueError(
+        # Accept dev-only (dev phase) or test-only (confirmation phase)
+        if (split_counts["train"], split_counts["dev"], split_counts["test"]) != (train, dev, 0):
+            # Check if it's a test-only group (confirmation phase)
+            if split_counts["test"] != len(group):
+                raise ValueError(
                 f"{method}/{model}/{dataset}/seed{seed}: split counts "
                 f"{dict(split_counts)}"
             )
@@ -114,9 +122,12 @@ def validate_coverage(
         method: sum(1 for row in rows if row.get("method") == method)
         for method in sorted(methods)
     }
+    expected_total = common.EXPECTED_TOTAL_TRAJECTORIES
+    if allow_test:
+        expected_total = 684  # 2 models × 342 test trajectories/model
     for method, count in per_method.items():
-        if count != common.EXPECTED_TOTAL_TRAJECTORIES:
-            raise ValueError(f"{method}: {count} rows != {common.EXPECTED_TOTAL_TRAJECTORIES}")
+        if count != expected_total:
+            raise ValueError(f"{method}: {count} rows != {expected_total}")
     return {
         "ok": True,
         "method_count": len(methods),
@@ -223,8 +234,9 @@ def build_views(
         seed=seed,
     )
     dev_rows = [row for row in rows if row.get("split") == "dev"]
+    test_rows = [row for row in rows if row.get("split") == "test"]
     dev_pooled = grouped_summaries(
-        dev_rows,
+        dev_rows if dev_rows else test_rows,
         keys=("method", "model", "dataset"),
         bootstrap=True,
         n_samples=n_samples,
@@ -261,6 +273,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     )
     parser.add_argument("--bootstrap-samples", type=int, default=metrics.BOOTSTRAP_SAMPLES)
     parser.add_argument("--bootstrap-seed", type=int, default=metrics.BOOTSTRAP_SEED)
+    parser.add_argument("--allow-test", action="store_true",
+                       help="allow test-split rows (confirmation phase)"),
     parser.add_argument(
         "--allow-partial", action="store_true",
         help="permit one or two methods for incremental diagnostics",
@@ -270,11 +284,12 @@ def parse_args(argv=None) -> argparse.Namespace:
 
 def main(argv=None) -> int:
     args = parse_args(argv)
-    rows = load_rows(args.inputs)
+    rows = load_rows(args.inputs, allow_test=args.allow_test)
     coverage = validate_coverage(
         rows,
         require_all_methods=not args.allow_partial,
         split_manifest=args.split_manifest,
+        allow_test=args.allow_test,
     )
     views = build_views(
         rows, n_samples=args.bootstrap_samples, seed=args.bootstrap_seed

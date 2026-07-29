@@ -1,0 +1,182 @@
+{
+  "schema_version": "related-work-deer-trial-1",
+  "method": "deer_frozen",
+  "reproduction_class": "frozen-trajectory DEER reproduction (official probes on frozen prefix)",
+  "problem_id": 442,
+  "dataset": "math500",
+  "model": "Qwen/Qwen3-8B",
+  "base_seed": 46,
+  "main_token_count_recorded": 2714,
+  "main_token_count_reencoded": 2713,
+  "token_alignment": {
+    "recorded": 2714,
+    "reencoded": 2713,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 14,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "edc49ebc499867b1c814f1910f248d9137057aac1786b80eaa72b339e11070c0",
+  "policy": "avg2",
+  "threshold": 0.95,
+  "require_think_close": true,
+  "trials": [
+    {
+      "candidate_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 809,
+      "token_position": 279,
+      "trial_text": "{\\sqrt{65536}} which simplifies to \\boxed{256}\n\n",
+      "trial_answer": "\\sqrt{65536}",
+      "logprobs": [
+        {
+          "token": "{\\",
+          "logprob": -0.1602240949869156
+        },
+        {
+          "token": "sqrt",
+          "logprob": 0.0
+        },
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "6",
+          "logprob": -0.5759395360946655
+        },
+        {
+          "token": "5",
+          "logprob": 0.0
+        },
+        {
+          "token": "5",
+          "logprob": 0.0
+        },
+        {
+          "token": "3",
+          "logprob": 0.0
+        },
+        {
+          "token": "6",
+          "logprob": 0.0
+        },
+        {
+          "token": "}}",
+          "logprob": -0.16022460162639618
+        },
+        {
+          "token": " which",
+          "logprob": -0.70588618516922
+        },
+        {
+          "token": " simpl",
+          "logprob": -0.008615585044026375
+        },
+        {
+          "token": "ifies",
+          "logprob": 0.0
+        },
+        {
+          "token": " to",
+          "logprob": -2.753696753643453e-05
+        },
+        {
+          "token": " \\",
+          "logprob": -0.005272649694234133
+        },
+        {
+          "token": "boxed",
+          "logprob": 0.0
+        },
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "2",
+          "logprob": -6.9141146923357155e-06
+        },
+        {
+          "token": "5",
+          "logprob": -1.4305104514278355e-06
+        },
+        {
+          "token": "6",
+          "logprob": 0.0
+        },
+        {
+          "token": "}\n\n",
+          "logprob": -0.10019504278898239
+        }
+      ],
+      "confidence": 0.0,
+      "policy": "avg2",
+      "last_token_decoded": "}\n\n",
+      "think_close_emitted": false,
+      "meets_threshold": false,
+      "trial_out_tokens": 20,
+      "trial_prompt_tokens": 318,
+      "trial_finish_reason": "length",
+      "trial_latency_seconds": 3.294930243981071,
+      "retry_count": 0
+    },
+    {
+      "candidate_id": 2,
+      "trigger_type": "wait",
+      "trigger_char_position": 1257,
+      "token_position": 496,
+      "trial_text": "{256}\n</think>",
+      "trial_answer": "256",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "2",
+          "logprob": 0.0
+        },
+        {
+          "token": "5",
+          "logprob": 0.0
+        },
+        {
+          "token": "6",
+          "logprob": 0.0
+        },
+        {
+          "token": "}\n",
+          "logprob": -0.07888974994421005
+        },
+        {
+          "token": "</think>",
+          "logprob": -8.34461570775602e-06
+        }
+      ],
+      "confidence": 0.9843442270050425,
+      "policy": "avg2",
+      "last_token_decoded": "</think>",
+      "think_close_emitted": true,
+      "meets_threshold": true,
+      "trial_out_tokens": 6,
+      "trial_prompt_tokens": 535,
+      "trial_finish_reason": "stop",
+      "trial_latency_seconds": 2.0399486329988576,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "256",
+    "readout_text": "We are given the function $ f(x) = 2^x $, and we are asked to compute:\n\n$$\n\\sqrt{f(f(f(f(1))))}\n$$\n\n---\n\n### Step 1: Evaluate the innermost function\n\nStart with the innermost expression:\n\n$$\nf(1) = 2^1 = 2\n$$\n\n---\n\n### Step 2: Apply the function repeatedly\n\nNow compute the next layers:\n\n$$\nf(f(1)) = f(2) = 2^2 = 4\n$$\n\n$$\nf(f(f(1))) = f(4) = 2^4 = 16\n$$\n\n$$\nf(f(f(f(1)))) = f(16) = 2^{16}\n$$\n\n---\n\n### Step 3: Compute $ 2^{16} $\n\nWe know:\n\n$$\n2^{10} = 1024\n$$\n$$\n2^{16} = 2^{10} \\cdot 2^6 = 1024 \\cdot 64 = 65536\n$$\n\n---\n\n### Step 4: Take the square root\n\nNow compute:\n\n$$\n\\sqrt{f(f(f(f(1))))} = \\sqrt{65536}\n$$\n\nWe know that:\n\n$$\n256^2 = 65536\n$$\n\nSo:\n\n$$\n\\sqrt{65536} = 256\n$$\n\n---\n\n### Final Answer:\n\n$$\n\\boxed{256}\n$$",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 335,
+    "readout_prompt_tokens": 531,
+    "readout_latency_seconds": 10.207009417004883,
+    "at_candidate_id": 2,
+    "retry_count": 0
+  }
+}

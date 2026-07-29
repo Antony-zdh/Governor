@@ -1,0 +1,118 @@
+{
+  "schema_version": "related-work-deer-trial-1",
+  "method": "deer_frozen",
+  "reproduction_class": "frozen-trajectory DEER reproduction (official probes on frozen prefix)",
+  "problem_id": 448,
+  "dataset": "math500",
+  "model": "Qwen/Qwen3-8B",
+  "base_seed": 46,
+  "main_token_count_recorded": 6031,
+  "main_token_count_reencoded": 6030,
+  "token_alignment": {
+    "recorded": 6031,
+    "reencoded": 6030,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 30,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "976a4d5d95db1dcf3c37ee13afaa51db8fe83854dc9dde2643382a4b56995b69",
+  "policy": "avg2",
+  "threshold": 0.95,
+  "require_think_close": true,
+  "trials": [
+    {
+      "candidate_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 2299,
+      "token_position": 889,
+      "trial_text": "{44}\n</think>",
+      "trial_answer": "44",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "4",
+          "logprob": 0.0
+        },
+        {
+          "token": "4",
+          "logprob": 0.0
+        },
+        {
+          "token": "}\n",
+          "logprob": -0.6931476593017578
+        },
+        {
+          "token": "</think>",
+          "logprob": -0.00017772526189219207
+        }
+      ],
+      "confidence": 0.8408589533112295,
+      "policy": "avg2",
+      "last_token_decoded": "</think>",
+      "think_close_emitted": true,
+      "meets_threshold": false,
+      "trial_out_tokens": 5,
+      "trial_prompt_tokens": 958,
+      "trial_finish_reason": "stop",
+      "trial_latency_seconds": 2.053514565981459,
+      "retry_count": 0
+    },
+    {
+      "candidate_id": 2,
+      "trigger_type": "wait",
+      "trigger_char_position": 2664,
+      "token_position": 1068,
+      "trial_text": "{44}\n</think>",
+      "trial_answer": "44",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "4",
+          "logprob": 0.0
+        },
+        {
+          "token": "4",
+          "logprob": 0.0
+        },
+        {
+          "token": "}\n",
+          "logprob": -0.014163684099912643
+        },
+        {
+          "token": "</think>",
+          "logprob": -8.344646857949556e-07
+        }
+      ],
+      "confidence": 0.9964651327642409,
+      "policy": "avg2",
+      "last_token_decoded": "</think>",
+      "think_close_emitted": true,
+      "meets_threshold": true,
+      "trial_out_tokens": 5,
+      "trial_prompt_tokens": 1137,
+      "trial_finish_reason": "stop",
+      "trial_latency_seconds": 1.3883229750208557,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "44",
+    "readout_text": "To compute the modular inverse of $ 17 \\mod 83 $, we are looking for an integer $ x $ such that:\n\n$$\n17x \\equiv 1 \\pmod{83}\n$$\n\nThis means that $ x $ is the number that, when multiplied by 17, gives a result that is congruent to 1 modulo 83. One effective method to find such an $ x $ is the **Extended Euclidean Algorithm**, which allows us to express the greatest common divisor (GCD) of two numbers as a linear combination of those numbers.\n\n---\n\n### Step 1: Apply the Euclidean Algorithm\n\nWe begin by applying the Euclidean Algorithm to find the GCD of 17 and 83:\n\n$$\n\\begin{align*}\n83 &= 17 \\cdot 4 + 15 \\\\\n17 &= 15 \\cdot 1 + 2 \\\\\n15 &= 2 \\cdot 7 + 1 \\\\\n2 &= 1 \\cdot 2 + 0\n\\end{align*}\n$$\n\nThe last non-zero remainder is 1, so $ \\gcd(17, 83) = 1 $, which confirms that an inverse exists.\n\n---\n\n### Step 2: Use the Extended Euclidean Algorithm\n\nNow, we work backwards to express 1 as a linear combination of 17 and 83:\n\n$$\n\\begin{align*}\n1 &= 15 - 2 \\cdot 7 \\\\\n&= 15 - (17 - 15 \\cdot 1) \\cdot 7 \\\\\n&= 15 - 17 \\cdot 7 + 15 \\cdot 7 \\\\\n&= 15 \\cdot 8 - 17 \\cdot 7 \\\\\n&= (83 - 17 \\cdot 4) \\cdot 8 - 17 \\cdot 7 \\\\\n&= 83 \\cdot 8 - 17 \\cdot 32 - 17 \\cdot 7 \\\\\n&= 83 \\cdot 8 - 17 \\cdot 39\n\\end{align*}\n$$\n\nSo we have:\n\n$$\n1 = -39 \\cdot 17 + 8 \\cdot 83\n$$\n\nThis implies:\n\n$$\n-39 \\cdot 17 \\equiv 1 \\pmod{83}\n$$\n\nThus, $ -39 $ is the inverse of 17 modulo 83. However, we want the inverse to be in the range $ 0 \\leq x < 83 $, so we convert $ -39 $ to a positive residue by adding 83:\n\n$$\n-39 + 83 = 44\n$$\n\n---\n\n### Step 3: Verify the Result\n\nTo confirm, compute:\n\n$$\n17 \\cdot 44 = 748\n$$\n\nNow divide 748 by 83:\n\n$$\n748 \\div 83 = 9 \\text{ remainder } 1\n$$\n\nSo:\n\n$$\n17 \\cdot 44 \\equiv 1 \\pmod{83}\n$$\n\nThis confirms that the inverse is correct.\n\n---\n\n### Final Answer\n\n$$\n\\boxed{44}\n$$",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 702,
+    "readout_prompt_tokens": 1133,
+    "readout_latency_seconds": 20.345609999028966,
+    "at_candidate_id": 2,
+    "retry_count": 0
+  }
+}

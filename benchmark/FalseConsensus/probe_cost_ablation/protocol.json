@@ -1,0 +1,23 @@
+{
+  "schema_version": "probe-cost-ablation-1",
+  "created_at": "2026-07-30T01:15:00",
+  "git_commit": "ugcpu2-batch-20260729",
+  "split_manifest_sha256": "3d30cd624dd9cd637b5d3f40e030247d225114db6074c6b2d26a1351d676e9a6",
+  "split": "dev",
+  "models": {
+    "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B": "916b56a44061fd5cd7d6a8fb632557ed4f724f60",
+    "Qwen/Qwen3-8B": "b968826d9c46dd6066d109eabc6255188de91218"
+  },
+  "benchmarks": ["math500", "amc23", "aime24"],
+  "seeds": [42, 43, 44],
+  "problem_scope": "dev split only (from split_manifest.json assignments where split=dev)",
+  "base_probe_interval": 64,
+  "base_probe_cap": 32,
+  "intervals_evaluated": [64, 128, 256, 512],
+  "caps_evaluated": [8, 16, 32],
+  "interval_method": "strict downsample from dense interval-64 bank (position divisibility check)",
+  "cap_method": "truncate stored probe output to first N generated tokens",
+  "metrics": ["accuracy", "gross_saving", "actual_net_saving", "positive_saving_fraction", "probe_tokens", "probe_calls", "frontier_movement"],
+  "rules": "frozen Governor selected rules only (no new policy search)",
+  "counterfactual": "ideal_zero_probe_tax (probe output tokens discounted to 0, representing hypothetical KV reuse)"
+}

@@ -13,9 +13,15 @@ MODEL_TEMPLATES = {
         "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
         "deepseek-ai/DeepSeek-R1-Distill-Qwen-14B",
         "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
-        "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
     ]
 }
+
+# vLLM 0.26+ does not auto-add BOS for the Llama tokenizer, so we must
+# prepend it manually. Without BOS, the Llama distill model produces
+# garbled output from the first token. See smoke_audit for evidence.
+MODEL_TEMPLATES["deepseek-ai/DeepSeek-R1-Distill-Llama-8B"] = (
+    lambda p: "<｜begin▁of▁sentence｜><｜User｜>" + p + "<｜Assistant｜>ILL\n"
+)
 
 MODEL_TEMPLATES.update(
     {

@@ -1,0 +1,57 @@
+{
+  "schema_version": "related-work-tje-trigger-1",
+  "method": "tje_frozen",
+  "reproduction_class": "frozen-trajectory TJE reproduction (confidence re-issued on frozen prefix)",
+  "problem_id": 292,
+  "dataset": "math500",
+  "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+  "base_seed": 45,
+  "main_token_count_recorded": 4495,
+  "main_token_count_reencoded": 4494,
+  "token_alignment": {
+    "recorded": 4495,
+    "reencoded": 4494,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 22,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "d2f9fec7739b12c368f9142e1d5901a503e443f650d5612cf52681a9f31be0a6",
+  "include_think_close": true,
+  "threshold_label": "Almost certain",
+  "triggers": [
+    {
+      "trigger_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 2577,
+      "token_position": 1453,
+      "confidence_response": "Almost certain",
+      "confidence_label": "Almost certain",
+      "meets_threshold": true,
+      "confidence_out_tokens": 3,
+      "confidence_prompt_tokens": 1933,
+      "confidence_finish_reason": "stop",
+      "confidence_latency_seconds": 0.4503715980099514,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "898",
+    "readout_text": "Alright, let's dive into solving this problem step by step. The goal is to find the value of \\( x_{531} + x_{753} + x_{975} \\) given the initial terms and the recursive formula.\n\n### Step 1: Understanding the Problem\nWe are given the first four terms of a sequence:\n\\[\n\\begin{align*}\nx_1 &= 211, \\\\\nx_2 &= 375, \\\\\nx_3 &= 420, \\\\\nx_4 &= 523.\n\\end{align*}\n\\]\nFor \\( n \\geq 5 \\), each term is defined recursively by:\n\\[\nx_n = x_{n-1} - x_{n-2} + x_{n-3} - x_{n-4}.\n\\]\nOur task is to compute \\( x_{531} + x_{753} + x_{975} \\).\n\n### Step 2: Identifying Patterns\nSince directly computing terms up to \\( n = 975 \\) would be impractical, we look for a repeating pattern or cycle in the sequence. If the sequence repeats after a certain number of terms, we can determine the position of any term within the cycle and use that to find its value.\n\n### Step 3: Calculating Subsequent Terms\nLet's compute the next few terms to identify any patterns:\n\n\\[\n\\begin{align*}\nx_5 &= x_4 - x_3 + x_2 - x_1 = 523 - 420 + 375 - 211 = 267, \\\\\nx_6 &= x_5 - x_4 + x_3 - x_2 = 267 - 523 + 420 - 375 = -211, \\\\\nx_7 &= x_6 - x_5 + x_4 - x_3 = -211 - 267 + 523 - 420 = -375, \\\\\nx_8 &= x_7 - x_6 + x_5 - x_4 = -375 - (-211) + 267 - 523 = -420, \\\\\nx_9 &= x_8 - x_7 + x_6 - x_5 = -420 - (-375) + (-211) - 267 = -523, \\\\\nx_{10} &= x_9 - x_8 + x_7 - x_6 = -523 - (-420) + (-375) - (-211) = -267, \\\\\nx_{11} &= x_{10} - x_9 + x_8 - x_7 = -267 - (-523) + (-420) - (-375) = 211, \\\\\nx_{12} &= x_{11} - x_{10} + x_9 - x_8 = 211 - (-267) + (-523) - (-420) = 375, \\\\\nx_{13} &= x_{12} - x_{11} + x_{10} - x_9 = 375 - 211 + (-267) - (-523) = 420, \\\\\nx_{14} &= x_{13} - x_{12} + x_{11} - x_{10} = 420 - 375 + 211 - (-267) = 523, \\\\\nx_{15} &= x_{14} - x_{13} + x_{12} - x_{11} = 523 - 420 + 375 - 211 = 267.\n\\end{align*}\n\\]\n\n### Step 4: Observing the Cycle\nComparing the computed terms, we notice that \\( x_{11} = x_1 \\) and \\( x_{12} = x_2 \\). This suggests that the sequence repeats every 10 terms.\n\n**Cycle:** \\( 211, 375, 420, 523, 267, -211, -375, -420, -523, -267 \\)\n\n### Step 5: Determining Positions in the Cycle\nTo find \\( x_{531} \\), \\( x_{753} \\), and \\( x_{975} \\), we need to determine their positions within the 10-term cycle.\n\nThe formula to find the position within the cycle is:\n\\[\n\\text{Position} = (n \\mod 10)\n\\]\nIf \\( n \\mod 10 = 0 \\), the position is 10; otherwise, it's \\( n \\mod 10 \\).\n\nLet's compute the positions:\n\n\\[\n\\begin{align*}\n531 \\mod 10 &= 1 \\quad \\Rightarrow \\quad x_{531} = x_1 = 211, \\\\\n753 \\mod 10 &= 3 \\quad \\Rightarrow \\quad x_{753} = x_3 = 420, \\\\\n975 \\mod 10 &= 5 \\quad \\Rightarrow \\quad x_{975} = x_5 = 267.\n\\end{align*}\n\\]\n\n### Step 6: Calculating the Sum\nNow, we sum the corresponding values:\n\n\\[\nx_{531} + x_{753} + x_{975} = 211 + 420 + 267 = 898\n\\]\n\n### Final Answer\n\\[\n\\boxed{898}\n\\]",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 1308,
+    "readout_prompt_tokens": 1938,
+    "readout_allowance": 8192,
+    "readout_prompt_tokens_estimate": 1938,
+    "readout_context_overflow": false,
+    "readout_triggering_label": "Almost certain",
+    "readout_confidence_event": "\\confidence{Almost certain}",
+    "readout_prompt_sha256": "cb0f14f562c4f1de31f15f7d5a90c3a4c89846b09116529e793409467b531928",
+    "readout_latency_seconds": 38.05511198495515,
+    "at_trigger_id": 1,
+    "retry_count": 0
+  }
+}
