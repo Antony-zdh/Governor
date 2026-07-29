@@ -120,7 +120,7 @@ class MainCollector:
         self.client = openai.OpenAI(
             api_key=args.api_key,
             base_url=args.url,
-            timeout=600,
+            timeout=1200,
         )
         self.output = args.output
         self.traj_dir = self.output / "traj"
