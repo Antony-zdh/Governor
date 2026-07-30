@@ -319,7 +319,7 @@ class CertaIndexMidCollector:
             ),
             "split_manifest": str(split_manifest),
             "split_manifest_sha256": common.sha256_file(split_manifest),
-            "expected_problem_count": common.EXPECTED_PROBLEM_COUNTS[self.dataset],
+            "expected_problem_count": len(traj_files),
         }
         self.provenance = method_provenance(
             METHOD,
@@ -553,7 +553,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         args.output / "probe_manifest.json",
         (args.output / "probes").glob("problem_*.json"),
         records_key="probes",
-        expected_problem_count=common.EXPECTED_PROBLEM_COUNTS[collector.dataset],
+        expected_problem_count=len(trajectory_paths(args.main_run)),
         elapsed_seconds=time.perf_counter() - started,
     )
     print(f"completion: {completion}")
