@@ -3,7 +3,13 @@ from transformers import AutoTokenizer
 from concurrent.futures import ThreadPoolExecutor
 
 ########################
-## Note that vllm automatically add <BoS> for some specific models (e.g., deepseek-ai's distill models), we need to avoid duplicated <BoS> tokens https://github.com/vllm-project/vllm/issues/9519
+## Original note (kept for reference): "vllm automatically add <BoS> for some specific models (e.g., deepseek-ai's distill models), we need to avoid duplicated <BoS> tokens https://github.com/vllm-project/vllm/issues/9519"
+## CORRECTION (verified 2026-07-30 via /tokenize on this server, vllm 0.25.1):
+## vLLM does NOT auto-add BOS for these DeepSeek distills -- their tokenizers
+## have add_bos_token=False (Qwen AND Llama), and add_special_tokens True/False
+## both yield no BOS. So the Qwen templates below intentionally carry no BOS and
+## get none. The Llama-8B template (further down) must add its own BOS because
+## that model is BOS-sensitive; see the detailed note there.
 ########################
 # Define a mapping of model names to their corresponding prompt templates
 MODEL_TEMPLATES = {
@@ -18,13 +24,18 @@ MODEL_TEMPLATES = {
 
 MODEL_TEMPLATES.update(
     {
-        # Unlike the Qwen-family DeepSeek distills above, vLLM does NOT
-        # auto-prepend <BoS> for this Llama-based distill (verified live:
-        # omitting it produces degenerate/garbled output from the first
-        # token), and this model needs an explicit "<think>\n" cue to start
-        # reasoning (the Qwen distills auto-emit <think> without one).
-        # Confirmed correct template via vLLM's /v1/chat/completions/render
-        # + /detokenize on this exact model/server.
+        # This Llama-based distill needs an EXPLICIT BOS. Note vLLM adds no
+        # BOS for ANY of these distills -- add_bos_token=False for the Qwen
+        # ones too, and /tokenize returns no BOS whether add_special_tokens
+        # is True or False (so the top-of-file "vllm auto-adds BOS" note is
+        # inaccurate for these models). The asymmetry is model sensitivity,
+        # not tokenization: the Qwen distills stay coherent without a BOS,
+        # but this Llama distill emits garbage from token 1 without it
+        # (Llama-family models are highly BOS-sensitive). The explicit BOS
+        # yields exactly one BOS token -- verified via /tokenize:
+        # [128000(BOS), 128011(User), ...] (no double BOS). The "<think>\n"
+        # cue starts reasoning, matching the DeepSeek-R1 template. End-to-end:
+        # 87.9% on math500 with this template vs 0/500 without the BOS.
         model: lambda p: "<｜begin▁of▁sentence｜><｜User｜>" + p + "<｜Assistant｜><think>\n"
         for model in ["deepseek-ai/DeepSeek-R1-Distill-Llama-8B"]
     }

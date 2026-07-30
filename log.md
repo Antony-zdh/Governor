@@ -4,6 +4,48 @@
 
 ---
 
+## 2026-07-30（续3）· ✅ Llama-8B 修复后重采完成（三 seed 验证健康）+ BOS 机制更正 + 聚合启动
+
+本条**正式作废并取代**上一条（续2）里已 push 的 Llama-8B 数据 —— 用修复模板重采的干净数据为准。
+
+- **重采完成 & 验证健康**：修复 `clients.py` 模板后重新采集的 9 个 Llama-8B env 全部跑完
+  （math500/amc23/aime24 × seed 42/43/44，adaptive 题数 500/40/30 齐全）。三个 seed 的
+  math500 baseline 准确率 **88.6% / 88.0% / 88.6%**（对比坏模板下的 0/500 乱码）——
+  数字健康、seed 间一致,确认修复端到端生效。
+
+- **⚠️ BOS 机制更正（续2 的"解释"错了,修复本身没错）**：续2 里写"vLLM 不给 Llama
+  自动补 BOS(注释只对 Qwen 分词器成立)",**暗示 Qwen 系列会被 vLLM 自动补 BOS —— 这
+  是错的**。用运行中的服务器 `/tokenize`（vllm 0.25.1）+ `AutoTokenizer` 实测：三个 distill
+  （Qwen-7B、Qwen-32B、Llama-8B）**全部 `add_bos_token=False`**，`encode('hi')` 都不带
+  BOS，`/tokenize` 在 `add_special_tokens` 开/关下输出完全一致（都无 BOS）。**vLLM 对谁都
+  不自动补 BOS。** bug 只砸 Llama 的真正原因是**模型对 BOS 的敏感度**,不是分词差异：
+  Llama 系列缺 BOS 就从第一个 token 吐乱码,Qwen 系列缺 BOS 仍连贯。修复经 token 级确认
+  只加了**一个** BOS（模板 tokenizes 成 `[128000(BOS), 128011(<｜User｜>), ...]`,无双 BOS）。
+  **推论：Qwen 7B/8B/32B 的结果(同样从来没带 BOS)依然有效,只有 Llama 需要修复。**
+  已把 `clients.py` 顶部"vllm auto-adds BOS"的错误注释 + Llama 段的错误解释都改成实测结论
+  （本条随代码一起提交）。
+
+- **重采时的并行加速**：原来 `cllama_A` 是 `for s in 42 44` 把 seed42/44 串行挤在一张卡,
+  seed44 一直被堵在 seed42 后面、且三个 benchmark 还串行。改法:kill 掉串行 loop,seed42
+  独立跑（GPU6）、seed44 按 benchmark 拆成三路并行（GPU0/1/4）、seed43 不动（GPU7），
+  从 2 张卡用到 5 张卡。收尾阶段又给 `adaptive_probe.py` 打了个**向后兼容的
+  `--shard-index/--shard-count` 补丁**（默认满跑,不影响在跑进程；备份 `.bak`），在空闲
+  GPU1/4 上起了两个 shard helper 分片啃 seed44 math500 的 adaptive 长尾——全靠已有的
+  skip-existing + 每题独立文件,分片不相交,无合并、无污染。
+
+- **聚合已启动（后台,~2h）**：新建 `governor_v2_scale_llama` 符号链接子目录（指向 9 个干净
+  env），跑 K=64 sharded sweep（tmux `agg_llama`，log `agg_llama_shard.log`）→ 之后
+  `frontier_floor`（dev）+ dev↔test 交叉验证（复用 `analysis/scale_32b_devtest.py`，读同一
+  sweep gz）。**Llama floor 数值 + 覆盖 git 里那份坏数据,将在 sweep 完成后单独一条日志/提交
+  给出**（本次提交只含代码修复 + 本日志,不含大数据）。旧的 broken `sweep_scale_llama.jsonl.gz`
+  （本地未跟踪,不提交）来自坏数据,已弃用。
+
+- **坑**：别在没查 tokenizer `add_bos_token` + `/tokenize`（两种 `add_special_tokens`）之前,
+  就断言"vLLM 对某模型加/不加 BOS"。同一 vendor 同一 family 的跨架构 distill,BOS 需求由
+  **模型敏感度**决定,不是 server 行为——同一个无-BOS 模板 Qwen 能扛、Llama 直接崩。
+
+---
+
 ## 2026-07-30（续2）· ⚠️ 重大发现：Llama-8B prompt 模板 bug，之前所有 Llama-8B 结果作废（含已 push 的）
 
 - **诱因**：Llama-8B scale-dev sweep 出来后,dev split 上**所有 rule×benchmark×seed 的
