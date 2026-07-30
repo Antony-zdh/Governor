@@ -13,9 +13,22 @@ MODEL_TEMPLATES = {
         "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
         "deepseek-ai/DeepSeek-R1-Distill-Qwen-14B",
         "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
-        "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
     ]
 }
+
+MODEL_TEMPLATES.update(
+    {
+        # Unlike the Qwen-family DeepSeek distills above, vLLM does NOT
+        # auto-prepend <BoS> for this Llama-based distill (verified live:
+        # omitting it produces degenerate/garbled output from the first
+        # token), and this model needs an explicit "<think>\n" cue to start
+        # reasoning (the Qwen distills auto-emit <think> without one).
+        # Confirmed correct template via vLLM's /v1/chat/completions/render
+        # + /detokenize on this exact model/server.
+        model: lambda p: "<｜begin▁of▁sentence｜><｜User｜>" + p + "<｜Assistant｜><think>\n"
+        for model in ["deepseek-ai/DeepSeek-R1-Distill-Llama-8B"]
+    }
+)
 
 MODEL_TEMPLATES.update(
     {

@@ -4,6 +4,44 @@
 
 ---
 
+## 2026-07-30（续2）· ⚠️ 重大发现：Llama-8B prompt 模板 bug，之前所有 Llama-8B 结果作废（含已 push 的）
+
+- **诱因**：Llama-8B scale-dev sweep 出来后,dev split 上**所有 rule×benchmark×seed 的
+  `baseline_accuracy` 全是 0.0**——不只是难的 aime24,连 math500(每 seed 100 题)也是
+  0/100。抽查一条原始轨迹,`full_text` 从第一个字符就是乱码
+  (`'ab=×�×=×[×+×+×+++...'`,逐渐退化成重复的 `.`/`[ ]`),472/500 撞满 token 上限,
+  0/500 答对——不是"模型弱",是生成本身就没在说话。
+- **根因定位(直接在服务器 vLLM 上 A/B 实测)**:`benchmark/TokenDeprivation/clients.py`
+  的 `MODEL_TEMPLATES` 把 Qwen 系列的模板 `"<｜User｜>"+p+"<｜Assistant｜>"` 也套用在
+  `deepseek-ai/DeepSeek-R1-Distill-Llama-8B` 上,但这个模型**缺 `<｜begin▁of▁sentence｜>`
+  开头 BOS(vLLM 并不会像代码注释声称的那样自动补——那条注释显然只对 Qwen 分词器成立)
+  、也缺 `<think>\n` 起始推理提示词(Qwen 系列不给这个提示也会自己吐 `<think>`,这个
+  模型不会)**。用同一台服务器的 `/v1/chat/completions/render`+`/detokenize` 拿到该
+  模型自己 tokenizer_config 里真正正确的模板:
+  `<｜begin▁of▁sentence｜><｜User｜>{p}<｜Assistant｜><think>\n`,现场用 `/v1/completions`
+  验证——**换上正确模板后推理完全连贯**;反过来用坏模板喂一句"What is the capital of
+  France?"这种简单问题也照样复现乱码,排除是数学内容本身触发的偶然现象。
+- **影响范围(比想象的大得多)**:`collect_main.py`/`dense_probe.py`/`adaptive_probe.py`/
+  `preflight.py` 全部共用这同一个 `apply_chat_template`,所以主生成、dense probe、
+  adaptive probe 三个阶段全部受影响。抽查 **2026-07-28 held-out confirmation
+  run(seed45)** 的 Llama-8B 轨迹,同样是 `correct=False`/`final_answer=''`——说明这
+  个 bug **至少从 07-28 就存在,不是这次通宵新引入的回归**。也就是说:paper 里"未见
+  模型(Llama-8B)100% 规则 worst-case 掉点"这条 confirmation 结论,以及上一条日志
+  刚提交并 push 的 Llama-8B math500/amc23 数据,**全部建立在坏 prompt 之上,不代表
+  真实模型行为,需要作废重收集**。
+- **已采取的行动**:只改了 `clients.py` 里专属 Llama-8B 的一条模板 entry(新增独立
+  entry,Qwen 系列原样不动,零风险);把 9 个坏 env 整体移到
+  `results/governor_v2_scale_dev_BROKEN_llama_template/`(保留证据,不删除);vLLM
+  server(`vllama_0`/`vllama_1`)不用重启(bug 在 client 侧,进程重新 import 一次
+  `clients.py` 就生效);在 GPU6/7 上重新拉起干净的 9-env Llama-8B 采集
+  (`cllama_A`/`cllama_B`,日志 `col_cllama_A_v2.log`/`col_cllama_B_v2.log`)。
+- **本条不改动 git 历史**:上一条日志已 push 的 Llama-8B math500/amc23 数据先保留在
+  远端(不 force-push/不回滚),等新数据跑完验证是健康的之后,**下一条日志会明确标注
+  上一条的 Llama-8B 部分作废,并提交修复后的真实数据覆盖**。32B 部分完全不受影响
+  (32B 全程用 Qwen 系列模板,本来就没走这条坏路径)。
+
+---
+
 ## 2026-07-30 · ④ 32B scale floor 出结果 + Llama-8B 通宵进度 + timeout 崩溃修复
 
 - **④ 32B floor（`sweep_scale_32b.jsonl.gz`，94% 规则覆盖——4 个"病态"耗时 shard
