@@ -1,0 +1,43 @@
+{
+  "schema_version": "governor-v2-main-trajectory-1",
+  "problem_id": 271,
+  "dataset": "math500",
+  "problem": "Compute $997^{-1}$ modulo $1000$. Express your answer as an integer from $0$ to $999$.",
+  "target": "333",
+  "level": 4,
+  "subject": "Number Theory",
+  "unique_id": "test/number_theory/634.json",
+  "full_text": "<think>\nOkay, so I need to find the inverse of 997 modulo 1000. Hmm, that means I need to find an integer x such that when I multiply it by 997, the result is congruent to 1 modulo 1000. In other words, 997 * x ≡ 1 mod 1000. \n\nI remember that to find the modular inverse, the number and the modulus need to be coprime. Since 997 is a prime number and 1000 is 2^3 * 5^3, they don't share any common factors besides 1. So, that means the inverse exists. Good.\n\nI think the standard way to find the inverse is using the Extended Euclidean Algorithm. Let me recall how that works. The algorithm finds integers x and y such that ax + by = gcd(a, b). In this case, a is 997 and b is 1000. Since we already know they are coprime, the gcd will be 1, and thus the equation will be 997x + 1000y = 1. The x here will be the inverse of 997 modulo 1000.\n\nLet me set up the algorithm step by step.\n\nFirst, divide 1000 by 997. \n\n1000 divided by 997 is 1 with a remainder of 3. So, I can write that as:\n1000 = 1 * 997 + 3\n\nNow, take 997 and divide it by the remainder 3.\n\n997 divided by 3 is 332 with a remainder of 1, because 3*332 is 996, so 997 - 996 is 1. So:\n997 = 332 * 3 + 1\n\nNext, take 3 and divide it by the remainder 1.\n\n3 divided by 1 is 3 with a remainder of 0:\n3 = 3 * 1 + 0\n\nSince the remainder is now 0, the algorithm stops, and the gcd is the last non-zero remainder, which is 1. That's consistent with what we knew.\n\nNow, to find the coefficients x and y, we need to work backwards.\n\nStarting from the second last equation:\n1 = 997 - 332 * 3\n\nBut we know from the first equation that 3 = 1000 - 1 * 997. Let me substitute that into the equation above.\n\nSo replacing 3 with (1000 - 1 * 997):\n1 = 997 - 332 * (1000 - 1 * 997)\nLet me expand that:\n1 = 997 - 332 * 1000 + 332 * 997\nCombine like terms:\n1 = (1 + 332) * 997 - 332 * 1000\n1 = 333 * 997 - 332 * 1000\n\nSo, in terms of the equation ax + by = gcd(a, b), that would be:\n1 = 333 * 997 + (-332) * 1000\n\nTherefore, x is 333, and y is -332.\n\nBut since we're working modulo 1000, we can take x modulo 1000 to find the smallest positive integer equivalent. 333 is already less than 1000, so that's our inverse.\n\nWait, let me check that. If I multiply 997 by 333, does it give me 1 modulo 1000?\n\nLet me compute 997 * 333.\n\nFirst, compute 1000 * 333 = 333,000. Then subtract 3 * 333 = 999. So, 333,000 - 999 = 332,001.\n\nNow, 332,001 divided by 1000 is 332 with a remainder of 1. So, 332,001 ≡ 1 mod 1000. Perfect, that checks out.\n\nSo, 333 is indeed the inverse of 997 modulo 1000.\n\nBut just to make sure I didn't make any mistakes in my calculations, let me go through the steps again.\n\nStarting with the Euclidean algorithm:\n\n1000 divided by 997 is 1, remainder 3. Correct.\n997 divided by 3 is 332, remainder 1. Correct.\n3 divided by 1 is 3, remainder 0. Correct.\n\nThen, writing the gcd as a linear combination:\n\n1 = 997 - 332*3\nBut 3 = 1000 - 1*997, so substitute:\n1 = 997 - 332*(1000 - 997)\n1 = 997 - 332*1000 + 332*997\n1 = (1 + 332)*997 - 332*1000\n1 = 333*997 - 332*1000\n\nYes, that seems right. So, x is 333, which is the coefficient for 997. Therefore, 333 is the inverse.\n\nAlternatively, another way to think about it is to note that 997 ≡ -3 mod 1000. So, finding the inverse of 997 mod 1000 is equivalent to finding the inverse of -3 mod 1000.\n\nSo, if I can find an integer x such that (-3)x ≡ 1 mod 1000, then x is the inverse. So,  -3x ≡ 1 mod 1000. Which is the same as 3x ≡ -1 mod 1000, or 3x ≡ 999 mod 1000.\n\nSo, solving 3x ≡ 999 mod 1000. Then, x ≡ 999 / 3 mod 1000. 999 divided by 3 is 333, so x ≡ 333 mod 1000. That's another way to see it.\n\nSo, both methods lead to the same result, which is reassuring.\n\nJust to make sure, let me compute 997 * 333 mod 1000.\n\nCompute 997 * 333:\n\nFirst, 1000 * 333 = 333,000.\n\nBut 997 is 1000 - 3, so 997 * 333 = (1000 - 3) * 333 = 1000*333 - 3*333 = 333,000 - 999 = 332,001.\n\nNow, 332,001 divided by 1000 is 332 with a remainder of 1. So, 332,001 ≡ 1 mod 1000. Perfect, that's exactly what we wanted.\n\nTherefore, I can be confident that 333 is indeed the inverse of 997 modulo 1000.\n\nI think that's solid. I don't see any mistakes in my reasoning, and both approaches—using the Extended Euclidean Algorithm and simplifying the problem by recognizing that 997 ≡ -3 mod 1000—lead to the same answer. So, I feel good about this.\n\n**Final Answer**\nThe inverse of 997 modulo 1000 is \\boxed{333}.\n</think>\n\nTo find the inverse of 997 modulo 1000, we need to find an integer \\( x \\) such that \\( 997x \\equiv 1 \\pmod{1000} \\). Using the Extended Euclidean Algorithm, we start by dividing 1000 by 997:\n\n\\[\n1000 = 1 \\cdot 997 + 3\n\\]\n\nNext, we divide 997 by the remainder 3:\n\n\\[\n997 = 332 \\cdot 3 + 1\n\\]\n\nThen, we divide 3 by the remainder 1:\n\n\\[\n3 = 3 \\cdot 1 + 0\n\\]\n\nSince the remainder is now 0, the algorithm stops, and the gcd is the last non-zero remainder, which is 1. We work backwards to express 1 as a linear combination of 997 and 1000:\n\n\\[\n1 = 997 - 332 \\cdot 3\n\\]\n\nSubstituting \\( 3 = 1000 - 1 \\cdot 997 \\) into the equation:\n\n\\[\n1 = 997 - 332 \\cdot (1000 - 1 \\cdot 997)\n\\]\n\nExpanding and combining like terms:\n\n\\[\n1 = 997 - 332 \\cdot 1000 + 332 \\cdot 997\n\\]\n\\[\n1 = (1 + 332) \\cdot 997 - 332 \\cdot 1000\n\\]\n\\[\n1 = 333 \\cdot 997 - 332 \\cdot 1000\n\\]\n\nThus, \\( x = 333 \\) is the coefficient for 997, making it the inverse of 997 modulo 1000. Verifying, we compute \\( 997 \\times 333 \\mod 1000 \\) and find it congruent to 1. Therefore, the inverse of 997 modulo 1000 is \\(\\boxed{333}\\).",
+  "tokens_used": 2279,
+  "finished_naturally": true,
+  "finish_reason": "stop",
+  "final_answer": "333",
+  "final_correct": true,
+  "accounting": {
+    "main_decode_tokens": 2279,
+    "main_prompt_tokens": 33,
+    "main_calls": 1,
+    "main_wall_clock_seconds": 69.45023308042437
+  },
+  "run_settings": {
+    "collection_schema": "governor-v2-main-1",
+    "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+    "dataset": "math500",
+    "dataset_path": "/home/m2556377578/Governor_v2/benchmark/TokenDeprivation/data/math500/test.jsonl",
+    "budget": 16384,
+    "temperature": 0.6,
+    "top_p": 0.95,
+    "base_seed": 43,
+    "protocol_version": "governor-v2-preregistered-2026-07-27.10",
+    "phase": "development",
+    "model_role": "development",
+    "split_labels": [
+      "train",
+      "dev",
+      "test"
+    ],
+    "problem_ids_file": "/home/m2556377578/Governor_v2/benchmark/FalseConsensus/governor_v2/generated/problem_ids/math500__train_dev_test.txt",
+    "main_request_mode": "single_request",
+    "main_seed": 314
+  }
+}

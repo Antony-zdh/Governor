@@ -1,0 +1,43 @@
+{
+  "schema_version": "governor-v2-main-trajectory-1",
+  "problem_id": 175,
+  "dataset": "math500",
+  "problem": "If $m$ and $n$ are integers such that $3m + 4n = 100$, what is the smallest possible value of $\\left| m - n \\right|$ ?",
+  "target": "3",
+  "level": 2,
+  "subject": "Intermediate Algebra",
+  "unique_id": "test/intermediate_algebra/991.json",
+  "full_text": "<think>\nOkay, so I have this problem: find the smallest possible value of |m - n| where m and n are integers satisfying 3m + 4n = 100. Hmm, let me think about how to approach this.\n\nFirst off, I know that since m and n are integers, this is a Diophantine equation. Diophantine equations are equations that seek integer solutions, so I might need to use some techniques from number theory to solve this.\n\nThe equation is 3m + 4n = 100. I need to find integers m and n such that this holds, and then among all such pairs, find the one where the absolute difference |m - n| is minimized. Got it.\n\nSo, maybe I can express one variable in terms of the other and then see what constraints there are. Let's try solving for m in terms of n.\n\nStarting with 3m + 4n = 100, subtract 4n from both sides: 3m = 100 - 4n.\n\nThen, divide both sides by 3: m = (100 - 4n)/3.\n\nSince m has to be an integer, (100 - 4n) must be divisible by 3. So, 100 - 4n ≡ 0 mod 3. Let me write that as:\n\n100 ≡ 4n mod 3.\n\nBut 100 divided by 3 is 33 with a remainder of 1, so 100 ≡ 1 mod 3. Similarly, 4 ≡ 1 mod 3, so 4n ≡ n mod 3. Therefore, the equation becomes:\n\n1 ≡ n mod 3.\n\nWhich means n ≡ 1 mod 3. So, n can be written as 3k + 1, where k is an integer.\n\nAlright, substituting back into the expression for m:\n\nm = (100 - 4*(3k + 1))/3.\n\nLet me compute that:\n\nFirst, expand the numerator: 100 - 12k - 4 = 96 - 12k.\n\nSo, m = (96 - 12k)/3 = 32 - 4k.\n\nSo, now we have expressions for both m and n in terms of k:\n\nm = 32 - 4k,\nn = 3k + 1.\n\nSo, m and n are expressed in terms of integer k. Now, I need to find the integer k such that |m - n| is minimized.\n\nLet me compute m - n:\n\nm - n = (32 - 4k) - (3k + 1) = 32 - 4k - 3k - 1 = 31 - 7k.\n\nSo, |m - n| = |31 - 7k|. We need to find the integer k that minimizes this absolute value.\n\nSo, essentially, we need to find integer k such that 31 - 7k is as close to zero as possible.\n\nSo, 31 - 7k ≈ 0 => 7k ≈ 31 => k ≈ 31/7 ≈ 4.42857.\n\nSo, the closest integers to 4.42857 are 4 and 5. Let's check both.\n\nFirst, k = 4:\n\nm = 32 - 4*4 = 32 - 16 = 16,\nn = 3*4 + 1 = 12 + 1 = 13,\n|m - n| = |16 - 13| = |3| = 3.\n\nNext, k = 5:\n\nm = 32 - 4*5 = 32 - 20 = 12,\nn = 3*5 + 1 = 15 + 1 = 16,\n|m - n| = |12 - 16| = | -4 | = 4.\n\nSo, between k=4 and k=5, k=4 gives a smaller |m - n| of 3, whereas k=5 gives 4. So, 3 is better.\n\nBut wait, just to make sure, maybe there are other k's nearby that could give a smaller value? Let's check k=3 and k=6 just in case.\n\nFor k=3:\n\nm = 32 - 4*3 = 32 - 12 = 20,\nn = 3*3 + 1 = 9 + 1 = 10,\n|m - n| = |20 - 10| = 10.\n\nThat's larger than 3, so not better.\n\nFor k=6:\n\nm = 32 - 4*6 = 32 - 24 = 8,\nn = 3*6 + 1 = 18 + 1 = 19,\n|m - n| = |8 - 19| = 11.\n\nAlso larger.\n\nWhat about k=2:\n\nm = 32 - 4*2 = 24,\nn = 3*2 +1 =7,\n|m -n| = |24 -7| =17.\n\nDefinitely worse.\n\nSimilarly, k=7:\n\nm=32 -28=4,\nn=21 +1=22,\n|m -n|=|4-22|=18.\n\nSo, yes, k=4 gives the smallest |m -n| so far, which is 3.\n\nBut wait, is there another k where |31 -7k| is less than 3? Let's check.\n\nWe have |31 -7k| <3.\n\nWhich would mean that 31 -7k is between -3 and 3, so:\n\n-3 < 31 -7k <3.\n\nLet's solve for k:\n\nFirst inequality: 31 -7k > -3 => 31 +3 >7k =>34>7k =>k <34/7≈4.857.\n\nSecond inequality:31 -7k <3 =>31 -3 <7k =>28 <7k =>4 <k.\n\nSo, combining both, 4 <k <4.857.\n\nBut k must be integer, so k=5.\n\nBut wait, when k=5, we saw that |31 -7*5|=|31 -35|=| -4|=4, which is not less than 3, so there's no integer k where |31 -7k| is less than 3.\n\nThus, the minimal |m -n| is 3, achieved at k=4.\n\nWait, but hold on, let me double-check. Maybe I made a mistake in computing m and n for k=4.\n\nFor k=4:\n\nm=32 -16=16,\n\nn=12 +1=13,\n\nSo, |16 -13|=3.\n\nYes, that's correct.\n\nBut just to be thorough, let me list out some possible k's and compute |m -n|:\n\nk=4: |31 -28|=3,\n\nk=5: |31 -35|=4,\n\nk=3: |31 -21|=10,\n\nk=6: |31 -42|=11,\n\nk=2: |31 -14|=17,\n\nk=7: |31 -49|=18,\n\nk=1: |31 -7|=24,\n\nk=0: |31 -0|=31,\n\nNegative k:\n\nk=-1: |31 - (-7)|=|38|=38,\n\nk=-2: |31 - (-14)|=45,\n\nWhich is getting larger as k moves away from 4.\n\nSo, indeed, the minimal |m -n| is 3.\n\nBut just to make sure, is there another way to approach this problem?\n\nAlternatively, maybe I can express n in terms of m and then see.\n\nFrom 3m +4n=100,\n\n4n=100 -3m,\n\nn=(100 -3m)/4.\n\nSince n must be integer, 100 -3m must be divisible by 4.\n\nSo, 100 ≡ 3m mod4.\n\n100 divided by 4 is 25, so 100≡0 mod4.\n\nThus, 0 ≡3m mod4.\n\nWhich implies that 3m ≡0 mod4.\n\nSince 3 and 4 are coprime, this implies m≡0 mod4.\n\nSo, m=4k for some integer k.\n\nSo, substituting back:\n\nn=(100 -3*(4k))/4=(100 -12k)/4=25 -3k.\n\nSo, now, m=4k,\n\nn=25 -3k.\n\nThus, m -n=4k - (25 -3k)=4k -25 +3k=7k -25.\n\nSo, |m -n|=|7k -25|.\n\nWe need to minimize |7k -25|.\n\nSo, 7k ≈25, so k≈25/7≈3.571.\n\nSo, closest integers k=3 and k=4.\n\nCompute |7*3 -25|=|21 -25|=4,\n\n|7*4 -25|=|28 -25|=3.\n\nSo, same result as before: minimal |m -n| is 3 when k=4.\n\nThus, the minimal value is 3.\n\nTherefore, the smallest possible value of |m -n| is 3.\n\n**Final Answer**\nThe smallest possible value of $\\left| m - n \\right|$ is \\boxed{3}.\n</think>\n\nGiven the equation \\(3m + 4n = 100\\) where \\(m\\) and \\(n\\) are integers, we need to find the smallest possible value of \\(|m - n|\\).\n\nFirst, we express \\(m\\) in terms of \\(n\\):\n\\[ 3m = 100 - 4n \\]\n\\[ m = \\frac{100 - 4n}{3} \\]\n\nFor \\(m\\) to be an integer, \\(100 - 4n\\) must be divisible by 3. This gives:\n\\[ 100 \\equiv 4n \\pmod{3} \\]\nSince \\(100 \\equiv 1 \\pmod{3}\\) and \\(4 \\equiv 1 \\pmod{3}\\), we have:\n\\[ 1 \\equiv n \\pmod{3} \\]\nThus, \\(n\\) can be written as \\(n = 3k + 1\\) for some integer \\(k\\).\n\nSubstituting \\(n = 3k + 1\\) back into the equation for \\(m\\):\n\\[ m = \\frac{100 - 4(3k + 1)}{3} \\]\n\\[ m = \\frac{100 - 12k - 4}{3} \\]\n\\[ m = \\frac{96 - 12k}{3} \\]\n\\[ m = 32 - 4k \\]\n\nNow, we have:\n\\[ m = 32 - 4k \\]\n\\[ n = 3k + 1 \\]\n\nWe need to minimize \\(|m - n|\\):\n\\[ m - n = (32 - 4k) - (3k + 1) = 31 - 7k \\]\n\\[ |m - n| = |31 - 7k| \\]\n\nTo minimize \\(|31 - 7k|\\), we approximate:\n\\[ 31 \\approx 7k \\]\n\\[ k \\approx \\frac{31}{7} \\approx 4.42857 \\]\n\nChecking the integers around 4.42857, we find:\n- For \\(k = 4\\):\n  \\[ m = 32 - 4 \\cdot 4 = 16 \\]\n  \\[ n = 3 \\cdot 4 + 1 = 13 \\]\n  \\[ |m - n| = |16 - 13| = 3 \\]\n\n- For \\(k = 5\\):\n  \\[ m = 32 - 4 \\cdot 5 = 12 \\]\n  \\[ n = 3 \\cdot 5 + 1 = 16 \\]\n  \\[ |m - n| = |12 - 16| = 4 \\]\n\nThus, the smallest possible value of \\(|m - n|\\) is 3.\n\nTherefore, the smallest possible value of \\(\\left| m - n \\right|\\) is \\(\\boxed{3}\\).",
+  "tokens_used": 2801,
+  "finished_naturally": true,
+  "finish_reason": "stop",
+  "final_answer": "3",
+  "final_correct": true,
+  "accounting": {
+    "main_decode_tokens": 2801,
+    "main_prompt_tokens": 44,
+    "main_calls": 1,
+    "main_wall_clock_seconds": 84.18243484944105
+  },
+  "run_settings": {
+    "collection_schema": "governor-v2-main-1",
+    "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+    "dataset": "math500",
+    "dataset_path": "/home/m2556377578/Governor_v2/benchmark/TokenDeprivation/data/math500/test.jsonl",
+    "budget": 16384,
+    "temperature": 0.6,
+    "top_p": 0.95,
+    "base_seed": 42,
+    "protocol_version": "governor-v2-preregistered-2026-07-27.10",
+    "phase": "development",
+    "model_role": "development",
+    "split_labels": [
+      "train",
+      "dev",
+      "test"
+    ],
+    "problem_ids_file": "/home/m2556377578/Governor_v2/benchmark/FalseConsensus/governor_v2/generated/problem_ids/math500__train_dev_test.txt",
+    "main_request_mode": "single_request",
+    "main_seed": 217
+  }
+}

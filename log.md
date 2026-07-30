@@ -4,6 +4,41 @@
 
 ---
 
+## 2026-07-30 · ④ 32B scale floor 出结果 + Llama-8B 通宵进度 + timeout 崩溃修复
+
+- **④ 32B floor（`sweep_scale_32b.jsonl.gz`，94% 规则覆盖——4 个"病态"耗时 shard
+  被杀，mod-64 伪随机子集，稳健）**：DEV floor ≈0.000pp（`window_share_budget_fraction`
+  规则），但**这条 DEV 最安全的规则在 TEST 上掉 +8.33pp**；16,605 条规则
+  dev↔test per-rule Pearson r=**0.903**（7B/8B 是 0.96）；dev-drop≤1.5pp 的
+  1,628 条规则，TEST 上掉 min+0.00/**mean+2.58**/max+8.33pp——**没有一条规则
+  同时在两个 split 上都安全**，负面结论在 32B 规模下依然成立（不是小模型的
+  伪影，回应了"consensus 在模型足够大时才可靠"的假设）。脚本+输出：
+  `governor_v2/analysis/scale_32b_devtest.{py,txt}`。
+- **Llama-8B 架构泛化**：math500 + amc23（3 seed 全跑完）已提交；aime24 卡在
+  32K budget 下的长生成——`collect_main.py` 硬编码 `timeout=600`（10min）撞上
+  该模型单流 ~30 tok/s 的实际吞吐（32768 token 需要 ~18min），导致
+  `openai.APITimeoutError` → 4 次重试耗尽 → 崩溃（cllama_A 崩过一次，被
+  `;`（非 `&&`）写的假 DONE 哨兵掩盖，未及时发现）。**修复：`collect_main.py:123`
+  timeout 600→2400**，删假哨兵重跑，确认幂等续跑生效（math500/amc23 秒级跳过，
+  aime24 从断点续跑）。截至本条记录，aime24 seed42/43 收尾中、seed44 主生成
+  进行中——**aime24 三 seed 数据 + Llama floor 留到下一条日志**，本次只提交
+  已完整跑完的 math500/amc23。
+- **③ probe-robustness（4 种 probe 后缀替代方案，验证 accuracy floor 结论是否
+  对 probe 措辞选择敏感）**：certaindex 变体已出 floor + CertaIndex 复现；
+  chat_templated 在跑 K=64 分片 sweep（18 env×17,712 规则，比照 32B 9-env 的
+  ~2h 经验，预计还要数小时）；open_ended/longer_trial 两个变体还没开始。原始
+  （未分片）sweep 会跑 50h+ 的坑、`replay_certaindex.py`/`evaluate_existing_methods.py`
+  两脚本仅存在于 `~/Governor`（旧目录）未同步到 `~/Governor_v2` 的坑、以及
+  `replay_certaindex.py` 的 `REPO_ROOT.relative_to()` 要求所有输入路径必须是
+  绝对路径的坑，均已在 v3 脚本（`run_probe_robust_v3.sh`）里修掉。
+- **本条提交范围**：④ 32B（9 env 全量，含 main/dense/adaptive 全量 trajectory，
+  84M）+ Llama-8B math500/amc23（6 env，300M 一起）+ 32B sweep 聚合文件
+  （20M，94% 规则覆盖版本，未来若补跑剩余 4 个 pathological shard 到 100% 会
+  再更新）+ analysis 脚本。aime24（Llama）、③ 的四个 probe 变体留待完成后
+  补一条日志再提交，避免半成品数据和最终数据混在一次提交里。
+
+---
+
 ## 2026-07-29（续）· ARR 复审 + ① test-split 确认 + 主表补全 + ④③ 备料
 
 - **两个 subagent 独立 ARR 复审（只看 paper 不看 repo）**：均 Soundness 2.5 / Excitement 3 /
