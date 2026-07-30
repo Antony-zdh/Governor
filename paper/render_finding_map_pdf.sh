@@ -17,7 +17,7 @@ pandoc paper/FINDING_EXPERIMENT_MAP.md \
   --toc-depth=2 \
   --metadata=title:"Governor Finding-Experiment 支撑矩阵" \
   --metadata=subtitle:"Claim-to-Evidence Audit with Experimental Appendix" \
-  --metadata=date:"2026-07-29" \
+  --metadata=date:"2026-07-30" \
   --metadata=lang:zh-CN \
   --metadata=pagetitle:"Governor Finding-Experiment Map" \
   -V papersize=a4 \

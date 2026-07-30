@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Recompute A1-A3 diagnostics over the Governor v2 development bank.
-
-The analysis intentionally uses one matched protocol:
-
-  2 models x 3 benchmarks x 3 seeds = 18 environments
+"""Recompute A1-A3 diagnostics over a Governor v2 development bank.
 
 It reports both problem-pooled estimates and equal-environment macro means so
 that the 400-problem MATH500 split does not silently dominate AMC23/AIME24.
@@ -140,12 +136,24 @@ def parse_environment(path: Path) -> tuple[str, str, int]:
     return match.group(1), match.group(2), int(match.group(3))
 
 
-def load_bank(root: Path) -> tuple[list[Trajectory], list[dict[str, Any]]]:
+def load_bank(
+    root: Path,
+    *,
+    environment_glob: str = "development__*",
+    expected_environments: int | None = 18,
+) -> tuple[list[Trajectory], list[dict[str, Any]]]:
     trajectories: list[Trajectory] = []
     environments: list[dict[str, Any]] = []
-    env_paths = sorted(path for path in root.glob("development__*") if path.is_dir())
-    if len(env_paths) != 18:
-        raise RuntimeError(f"expected 18 development environments, found {len(env_paths)}")
+    env_paths = sorted(path for path in root.glob(environment_glob) if path.is_dir())
+    if expected_environments is not None and len(env_paths) != expected_environments:
+        raise RuntimeError(
+            f"expected {expected_environments} development environments matching "
+            f"{environment_glob!r}, found {len(env_paths)}"
+        )
+    if not env_paths:
+        raise RuntimeError(
+            f"no development environments matching {environment_glob!r} under {root}"
+        )
 
     for env_path in env_paths:
         _, benchmark, seed = parse_environment(env_path)
@@ -565,6 +573,7 @@ def aggregate_strict(records: Sequence[dict[str, Any]]) -> tuple[list[dict[str, 
         for env in environments:
             selected = [record for record in all_selected if record["env"] == env]
             stopped = [record for record in selected if record["stopped"]]
+            false_stops = [record for record in stopped if record["false_stop"]]
             env_rows.append(
                 {
                     "environment": env,
@@ -585,6 +594,13 @@ def aggregate_strict(records: Sequence[dict[str, Any]]) -> tuple[list[dict[str, 
                     "false_stop_rate_given_stop": mean(
                         float(record["false_stop"]) for record in stopped
                     ),
+                    "consensus_accuracy_given_stop": mean(
+                        float(record["delivered_correct"]) for record in stopped
+                    ),
+                    "recovery_rate_given_false_consensus": rate(
+                        sum(record["recovery_killed"] for record in false_stops),
+                        len(false_stops),
+                    ),
                     "recovery_killed": sum(record["recovery_killed"] for record in selected),
                     "overthinking_avoided": sum(
                         record["overthinking_avoided"] for record in selected
@@ -601,6 +617,7 @@ def aggregate_strict(records: Sequence[dict[str, Any]]) -> tuple[list[dict[str, 
             )
         env_selected = [row for row in env_rows if row["window"] == window]
         stopped = [record for record in all_selected if record["stopped"]]
+        false_stops = [record for record in stopped if record["false_stop"]]
         aggregate.append(
             {
                 "window": window,
@@ -632,6 +649,20 @@ def aggregate_strict(records: Sequence[dict[str, Any]]) -> tuple[list[dict[str, 
                 "false_stop_n": sum(record["false_stop"] for record in all_selected),
                 "macro_false_stop_rate_given_stop": mean(
                     row["false_stop_rate_given_stop"] for row in env_selected
+                ),
+                "pooled_consensus_accuracy_given_stop": mean(
+                    float(record["delivered_correct"]) for record in stopped
+                ),
+                "macro_consensus_accuracy_given_stop": mean(
+                    row["consensus_accuracy_given_stop"] for row in env_selected
+                ),
+                "pooled_recovery_rate_given_false_consensus": rate(
+                    sum(record["recovery_killed"] for record in false_stops),
+                    len(false_stops),
+                ),
+                "macro_recovery_rate_given_false_consensus": mean(
+                    row["recovery_rate_given_false_consensus"]
+                    for row in env_selected
                 ),
                 "mean_main_tokens_saved_given_stop": mean(
                     float(record["gross_saved_tokens"]) for record in stopped
@@ -714,13 +745,29 @@ def aggregate_mechanism(records: Sequence[dict[str, Any]]) -> list[dict[str, Any
         for env in environments:
             env_selected = [record for record in selected if record["env"] == env]
             reached = [record for record in env_selected if record["reached"]]
+            wrong_consensus = [
+                record
+                for record in reached
+                if record["category"] in {"recovery", "persistent_wrong"}
+            ]
             first_wrong = [record for record in env_selected if not record["first_probe_correct"]]
             env_metrics.append(
                 {
                     "reach_rate": rate(len(reached), len(env_selected)),
+                    "consensus_accuracy_reached": rate(
+                        sum(bool(record["consensus_correct"]) for record in reached),
+                        len(reached),
+                    ),
                     "recovery_rate_reached": rate(
                         sum(record["category"] == "recovery" for record in reached),
                         len(reached),
+                    ),
+                    "recovery_rate_given_wrong_consensus": rate(
+                        sum(
+                            record["category"] == "recovery"
+                            for record in wrong_consensus
+                        ),
+                        len(wrong_consensus),
                     ),
                     "overthinking_rate_reached": rate(
                         sum(record["category"] == "overthinking" for record in reached),
@@ -736,6 +783,9 @@ def aggregate_mechanism(records: Sequence[dict[str, Any]]) -> list[dict[str, Any
         reached = [record for record in selected if record["reached"]]
         first_wrong = [record for record in selected if not record["first_probe_correct"]]
         recovery = sum(record["category"] == "recovery" for record in reached)
+        persistent_wrong = sum(
+            record["category"] == "persistent_wrong" for record in reached
+        )
         overthinking = sum(record["category"] == "overthinking" for record in reached)
         result.append(
             {
@@ -744,12 +794,17 @@ def aggregate_mechanism(records: Sequence[dict[str, Any]]) -> list[dict[str, Any
                 "reached_n": len(reached),
                 "pooled_reach_rate": rate(len(reached), len(selected)),
                 "macro_reach_rate": mean(row["reach_rate"] for row in env_metrics),
+                "pooled_consensus_accuracy_reached": rate(
+                    sum(bool(record["consensus_correct"]) for record in reached),
+                    len(reached),
+                ),
+                "macro_consensus_accuracy_reached": mean(
+                    row["consensus_accuracy_reached"] for row in env_metrics
+                ),
                 "stable_correct": sum(
                     record["category"] == "stable_correct" for record in selected
                 ),
-                "persistent_wrong": sum(
-                    record["category"] == "persistent_wrong" for record in selected
-                ),
+                "persistent_wrong": persistent_wrong,
                 "recovery": recovery,
                 "overthinking": overthinking,
                 "recovery_overthinking_ratio": rate(recovery, overthinking),
@@ -763,6 +818,13 @@ def aggregate_mechanism(records: Sequence[dict[str, Any]]) -> list[dict[str, Any
                 "pooled_recovery_rate_reached": rate(recovery, len(reached)),
                 "macro_recovery_rate_reached": mean(
                     row["recovery_rate_reached"] for row in env_metrics
+                ),
+                "pooled_recovery_rate_given_wrong_consensus": rate(
+                    recovery, recovery + persistent_wrong
+                ),
+                "macro_recovery_rate_given_wrong_consensus": mean(
+                    row["recovery_rate_given_wrong_consensus"]
+                    for row in env_metrics
                 ),
                 "pooled_overthinking_rate_reached": rate(overthinking, len(reached)),
                 "macro_overthinking_rate_reached": mean(
@@ -865,12 +927,15 @@ def cross_axis_summary(
         ]
         reached = [record for record in mechanisms if record["reached"]]
         recovery = sum(record["category"] == "recovery" for record in reached)
+        persistent_wrong = sum(
+            record["category"] == "persistent_wrong" for record in reached
+        )
         overthinking = sum(record["category"] == "overthinking" for record in reached)
         result.append(
             {
                 "model": model,
                 "benchmark": benchmark,
-                "seeds": 3,
+                "seeds": len({row.seed for row in base}),
                 "n": len(base),
                 "final_accuracy": mean(float(row.final_correct) for row in base),
                 "natural_completion_rate": mean(float(row.natural) for row in base),
@@ -891,7 +956,18 @@ def cross_axis_summary(
                     sum(record["full_tokens"] for record in stops),
                 ),
                 "first_consensus_reached": len(reached),
+                "first_consensus_accuracy": mean(
+                    float(record["consensus_correct"]) for record in reached
+                ),
+                "first_consensus_false_rate": mean(
+                    float(not record["consensus_correct"]) for record in reached
+                ),
+                "recovery_rate_reached": rate(recovery, len(reached)),
+                "recovery_rate_given_wrong_consensus": rate(
+                    recovery, recovery + persistent_wrong
+                ),
                 "recovery": recovery,
+                "persistent_wrong": persistent_wrong,
                 "overthinking": overthinking,
                 "recovery_overthinking_ratio": rate(recovery, overthinking),
             }
@@ -1036,6 +1112,10 @@ def plot_consensus_time(rows: Sequence[dict[str, Any]], output: Path) -> None:
 
 def render_report(
     path: Path,
+    environment_count: int,
+    model_count: int,
+    benchmark_count: int,
+    seed_count: int,
     base_pooled: dict[str, Any],
     base_macro: dict[str, Any],
     cumulative_summary: Sequence[dict[str, Any]],
@@ -1048,15 +1128,17 @@ def render_report(
     lines = [
         "# Governor v2 multivariate A1-A3 diagnostic",
         "",
-        "Matched protocol: 2 models × 3 benchmarks × 3 seeds = 18 environments; "
-        "2,736 development trajectories; dense simple@32 probes every 64 main tokens. "
+        f"Matched protocol: {model_count} model(s) × {benchmark_count} benchmarks × "
+        f"{seed_count} seeds = {environment_count} environments; "
+        f"{base_pooled['trajectories']:,} development trajectories; "
+        "dense simple@32 probes every 64 main tokens. "
         "Pooled estimates weight problems; macro estimates weight each environment equally.",
         "",
         "## A1 scope and completeness",
         "",
         "| Metric | Problem-pooled | Environment-macro |",
         "|---|---:|---:|",
-        f"| Trajectories | {base_pooled['trajectories']:,} | 18 environments |",
+        f"| Trajectories | {base_pooled['trajectories']:,} | {environment_count} environments |",
         f"| Probe rows | {base_pooled['probe_rows']:,} | - |",
         f"| Empty probes | {base_pooled['empty_probe_answers']:,} ({pct(base_pooled['empty_probe_rate'])}) | {pct(base_macro['empty_probe_rate'])} |",
         f"| Natural completion | {base_pooled['natural_completion']:,} ({pct(base_pooled['natural_completion_rate'])}) | {pct(base_macro['natural_completion_rate'])} |",
@@ -1068,12 +1150,20 @@ def render_report(
         "",
         "### Model × benchmark audit (three seeds pooled; primary w=5)",
         "",
-        "| Model | Benchmark | n | Full acc | Last-5 FC rate | Strict-stop Δacc | "
-        "Net saving | Recovery / overthinking |",
-        "|---|---|---:|---:|---:|---:|---:|---:|",
+        "| Model | Benchmark | n | Full acc | First-consensus acc | Last-5 FC rate | "
+        "Strict-stop Δacc | Net saving | Recovery / overthinking |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in cross_axis:
-        model = "DeepSeek-7B" if "DeepSeek" in row["model"] else "Qwen3-8B"
+        raw_model = row["model"]
+        if "32B" in raw_model:
+            model = "DeepSeek-32B"
+        elif "Llama" in raw_model:
+            model = "Llama-8B"
+        elif "Qwen3" in raw_model:
+            model = "Qwen3-8B"
+        else:
+            model = "DeepSeek-7B"
         ratio = (
             "∞"
             if row["overthinking"] == 0 and row["recovery"] > 0
@@ -1081,7 +1171,8 @@ def render_report(
         )
         lines.append(
             f"| {model} | {row['benchmark'].upper()} | {row['n']} | "
-            f"{pct(row['final_accuracy'])} | {pct(row['last5_false_consensus_rate'])} | "
+            f"{pct(row['final_accuracy'])} | {pct(row['first_consensus_accuracy'])} | "
+            f"{pct(row['last5_false_consensus_rate'])} | "
             f"{row['strict_w5_accuracy_delta_pp']:.1f} pp | "
             f"{pct(row['strict_w5_net_output_saving'])} | "
             f"{row['recovery']} / {row['overthinking']} ({ratio}:1) |"
@@ -1115,21 +1206,29 @@ def render_report(
         )
     lines += [
         "",
-        "Strict stop below requires all w answers to be non-empty and normalized-equivalent; "
-        "net output saving charges every consumed probe completion.",
+        "Strict first consensus is the earliest run of exactly w consecutive probes whose "
+        "answers are non-empty, successfully parsed by the collector, and "
+        "normalized-equivalent. Net output saving charges every consumed probe completion.",
         "",
-        "| w | Stop coverage macro | Delivered acc / full acc macro | Δacc macro | "
-        "Net saving macro | False stops among stops macro | Recovery killed / overthinking avoided |",
-        "|---:|---:|---:|---:|---:|---:|---:|",
+        "| w | Reached pooled / macro | First-consensus acc pooled / macro | "
+        "False consensus pooled / macro | Wrong consensus -> recovery pooled / macro | "
+        "Delivered / full acc macro | Δacc macro | Net saving macro |",
+        "|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in strict_summary:
         lines.append(
-            f"| {row['window']} | {pct(row['macro_coverage'])} | "
-            f"{pct(row['macro_delivered_accuracy'])} / {pct(row['macro_full_accuracy'])} | "
-            f"{row['macro_accuracy_delta_pp']:.2f} pp | "
-            f"{pct(row['macro_net_output_saving'])} | "
+            f"| {row['window']} | {pct(row['pooled_coverage'])} / "
+            f"{pct(row['macro_coverage'])} | "
+            f"{pct(row['pooled_consensus_accuracy_given_stop'])} / "
+            f"{pct(row['macro_consensus_accuracy_given_stop'])} | "
+            f"{pct(row['pooled_false_stop_rate_given_stop'])} / "
             f"{pct(row['macro_false_stop_rate_given_stop'])} | "
-            f"{row['recovery_killed']} / {row['overthinking_avoided']} |"
+            f"{pct(row['pooled_recovery_rate_given_false_consensus'])} / "
+            f"{pct(row['macro_recovery_rate_given_false_consensus'])} | "
+            f"{pct(row['macro_delivered_accuracy'])} / "
+            f"{pct(row['macro_full_accuracy'])} | "
+            f"{row['macro_accuracy_delta_pp']:.2f} pp | "
+            f"{pct(row['macro_net_output_saving'])} |"
         )
     lines += [
         "",
@@ -1140,19 +1239,28 @@ def render_report(
     ]
     lines += [
         "",
-        "## A3 early readout versus first consensus",
+        "## A3 secondary soft-share consensus diagnostic",
         "",
-        "First consensus uses a trailing window, at least three non-empty answers, and share >= 0.8. "
-        "Probe-1 is reported only as an early-readout control.",
+        "This secondary diagnostic is intentionally broader than strict first consensus: it "
+        "uses a trailing window, at least three non-empty answers, and share >= 0.8. "
+        "It must not be labelled as the strict consecutive-w result. Probe-1 is reported "
+        "only as an early-readout control.",
         "",
-        "| w | Reached pooled / macro | Recovery | Overthinking | Recovery:overthinking | "
-        "Probe-1 wrong | Wrong Probe-1 -> correct final pooled / macro |",
-        "|---:|---:|---:|---:|---:|---:|---:|",
+        "| w | Reached pooled / macro | First-consensus acc pooled / macro | "
+        "Wrong consensus -> recovery pooled / macro | Recovery | Overthinking | "
+        "Recovery:overthinking | Probe-1 wrong | "
+        "Wrong Probe-1 -> correct final pooled / macro |",
+        "|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in mechanism_summary:
         lines.append(
             f"| {row['window']} | {pct(row['pooled_reach_rate'])} / "
-            f"{pct(row['macro_reach_rate'])} | {row['recovery']} | {row['overthinking']} | "
+            f"{pct(row['macro_reach_rate'])} | "
+            f"{pct(row['pooled_consensus_accuracy_reached'])} / "
+            f"{pct(row['macro_consensus_accuracy_reached'])} | "
+            f"{pct(row['pooled_recovery_rate_given_wrong_consensus'])} / "
+            f"{pct(row['macro_recovery_rate_given_wrong_consensus'])} | "
+            f"{row['recovery']} | {row['overthinking']} | "
             f"{number(row['recovery_overthinking_ratio'], 2)}:1 | {row['first_probe_wrong']} | "
             f"{pct(row['pooled_first_probe_wrong_to_correct_rate'])} / "
             f"{pct(row['macro_first_probe_wrong_to_correct_rate'])} |"
@@ -1207,10 +1315,25 @@ def main() -> None:
         default=REPO_ROOT
         / "benchmark/FalseConsensus/results/governor_v2/multivariate_a1_a3",
     )
+    parser.add_argument(
+        "--environment-glob",
+        default="development__*",
+        help="Glob selecting environment directories below --input-root",
+    )
+    parser.add_argument(
+        "--expected-environments",
+        type=int,
+        default=18,
+        help="Fail unless exactly this many environments are selected",
+    )
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    trajectories, environments = load_bank(args.input_root)
+    trajectories, environments = load_bank(
+        args.input_root,
+        environment_glob=args.environment_glob,
+        expected_environments=args.expected_environments,
+    )
     by_env: dict[str, list[Trajectory]] = defaultdict(list)
     for row in trajectories:
         by_env[row.env].append(row)
@@ -1271,6 +1394,10 @@ def main() -> None:
     plot_consensus_time(time_summary, args.output_dir / "fig_a3_consensus_time.png")
     render_report(
         args.output_dir / "report.md",
+        len(environments),
+        len({row.model for row in trajectories}),
+        len({row.benchmark for row in trajectories}),
+        len({row.seed for row in trajectories}),
         base_pooled,
         base_macro,
         cumulative_summary,
@@ -1284,7 +1411,8 @@ def main() -> None:
         "schema_version": "governor-v2-multivariate-a1-a3-1",
         "input": {
             "phase": "development",
-            "environments": 18,
+            "environments": len(environments),
+            "environment_glob": args.environment_glob,
             "models": sorted({row.model for row in trajectories}),
             "benchmarks": sorted({row.benchmark for row in trajectories}),
             "seeds": sorted({row.seed for row in trajectories}),
@@ -1295,10 +1423,18 @@ def main() -> None:
         },
         "definitions": {
             "calibration": "last-w, >=3 non-empty answers; y=final correctness",
-            "strict_stop": "first exact w-probe non-empty normalized-equivalent window",
-            "first_consensus": "first last-w state with >=3 non-empty and share>=0.8",
+            "strict_first_consensus": (
+                "earliest exact w consecutive probes with non-empty collector-parsed "
+                "normalized-equivalent answers"
+            ),
+            "soft_share_consensus_secondary": (
+                "first trailing last-w state with >=3 non-empty answers and share>=0.8"
+            ),
             "net_output_saving": "full main output - stopped main output - consumed probe output",
-            "macro": "equal mean across 18 model x benchmark x seed environments",
+            "macro": (
+                f"equal mean across {len(environments)} model x benchmark x seed "
+                "environments"
+            ),
         },
         "a1_pooled": base_pooled,
         "a1_macro": base_macro,

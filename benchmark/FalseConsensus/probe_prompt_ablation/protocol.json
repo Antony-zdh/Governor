@@ -1,0 +1,99 @@
+{
+  "schema_version": "probe-prompt-timing-ablation-1",
+  "status": "frozen before matched CertaIndex@32 collection",
+  "objective": "Test whether the CertaIndex probe prompt delays first answer consensus and improves the accuracy-output-token trade-off relative to Simple@32.",
+  "scope": {
+    "models": [
+      {
+        "key": "deepseek",
+        "id": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+        "revision": "916b56a44061fd5cd7d6a8fb632557ed4f724f60"
+      },
+      {
+        "key": "qwen3",
+        "id": "Qwen/Qwen3-8B",
+        "revision": "b968826d9c46dd6066d109eabc6255188de91218"
+      }
+    ],
+    "benchmarks": ["math500", "amc23", "aime24"],
+    "development_seeds": [42, 43, 44],
+    "confirmation_seeds": [45, 46, 47],
+    "problem_seed_trajectories": 3420,
+    "report_split_policy": "pool all available problem-seed trajectories; do not report or select by split",
+    "diagnostic_grouping": "retain model, benchmark, and seed for pairing and equal-environment macro aggregation"
+  },
+  "frozen_main": {
+    "development_namespace": "benchmark/FalseConsensus/results/governor_v2/development__{model_slug}__{benchmark}__seed_{42,43,44}",
+    "confirmation_namespace": "benchmark/FalseConsensus/results/governor_v2/confirmation__{model_slug}__{benchmark}__seed_{45,46,47}",
+    "regenerate_main": false
+  },
+  "probe_arms": {
+    "simple32": {
+      "source": "existing dense_simple32 bank",
+      "regenerate": false,
+      "suffix": "Governor v2 SIMPLE_SUFFIX",
+      "max_output_tokens": 32
+    },
+    "certaindex32": {
+      "source": "new matched collection via related_work.certaindex_mid",
+      "suffix": "faithful CertaIndex CERTAINDEX_SUFFIX",
+      "max_output_tokens": 32,
+      "difference_from_original_certaindex_mid": "matched cap 32 instead of the original cap 20"
+    }
+  },
+  "shared_collection": {
+    "start_token": 64,
+    "interval_tokens": 64,
+    "temperature": "inherit frozen main run",
+    "top_p": "inherit frozen main run",
+    "seed": "inherit frozen main run",
+    "stop_sequence": "\\]",
+    "patience": 3,
+    "online_optimization": "stop collecting a problem after the first eligible three-probe consensus"
+  },
+  "shared_stop_rule": {
+    "window": 3,
+    "requirements": [
+      "three consecutive probes",
+      "all answers non-empty",
+      "all answers mathematically equivalent",
+      "all probes certain under the same uncertainty-word predicate"
+    ],
+    "delivery": "latest answer in the first eligible consensus window",
+    "no_stop": "deliver the frozen full answer if naturally completed; otherwise empty/incorrect"
+  },
+  "primary_metrics": [
+    "first-consensus token position",
+    "stop rate",
+    "delivered accuracy and accuracy delta versus frozen full generation",
+    "wrong among stops",
+    "Harm: full correct and stopped delivery wrong",
+    "Rescue: full wrong and stopped delivery correct",
+    "Harm/Rescue ratio",
+    "main-token saving",
+    "all-generated output-token saving including consumed probe outputs",
+    "probe-output tax",
+    "CertaIndex delay/advance/tie/no-stop transitions relative to Simple",
+    "Simple harms protected and new harms introduced by CertaIndex"
+  ],
+  "aggregation": {
+    "primary": "problem-pooled across all 3420 trajectories",
+    "robustness": "equal-weight macro over model x benchmark x seed environments",
+    "split_tables": false,
+    "selection_or_tuning": false
+  },
+  "cost_boundary": {
+    "included": "main output tokens through stop plus consumed probe output tokens",
+    "reported_separately": "probe prompt/prefill tokens and auxiliary wall time",
+    "excluded_from_primary": "prompt/prefill tokens, wall-clock latency, KV-cache memory"
+  },
+  "acceptance": {
+    "simple_trajectories": 3420,
+    "certaindex_trajectories": 3420,
+    "paired_rows_per_arm": 3420,
+    "duplicate_identity_rows": 0,
+    "request_or_corrupt_rows": 0,
+    "cap_violations": 0,
+    "all_36_partial_environment_directories_complete": true
+  }
+}

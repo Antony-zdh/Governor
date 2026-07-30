@@ -27,6 +27,8 @@ function Table(tbl)
     widths = {0.08, 0.19, 0.17, 0.28, 0.28}
   elseif first_header == "Method summary" then
     widths = {0.15, 0.18, 0.17, 0.25, 0.25}
+  elseif first_header == "Method / w" then
+    widths = {0.18, 0.205, 0.205, 0.205, 0.205}
   else
     widths = widths_by_columns[#tbl.colspecs]
   end
