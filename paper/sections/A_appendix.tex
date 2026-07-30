@@ -18,7 +18,7 @@ $17{,}712$ candidate rules. Each rule fixes:
   certain.
   \item \textbf{Validity}: answer-shape filter (reject empty / single-letter
   answers to suppress the Type-E probe artifact of
-  Section~\ref{sec:falseconsensus}).
+  Appendix~\ref{sec:appendix-fc}).
   \item \textbf{History}: maximum answer switches within a window and minimum
   stable span since the last switch.
 \end{enumerate}
@@ -58,15 +58,56 @@ Table~\ref{tab:adaptive} was reproduced to the reported precision directly from
 the released sweep archive. Grading uses a robust answer-equivalence check that
 tries the raw and normalized reference forms and both string and
 math-expression equality; per-problem correctness for the frozen baseline is
-recomputed at replay time rather than trusted from collection. The grader's
-measured error rate against a hand-checked sample is \pending{report grader
-error rate}.
+recomputed at replay time rather than trusted from collection.
 
-\section{Additional Tables and Figures}
+\section{Family and Adaptive Frontiers}
 \label{sec:appendix-tables}
 
-The dev frontier scatter (all candidate rules, the Pareto boundary, and the
-related-work anchors) is Figure~\ref{fig:pareto}; direction-of-effect counts
-appear in Sections~\ref{sec:results}--\ref{sec:mechanism}. Still to add:
-\pending{window-share reliability diagram; per-model $\times$ benchmark
-full-accuracy table; gross/net decomposition by family; baseline sweeps.}
+Table~\ref{tab:frontier} gives each family's best attainable operating point on
+dev (supporting Section~\ref{sec:results}): the simplest evidence signal
+(\texttt{window\_share}) gives the best safe-with-positive-savings point, the
+safest family (\texttt{entropy\_budget\_fraction}) cannot save, and the most
+complex family (adaptive) is dominated by the simplest. Table~\ref{tab:adaptive}
+isolates the adaptive frontier, showing it trades linearly into larger losses as
+it grows aggressive.
+
+\begin{table}[t]
+  \centering\small
+  \begin{tabular}{lcc}
+    \toprule
+    Rule family & Per-model & Net savings \\
+                & drop (pp) & at that point \\
+    \midrule
+    \texttt{entropy\_budget\_fraction} & $1.85$ & negative ($q_{20}{\approx}{-}11\%$) \\
+    \texttt{window\_share}             & $4.87$ & $\approx 0$ ($q_{20}{\approx}0.3\%$) \\
+    \texttt{latest\_persistence}       & $8.20$ & $q_{20}{\approx}9.7\%$ \\
+    \texttt{adaptive\_event\_probe}    & $9.70$ & $q_{20}{\approx}4.5\%$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{Best operating point per rule family on dev. For
+  \texttt{entropy\_budget\_fraction} we show its \emph{absolute} minimum drop
+  (which has no positive-savings point); for the other three families we show the
+  minimum worst-case per-model drop \emph{among positive-savings points}. The
+  safest family cannot save; the most complex family (adaptive) is dominated by
+  the simplest (window share).}
+  \label{tab:frontier}
+\end{table}
+
+\begin{table}[t]
+  \centering\small
+  \begin{tabular}{lcccc}
+    \toprule
+    Adaptive point & Trigger & Mean & $q_{20}$ & Macro \\
+                   &         & save & save     & $\Delta$acc \\
+    \midrule
+    conservative & entropy drop & $14.2\%$ & $4.5\%$  & $-5.88\pp$  \\
+    moderate     & conclusion   & $25.9\%$ & $20.0\%$ & $-9.11\pp$  \\
+    aggressive   & conclusion   & $37.3\%$ & $27.1\%$ & $-15.03\pp$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{The \texttt{adaptive\_event\_probe} frontier on dev. Worst
+  per-model/per-benchmark drops for the three points are
+  $-9.70/-10.42$, $-13.65/-12.50$, and $-19.28/-18.75\pp$ respectively.
+  Reproduced exactly from the released sweep archive.}
+  \label{tab:adaptive}
+\end{table}

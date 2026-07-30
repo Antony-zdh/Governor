@@ -1,31 +1,26 @@
 \begin{abstract}
-Reasoning language models produce long chains of thought, making
-\emph{early exit}---stopping generation once the answer is settled---an
-attractive way to cut inference cost. A popular family of methods
-(e.g., Dynasor / Certaindex) periodically probes the partial trajectory for
-its current answer and stops once probes \emph{agree}, betting that
-intermediate consensus signals termination. We show this bet is unsafe, and
-that the failure is not repaired by tuning the stopping rule within this family.
-On \textsc{MATH}500 we document \emph{false consensus}: even a unanimous window
-of recent probes is correct only $93.5\%$ of the time, and a naive consensus
-stop loses $16.4$ percentage points (pp) of accuracy
-($85.6\%\!\rightarrow\!69.2\%$) because continued reasoning frequently overturns
-the intermediate answer. We then run a \emph{preregistered} search over a
-seven-dimensional consensus-rule schema ($17{,}712$ rules) on frozen reasoning
-trajectories from two models and three benchmarks, with problem-grouped splits
-and stopping gates fixed in advance. On the development set, no rule clears the
-safety bar (the safest stop still costs $1.85\pp$); held-out confirmation on the
-test split and two unseen models reproduces this frontier ($r{=}0.96$), with no
-rule safe on both splits. A faithful Certaindex reproduction on the same
-trajectories collapses by $56$--$70\pp$.
-\emph{The failure is specific to the consensus signal, not to early exit.}
-A different signal---model confidence at reasoning-boundary tokens, with a
-retained verification branch (in the spirit of DEER)---does far better: on the
-same models it stays within $\sim\!1\pp$ of full accuracy while saving tokens,
-and an online deployment saves $\sim\!34\%$ of tokens at near-neutral macro
-accuracy across three seeds. We separate an intrinsic \emph{accuracy tax}
-from a \emph{probe tax} to explain why consensus stalls, and conclude that safe
-early exit for reasoning needs a signal about the trajectory's future, not the
-recent past's agreement. (The boundary-confidence results are exploratory,
-seed-sensitive, and outside the preregistered sweep.)
+Reasoning language models spend most of their tokens \emph{after} the answer is
+effectively decided, so a popular way to cut inference cost is to periodically
+probe the partial trajectory for its current answer and stop once probes
+\emph{agree}. We show this bet is unsafe, and that the failure is a property of
+the \emph{signal}, not of the stopping threshold. On frozen reasoning
+trajectories from two models and three math benchmarks we run a
+\emph{preregistered} search over a seven-dimensional consensus-rule schema
+($17{,}712$ rules) with problem-grouped splits and acceptance gates fixed in
+advance. The result is distribution-free: \textbf{every one of the $17{,}712$
+rules loses accuracy in the worst case}---none reaches break-even, and stopping
+strictly lowers accuracy in $67.7\%$ of rule--environment evaluations. The reason
+is directional, not statistical: intermediate consensus forms \emph{while the
+answer is still moving}, so a stop destroys a correct-in-the-end answer roughly
+$\mathbf{35}$~\textbf{times more often} than it rescues a wrong one---an
+\emph{accuracy tax} that is a property of the trajectory, not the probe, and that
+no threshold in the searched space escapes. The same frontier reproduces on a
+held-out test split ($r{=}0.96$) and on unseen models at $4\times$ the scale and
+a different architecture, with no rule safe on both splits; a faithful Certaindex
+reproduction on identical trajectories collapses by $56$--$70\pp$. The failure is
+specific to \emph{consensus}: a method reading a different signal---the model's
+own confidence at reasoning-boundary tokens---stays near full accuracy on the
+same trajectories, which localizes the problem to probe agreement and indicates
+where a safe early-exit signal must instead come from. We release the protocol,
+the frozen trajectories, and the full sweep.
 \end{abstract}

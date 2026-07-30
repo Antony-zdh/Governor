@@ -1,11 +1,10 @@
-\section{A Preregistered Test for Safe Early Exit}
+\section{Method}
 \label{sec:method}
 
-Section~\ref{sec:falseconsensus} refutes one heuristic. To ask whether
-\emph{any} probe-based rule can succeed, we need (i) an evaluation that a rule
-cannot game by changing the reasoning it observes, and (ii) a selection
-procedure that cannot silently overfit to a lucky operating point. We
-preregister both.
+Section~\ref{sec:related} refuted one heuristic. To ask whether \emph{any}
+probe-based rule can succeed, we need (i) an evaluation that a rule cannot game
+by changing the reasoning it observes, and (ii) a selection procedure that
+cannot silently overfit to a lucky operating point. We preregister both.
 
 \subsection{Probe-independent, frozen trajectories}
 For each problem we generate exactly \emph{one} main trajectory in a single
@@ -17,8 +16,20 @@ reasoning; every rule is scored against the same trajectories. We build two
 offline probe banks: a \emph{dense} bank that re-probes every $64$ tokens with
 \simplek{} (a $32$-sample boxed-answer probe), and an \emph{adaptive} bank that
 additionally fires event-triggered probes at entropy drops and at
-conclusion/reflection/answer markers. Token accounting charges every probe's
-output tokens to the rule that consumes it (Section~\ref{sec:mechanism}).
+conclusion/reflection/answer markers.
+
+\subsection{Token accounting}
+\label{sec:accounting}
+For a rule that stops a problem at token position $s$ after consuming probe
+output $p$, we charge total decode tokens $T=s+p$ and compare against the frozen
+baseline $B$ (the full trajectory, capped at budget). \emph{Net} savings is
+$(B-T)/B$ and \emph{gross} savings is $(B-s)/B$; their gap is the probe cost. The
+accuracy drop compares the correctness of the committed answer at $s$ against that
+of the frozen final answer (it is not an agreement rate between them). Two
+quantities therefore move independently, and we track both: \emph{where} the rule
+stops (setting the accuracy drop and the main-token saving $s$) and \emph{how much
+it probes} to get there (adding $p$). Section~\ref{sec:mechanism} shows that only
+the first is intrinsic.
 
 \subsection{A seven-dimensional rule schema}
 A stopping rule is a point in a schema with seven independent dimensions:

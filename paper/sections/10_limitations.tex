@@ -1,54 +1,52 @@
 \section*{Limitations}
 \label{sec:limitations}
 
-\paragraph{Held-out confirmation and its scope.}
-The central result---no rule clears the conservative gate---is established on the
-$18$ development environments (two models, three benchmarks, seeds $42/43/44$)
-and confirmed on the held-out test split and two unseen models
-(Section~\ref{sec:results}): the per-rule frontier reproduces ($r=0.96$) and no
-rule clears the gate on both splits. Two caveats remain. First, the held-out
-architecture model (Llama-8B) is confirmed on two of three benchmarks; its
-$32{,}768$-token aime24 collection did not terminate for this weaker model and is
-omitted. Second, the exact $1.85\pp$ floor is a development-sample quantity (the
-same least-bad rule measures $0.11\pp$ on test), so the confirmed claim rests on
-frontier stability and the empty joint gate rather than on the precise floor
-value.
+\paragraph{Scope of the negative result.}
+The central result---every rule loses and none clears the conservative
+gate---is established on $18$ development environments (two models, three
+benchmarks, seeds $42/43/44$) and confirmed on the held-out test split and two
+unseen models (Section~\ref{sec:results}). It is a statement about the space
+searched: one boxed-answer probe suffix (\simplek{}) and one preregistered
+schema ($17{,}712$ rules, four families, seven dimensions). Other probe wordings
+and rule dimensions outside this schema are not searched; the mechanism
+(Section~\ref{sec:mechanism}) is our argument that they would not help, but it is
+an argument, not an exhaustive proof.
+
+\paragraph{The exact floor is a development quantity.}
+The $1.85\pp$ least-bad-rule value has a bootstrap $95\%$ CI of $[0.0,5.6]\pp$ and
+measures $0.11\pp$ on test; we therefore do not rest any claim on it
+(Section~\ref{sec:floor}). The load-bearing findings are the distribution-free
+ones---all $17{,}712$ rules lose, the empty joint gate---which do not depend on
+the floor's point estimate.
+
+\paragraph{Held-out architecture was re-collected.}
+The held-out architecture model (Llama-8B) was re-collected after we found and
+fixed a chat-template defect (a missing model-specific beginning-of-sequence
+token) that had degraded its earlier generations; the corrected model scores
+$\sim\!88\%$ on \textsc{MATH}500, and the confirmation uses the corrected
+trajectories.
 
 \paragraph{Small held-out sets on hard benchmarks.}
-AIME24 and AMC23 are small; the dev split has only $6$ and $8$ problems per
-seed, so a single problem is a large fraction. A worst-case per-model drop on
-AIME24 can correspond to two or three problems, and is statistically noisy. We
-mitigate by aggregating over seeds and reporting macro averages, but individual
-per-benchmark cells should be read with this in mind.
+AIME24 and AMC23 are small (dev splits of $6$ and $8$ problems per seed), so a
+single problem is a large fraction and per-benchmark cells are noisy. We
+aggregate over seeds and treat the per-model gate as primary and the
+per-benchmark gate as a diagnostic (Section~\ref{sec:resolution}).
 
 \paragraph{Probe-tax dependence of the savings axis.}
-Our net-savings numbers charge dense re-probing (every $64$ tokens, $32$-token
-probes). A different probe schedule---sparser, shorter, or with KV-cache
-reuse---would change the \emph{savings} axis and could move some rules from
-negative to positive net savings. We separate gross from net savings
-(Section~\ref{sec:mechanism}) precisely so that the probe-tax-dependent and
-probe-tax-independent parts of the result are distinguishable; the accuracy-tax
-result does not depend on the probe schedule.
+Net-savings numbers charge dense re-probing (every $64$ tokens, $32$-token
+probes); a sparser or KV-cache-reusing schedule would change the \emph{savings}
+axis and could move some rules to positive net savings. We separate gross from
+net savings (Section~\ref{sec:mechanism}) precisely so the probe-tax-dependent
+part is distinguishable; the accuracy-tax result does not depend on the schedule.
 
-\paragraph{Single probe suffix and rule space.}
-We use one boxed-answer probe suffix (\simplek{}) and one preregistered rule
-schema. Other probe wordings (e.g., the original Certaindex phrasing) and rule
-dimensions outside this schema are not searched; a negative result is a
-statement about the space searched, which we report explicitly ($17{,}712$
-rules, four families, seven dimensions).
-
-\paragraph{Boundary-confidence results are exploratory.}
-The positive result of Section~\ref{sec:boundary}---boundary confidence with a
-verification branch---spans three dev seeds ($42/43/44$) but is \emph{seed-sensitive}
-(macro $\Delta$acc per-seed range $[-6.1, +4.2]\pp$; mean $-0.75\pp$), is not part
-of the preregistered sweep, and is model-dependent; its online multi-request
-sampling path also differs from the single-request full baseline, making the
-vs-full comparison approximate.
-It has an invalid-trial rate of $21.7\%$ and no test-split confirmation. It
-should be read as evidence that a non-consensus signal escapes the accuracy tax,
-not as a finished, validated method.
+\paragraph{The constructive signal is exploratory.}
+The boundary-confidence controller of Appendix~\ref{sec:boundary} spans three dev
+seeds but is seed-sensitive (macro $\Delta$acc per-seed range $[-6.1,+4.2]\pp$;
+mean $-0.75\pp$), model-dependent, not part of the preregistered sweep, and has no
+test-split confirmation. It should be read as evidence that a non-consensus
+signal escapes the accuracy tax, not as a finished method.
 
 \paragraph{Domain.}
 All benchmarks are competition mathematics with checkable final answers. Whether
 false consensus and the accuracy tax transfer to open-ended reasoning, code, or
-agentic tasks is out of scope here.
+agentic tasks is out of scope.

@@ -1,42 +1,35 @@
 \section{Discussion}
 \label{sec:discussion}
 
-\paragraph{What the negative result does and does not say.}
+\paragraph{What the result does and does not say.}
 It says: within a large, preregistered space of \emph{consensus-based} stopping
-rules, and under a dense-probe measurement regime, no rule on the development
-set is both safe (per-model drop $\le 1.5\pp$) and net token-saving. It does
-\emph{not} say early exit is impossible in principle, nor that it is impossible
-outside the searched schema. The result localizes the failure: the signal these
-rules consume---agreement among probes of an unfinished trajectory---is
-intrinsically non-terminal, so no threshold on that signal escapes the accuracy
-tax.
+rules, and under a dense-probe measurement regime, no rule is both safe
+(per-model drop $\le1.5\pp$) and net token-saving---indeed every rule loses
+accuracy---on the development set, on a held-out test split, and on two unseen
+models. It does \emph{not} say early exit is impossible in principle, nor that it
+is impossible outside the searched schema. The mechanism localizes the failure:
+the signal these rules consume---agreement among probes of an unfinished
+trajectory---is intrinsically non-terminal, so no threshold on that signal
+escapes the accuracy tax (Section~\ref{sec:mechanism}), and that is why the
+result reproduces beyond the exact rules and models we searched.
 
-\paragraph{Implication: change the signal, not the threshold.}
-Much prior effort has gone into \emph{tuning} consensus-based stops
-\citep{dynasor_certaindex,aggarwal2023adaptive,li2024esc}. Our frontier shows the
-ceiling of that approach is low, and Section~\ref{sec:boundary} gives direct
-evidence that a different termination signal---one about whether the
-\emph{trajectory itself} will still change---does better: boundary confidence
-with a verification branch saves $\sim\!34\%$ of tokens at near-neutral accuracy.
-Other candidates point the same way: verifier- or process-reward-based
-termination \citep{lightman2024verify,wang2024mathshepherd} and learned halting
-in the spirit of adaptive computation \citep{graves2016act,schuster2022confident}.
-The lesson is not that early exit is hopeless but that it should read the
-model's own forward-looking confidence, not the agreement of backward-looking
-probes.
-
-\paragraph{Confirmation done; two live extensions.}
-The held-out confirmation (Section~\ref{sec:results}) already validates the
-frontier out of distribution: the per-rule frontier reproduces on the test split
-($r=0.96$) and no rule clears the gate on both dev and test, on the two seen and
-two unseen models alike. Two follow-ups remain, both compatible with the
-preregistration. \textbf{(A)} \emph{Attacking the probe tax}: a newly
-preregistered extension with sparser probes / KV-cache reuse could recover
-positive \emph{net} savings at the safe end, converting ``no safe-and-saving stop
-in the searched space'' into ``\ldots exists only if probing is made this much
-cheaper.'' \textbf{(B)} \emph{Validating boundary confidence}: the online
-controller of Section~\ref{sec:boundary} now spans three seeds but is
-seed-sensitive and model-dependent (macro $\Delta$acc mean $-0.75\pp$, per-seed
-range $[-6.1,+4.2]$); a train/dev$\rightarrow$test evaluation with more seeds
-would turn the positive signal into a confirmed method. Both are additive to the frozen findings of
-Sections~\ref{sec:falseconsensus}--\ref{sec:mechanism}.
+\paragraph{Change the signal, not the threshold.}
+Much prior effort tunes consensus-based stops
+\citep{dynasor_certaindex,aggarwal2023adaptive,li2024esc}; our frontier shows the
+ceiling of that approach is low. The constructive implication is that a safe
+signal should be about whether the \emph{trajectory itself} will still change,
+not about the agreement of backward-looking probes. The clearest evidence in our
+own data is DEER's boundary-confidence signal (Section~\ref{sec:baselines}); as a
+first step beyond it we sketch, in Appendix~\ref{sec:boundary}, an online
+controller that fast-commits on high boundary confidence and otherwise opens a
+verification branch, and find it recovers substantial savings at near-neutral
+accuracy on dev. We stress that this is exploratory (three seeds, seed-sensitive,
+outside the preregistration) and present it only to show that stepping outside
+the consensus-signal space escapes the accuracy tax we proved unavoidable inside
+it. Verifier- and process-reward-based termination
+\citep{lightman2024verify,wang2024mathshepherd} and learned halting in the spirit
+of adaptive computation \citep{graves2016act,schuster2022confident} point the
+same way. Turning any of these into a \emph{confirmed} method---with its own
+train/dev$\rightarrow$test validation and a probe-tax-aware accounting---is the
+natural next paper; the contribution here is to establish, rigorously, which
+signal not to build it on.

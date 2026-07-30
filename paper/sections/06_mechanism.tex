@@ -1,47 +1,50 @@
-\section{Mechanism: Two Taxes, One Intrinsic}
+\section{Analysis}
 \label{sec:mechanism}
 
-Why is the safe-and-saving corner empty? We separate two distinct costs of
-stopping and argue that only one of them depends on how we probe.
+Section~\ref{sec:results} is an existence proof over $17{,}712$ rules, two seen
+and two unseen models, and both splits. This section explains \emph{why} it holds
+and why it generalizes beyond the exact rules we searched: the accuracy cost of
+stopping on consensus is a directional property of the reasoning trajectory
+itself, not of a threshold or of probe density.
 
-\subsection{Accounting}
-For a rule that stops a problem at token position $s$ after consuming probe
-output $p$, we charge total decode tokens $T = s + p$ and compare against the
-frozen baseline $B$ (the full trajectory, capped at budget). Net savings is
-$(B-T)/B$; the accuracy drop compares the correctness against ground truth of
-the committed answer at $s$ with that of the frozen final answer (it is not an
-agreement rate between the two). Two quantities therefore move independently:
-\emph{where}
-the rule stops (which sets both the accuracy drop and the main-token saving
-$s$) and \emph{how much it probes} to get there (which adds $p$).
+\subsection{Stopping destroys more than it saves: a $35{:}1$ effect}
+Consider only the stops where committing early \emph{changes} correctness relative
+to the trajectory's own final answer, and count two outcomes: (final-correct,
+stop-wrong)---a correct recovery destroyed---versus (final-wrong,
+stop-correct)---a wrong answer luckily banked. Pure sampling noise predicts a
+$\approx1{:}1$ ratio; a genuine ``continued reasoning corrects'' effect predicts
+$\gg1$. On the frozen replay this ratio is $\mathbf{35{:}1}$ for the naive
+consensus stopper ($1055$ destroyed vs.\ $30$ banked; $34.3{:}1$ and $35.9{:}1$ on
+\dsseven{} and \qweneight{} separately) and $15$--$18{:}1$ for the more
+conservative variants---all far above $1{:}1$. Stopping on consensus removes a
+correct-in-the-end answer about $35$ times more often than it rescues a wrong one.
+This is the recovery phenomenon of \S\ref{sec:exp-fc} ($65.5\%$, $76.3\%$), now at
+the main $16$K/$32$K budgets and as a signed effect: the loss is real and
+directional, not sampling variance.
 
-\subsection{The accuracy tax is intrinsic}
-The accuracy drop depends only on the stop position $s$, not on $p$: committing
-to the answer at $s$ forgoes whatever correction the trajectory would have made
-after $s$. This is the quantity that never reaches zero---the $1.85\pp$ floor of
-Section~\ref{sec:results} is an \emph{accuracy tax} that no probing scheme can
-remove, because it is a property of the reasoning trajectory, not of the probe.
-A \emph{direction-of-effect} test operationalizes this: among stops where the
-committed answer differs in correctness from the final answer, we measure the
-ratio of (final-correct, stop-wrong) to (final-wrong, stop-correct). Pure
-sampling noise predicts $\approx 1{:}1$; a genuine ``continued reasoning
-corrects'' effect predicts a ratio $\gg 1$. On the frozen replay this ratio is
-$\mathbf{35{:}1}$ for the naive consensus stopper (final-correct/stop-wrong
-$=1055$ vs.\ final-wrong/stop-correct $=30$; $34.3{:}1$ and $35.9{:}1$ on
-\dsseven{} and \qweneight{} separately), and $15$--$18{:}1$ for the more
-conservative variants---all far above the $1{:}1$ of sampling noise. Stopping on
-consensus therefore destroys a correct-in-the-end answer roughly $35$ times more
-often than it rescues a wrong one, corroborating the intervention-study recovery
-statistics of Section~\ref{sec:falseconsensus} ($65.5\%$, $76.3\%$). The accuracy
-tax is a real, directional effect, not sampling noise.
+\subsection{The accuracy tax is intrinsic to the trajectory}
+Why is the ratio structural? For a rule stopping at token position $s$, the
+accuracy drop depends only on $s$: committing at $s$ forgoes whatever correction
+the trajectory would have made after it. It is a property of the reasoning, not of
+the probe, so it survives \emph{any} probing scheme. This is what never reaches
+zero in the sweep. The probe grid (intervals $64/128/256$ tokens) makes
+essentially every stop position reachable and the observed floor is the minimum
+over these schedules; a sparser schedule can only stop later or at a subset of
+positions, never at a safer one the grid missed. Hence no threshold on the
+consensus signal---in or beyond our schema---escapes the accuracy tax; the
+searched space is a lower bound on the cost, not a lucky miss.
 
-\subsection{The probe tax is a design choice}
-The second cost is the probe output $p$. Under dense re-probing (every $64$
-tokens, $32$-token probes), a rule that stops late pays $p$ over a long prefix,
-which is what turns the \emph{net} savings of the safe (entropy) family negative
-even though its \emph{gross} savings $(B-s)/B$ is positive. Unlike the accuracy
-tax, the probe tax scales with probe density and is reducible (sparser probes,
-shorter probes, or KV-cache reuse). We therefore report savings two ways:
+\subsection{Ruling out the ``it is just dense probing'' objection}
+The natural rebuttal is that the negative result is an artifact of charging dense
+re-probing. It is not, and separating two costs shows why. Besides the accuracy
+tax, a rule pays a \emph{probe tax}: the probe output $p$ (Section~\ref{sec:accounting}).
+Under dense re-probing a late-stopping rule pays $p$ over a long prefix, which
+turns the \emph{net} savings of the safe (entropy) family negative even though its
+\emph{gross} savings is positive (Table~\ref{tab:grossnet}). Unlike the accuracy
+tax, the probe tax scales with probe density and is reducible (sparser or shorter
+probes, KV-cache reuse). The two are separable: the \emph{savings} collapse is
+partly a probe-tax artifact and is addressable, but the \emph{accuracy} floor is
+probe-independent and is what makes the corner empty.
 
 \begin{table}[t]
   \centering\small
@@ -55,20 +58,44 @@ shorter probes, or KV-cache reuse). We therefore report savings two ways:
     Ours (target token\_efficient) & $+21.5\%$ & $+19.6\%$ \\
     \bottomrule
   \end{tabular}
-  \caption{Gross vs.\ net savings. The gap is the probe tax. The
+  \caption{Gross vs.\ net savings; the gap is the probe tax. The
   target-conservative point's negative net saving is a probing-density artifact,
-  not evidence that stopping wastes tokens; the accuracy tax above it is not.}
+  not evidence that stopping wastes tokens---whereas the accuracy tax above it is
+  intrinsic.}
   \label{tab:grossnet}
 \end{table}
 
-\subsection{Why the distinction matters}
-Separating the taxes pre-empts the natural objection that our negative result is
-an artifact of dense probing. It is not: the \emph{savings collapse} is partly a
-probe-tax artifact and is addressable, but the \emph{accuracy floor}---the
-finding that even the safest stop costs $\ge 1.85\pp$---is probe-independent and
-survives any probing scheme. This probe-independence rests on one premise: the
-sweep's probe grid (intervals $64/128/256$ tokens) makes essentially every stop
-position reachable, and the $1.85\pp$ floor is the minimum over these schedules;
-a sparser schedule can only stop later or at a subset of positions, never at a
-safer one that the grid missed. The two families of prior work we test next fail
-on the accuracy axis, not the probe axis.
+\subsection{It is the signal, not early exit}
+The reproductions of \S\ref{sec:exp-prior} localize the cause. Every method that
+stops on \emph{probe agreement}---the swept schema and CertaIndex alike---either
+fails the safety bar or collapses outright; CertaIndex's $70\pp$ loss at $99.8\%$
+stop rate is the accuracy tax paid in full. The lone method that stays near full
+accuracy, DEER, does not read probe agreement at all: it stops on the model's own
+confidence in a trial answer at a reasoning boundary, and in
+Figure~\ref{fig:pareto} it sits \emph{above} the consensus Pareto boundary at the
+same accuracy drop. This is direct evidence that the failure is a property of the
+\emph{consensus signal}, not of early exit. (DEER's edge is model-dependent,
+$+0.8\pp$ on \qweneight{} vs.\ $-4.8\pp$ on \dsseven{}, and these are
+frozen-trajectory reproductions.)
+
+\subsection{Implication: change the signal, not the threshold}
+Much prior effort tunes consensus-based stops
+\citep{dynasor_certaindex,aggarwal2023adaptive,li2024esc}; our frontier shows the
+ceiling of that approach is low, and the mechanism above says no amount of tuning
+raises it. The constructive implication is that a safe signal should be about
+whether the \emph{trajectory itself} will still change, not about the agreement of
+backward-looking probes. As a first step, we sketch in Appendix~\ref{sec:boundary}
+an online controller built on DEER's boundary-confidence signal (fast-commit on
+high confidence, else a verification branch) that recovers substantial savings at
+near-neutral accuracy on dev; we stress it is exploratory (three seeds,
+seed-sensitive, outside the preregistration) and report it only to show that
+stepping outside the consensus-signal space escapes the accuracy tax we proved
+unavoidable inside it. Verifier- and process-reward-based termination
+\citep{lightman2024verify,wang2024mathshepherd} and learned halting
+\citep{graves2016act,schuster2022confident} point the same way. Turning any of
+these into a \emph{confirmed} method---with its own train/dev$\rightarrow$test
+validation---is the natural next paper; our contribution is to establish
+rigorously which signal not to build it on. Two caveats bound the claim: it
+concerns \emph{consensus-based} rules within the searched schema and dense-probe
+regime, and it does not say early exit is impossible---only that this signal
+cannot make it safe.
