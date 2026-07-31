@@ -133,7 +133,9 @@ def validate_coverage(
         "method_count": len(methods),
         "environment_count": len(groups),
         "rows_per_method": per_method,
-        "test_rows": 0,
+        "test_rows": sum(
+            str(row.get("split")) == "test" for row in rows
+        ),
     }
 
 
@@ -196,6 +198,29 @@ def macro_dev(dev_pooled: Sequence[Mapping[str, Any]]) -> list[dict]:
     return output
 
 
+def macro_environments(
+    environment_rows: Sequence[Mapping[str, Any]],
+) -> list[dict]:
+    """Equal-weight environment macro by method for the primary split."""
+    groups: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
+    for row in environment_rows:
+        groups[str(row["method"])].append(row)
+    fields = (
+        "accuracy", "baseline_accuracy", "accuracy_diff_pp",
+        "avg_main_tokens", "avg_probe_out_tokens", "avg_all_generated_tokens",
+        "main_only_token_saving_fraction", "all_generated_token_saving_fraction",
+        "stop_rate", "invalid_aux_response_rate", "capped_rate",
+    )
+    output = []
+    for method, summaries in sorted(groups.items()):
+        item: dict[str, Any] = {"method": method, "environment_count": len(summaries)}
+        for field in fields:
+            values = [float(row[field]) for row in summaries if row.get(field) is not None]
+            item[field] = math.fsum(values) / len(values) if values else None
+        output.append(item)
+    return output
+
+
 def write_csv(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
     if not rows:
         return
@@ -235,8 +260,9 @@ def build_views(
     )
     dev_rows = [row for row in rows if row.get("split") == "dev"]
     test_rows = [row for row in rows if row.get("split") == "test"]
+    primary_rows = test_rows if test_rows else dev_rows
     dev_pooled = grouped_summaries(
-        dev_rows if dev_rows else test_rows,
+        primary_rows,
         keys=("method", "model", "dataset"),
         bootstrap=True,
         n_samples=n_samples,
@@ -249,6 +275,26 @@ def build_views(
         n_samples=n_samples,
         seed=seed,
     )
+    per_model = grouped_summaries(
+        primary_rows, keys=("method", "model"), bootstrap=False,
+        n_samples=n_samples, seed=seed,
+    )
+    per_benchmark = grouped_summaries(
+        primary_rows, keys=("method", "dataset"), bootstrap=False,
+        n_samples=n_samples, seed=seed,
+    )
+    per_seed = grouped_summaries(
+        primary_rows, keys=("method", "base_seed"), bootstrap=False,
+        n_samples=n_samples, seed=seed,
+    )
+    pooled = grouped_summaries(
+        primary_rows, keys=("method",), bootstrap=True,
+        n_samples=n_samples, seed=seed,
+    )
+    primary_environment_rows = [
+        row for row in environment_split
+        if row["split"] == ("test" if test_rows else "dev")
+    ]
     return {
         "schema_version": "related-work-aggregate-1",
         "bootstrap_samples": n_samples,
@@ -259,6 +305,11 @@ def build_views(
         "dev_pooled": dev_pooled,
         "train_dev_diagnostic": train_dev,
         "dev_macro": macro_dev(dev_pooled),
+        "per_model": per_model,
+        "per_benchmark": per_benchmark,
+        "per_seed": per_seed,
+        "pooled": pooled,
+        "environment_macro": macro_environments(primary_environment_rows),
     }
 
 
@@ -298,7 +349,8 @@ def main(argv=None) -> int:
     views["coverage"] = coverage
     common.atomic_write_json(args.output_dir / "aggregate.json", views)
     for name in (
-        "environment_split", "dev_pooled", "train_dev_diagnostic", "dev_macro"
+        "environment_split", "dev_pooled", "train_dev_diagnostic", "dev_macro",
+        "per_model", "per_benchmark", "per_seed", "pooled", "environment_macro",
     ):
         write_csv(args.output_dir / f"{name}.csv", views[name])
     print(json.dumps({

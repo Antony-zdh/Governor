@@ -50,6 +50,10 @@ CERTAINDEX_DYNAMIC_CSV = (
     / "benchmark/FalseConsensus/results/related_work/"
     "certaindex_effort_bank/aggregate/frontier.csv"
 )
+ORACLE_ENV_CSV = (
+    REPO_ROOT
+    / "benchmark/FalseConsensus/results/governor_v2/simple32_oracle/per_environment.csv"
+)
 OUTPUT_DIR = REPO_ROOT / "benchmark/FalseConsensus/report/figures"
 
 METHOD_LABELS = {
@@ -76,6 +80,7 @@ COLOR_REPRESENTATIVE = "#f59e0b"
 COLOR_DEER_DYNAMIC = "#047857"
 COLOR_TJE_DYNAMIC = "#ea580c"
 COLOR_CERTAINDEX_DYNAMIC = "#7c3aed"
+COLOR_ORACLE = "#111827"
 
 
 @dataclass(frozen=True)
@@ -225,6 +230,29 @@ def related_work_points() -> dict[str, dict[str, Point]]:
             token_saving_pct=sum(value[1] for value in values) / 6,
         )
     return points
+
+
+def oracle_points() -> dict[str, Point]:
+    """Load the label-using, non-deployable simple@32 upper bound."""
+    rows = list(csv.DictReader(ORACLE_ENV_CSV.open(encoding="utf-8")))
+    output: dict[str, Point] = {}
+    for split in ("train", "dev"):
+        selected = [row for row in rows if row["split"] == split]
+        if len(selected) != 18:
+            raise ValueError(f"expected 18 oracle environments for {split}, got {len(selected)}")
+        output[split] = Point(
+            rule_id="Non-deployable oracle",
+            split=split,
+            accuracy_drop_pp=sum(
+                float(row["full_accuracy_strict_pct"])
+                - float(row["oracle_accuracy_strict_pct"])
+                for row in selected
+            )
+            / len(selected),
+            token_saving_pct=sum(float(row["token_saving_micro_pct"]) for row in selected)
+            / len(selected),
+        )
+    return output
 
 
 def deer_dynamic_frontiers() -> dict[str, list[DEERPoint]]:
@@ -398,6 +426,7 @@ def plot_points(
     deer_frontier: Sequence[DEERPoint],
     tje_frontier: Sequence[TJEPoint],
     certaindex_frontier: Sequence[CertaIndexPoint],
+    oracle: Point,
     zoom: bool,
 ) -> None:
     axis.scatter(
@@ -535,6 +564,28 @@ def plot_points(
                 zorder=9,
             )
 
+    axis.scatter(
+        [oracle.accuracy_drop_pp],
+        [oracle.token_saving_pct],
+        s=190,
+        marker="*",
+        color=COLOR_ORACLE,
+        edgecolors="white",
+        linewidths=0.9,
+        zorder=11,
+        label="Oracle upper bound (uses labels)",
+    )
+    axis.annotate(
+        f"Oracle\n({oracle.accuracy_drop_pp:.1f}, {oracle.token_saving_pct:.1f})",
+        (oracle.accuracy_drop_pp, oracle.token_saving_pct),
+        xytext=(7, 5),
+        textcoords="offset points",
+        fontsize=8.5,
+        fontweight="medium",
+        color=COLOR_ORACLE,
+        zorder=12,
+    )
+
     for window, point in representatives.items():
         axis.scatter(
             [point.accuracy_drop_pp],
@@ -630,7 +681,7 @@ def plot_points(
     axis.axhline(0, color="#64748b", linewidth=0.8, alpha=0.55)
     axis.grid(True, color="#cbd5e1", linewidth=0.6, alpha=0.45)
     if zoom:
-        axis.set_xlim(-2.5, 13)
+        axis.set_xlim(-10.5, 13)
         axis.set_ylim(-8, 62)
         axis.set_title("Low-drop region", fontsize=11, fontweight="medium")
     else:
@@ -669,6 +720,7 @@ def write_representatives(
                 "dev_accuracy_drop_pp",
                 "dev_token_saving_pct",
             ],
+            lineterminator="\n",
         )
         writer.writeheader()
         for window, rule_id in sorted(representative_rule_ids.items()):
@@ -696,6 +748,7 @@ def main() -> None:
     deer_frontiers = deer_dynamic_frontiers()
     tje_frontiers = tje_dynamic_frontiers()
     certaindex_frontiers = certaindex_dynamic_frontiers()
+    oracles = oracle_points()
     windows = window_by_rule()
     rep_ids = representative_ids()
     manifest: dict[str, dict] = {}
@@ -735,6 +788,7 @@ def main() -> None:
                 deer_frontier=deer_frontiers[split],
                 tje_frontier=tje_frontiers[split],
                 certaindex_frontier=certaindex_frontiers[split],
+                oracle=oracles[split],
                 zoom=zoom,
             )
         axes[1].set_ylabel("")
@@ -783,6 +837,11 @@ def main() -> None:
             "certaindex_effort_frontier_points": len(
                 certaindex_frontiers[split]
             ),
+            "oracle_non_deployable": {
+                "accuracy_drop_pp": oracles[split].accuracy_drop_pp,
+                "token_saving_pct": oracles[split].token_saving_pct,
+                "uses_reference_labels": True,
+            },
             "long_window_frontier_windows": dict(
                 sorted(Counter(windows[rule_id] for rule_id in new_frontier_ids).items())
             )

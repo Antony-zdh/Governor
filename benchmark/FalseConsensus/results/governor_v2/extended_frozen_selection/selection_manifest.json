@@ -1,0 +1,344 @@
+{
+  "schema_version": "governor-v2-extended-freeze-1",
+  "status": "frozen_before_test_evaluation",
+  "selection_scope": "development Train/Dev only",
+  "test_data_read": false,
+  "candidate_counts": {
+    "preregistered": 17712,
+    "post_hoc_long_persistence": 15552,
+    "combined": 33264,
+    "combined_frontier": 103,
+    "practical_strict_persistence_frontier": 95
+  },
+  "selection_rule": {
+    "common_filter": "latest_persistence_fixed_maturity; dev q20 saving > 0; positive-saving fraction >= 0.8; non-dominated on frozen axes",
+    "safe": "minimum max(worst-model drop, worst-benchmark drop)",
+    "balanced_knee": "minimum normalized Euclidean distance to ideal risk=minimum, dev-q20-saving=maximum among practical points with risk <=10pp",
+    "token_efficient": "maximum dev q20 saving among practical risk <=10pp"
+  },
+  "selected": {
+    "safe": {
+      "metrics": {
+        "rule_id": "latest_persistence_fixed_maturity__255bbc0b19c5",
+        "dev_q20_saving_fraction": 0.0108549306599814,
+        "train_q20_saving_fraction": 0.02596238807434878,
+        "mean_dev_saving_fraction": 0.060785232853938304,
+        "positive_saving_fraction": 0.8888888888888888,
+        "max_model_accuracy_drop_pp": 3.8148148148148167,
+        "max_benchmark_accuracy_drop_pp": 5.555555555555558,
+        "complexity": 22,
+        "environment_count": 36
+      },
+      "rule": {
+        "rule_id": "latest_persistence_fixed_maturity__255bbc0b19c5",
+        "probe": {
+          "style": "simple",
+          "output_cap": 32,
+          "schedule": {
+            "kind": "fixed",
+            "start_token": 256,
+            "interval_tokens": 256,
+            "phases": [],
+            "agreement_trigger_count": null,
+            "agreement_interval_tokens": null,
+            "event": {
+              "trigger_types": [],
+              "marker_profile": "none",
+              "entropy": {
+                "metric": "teacher_forced_topk_entropy",
+                "top_k": 20,
+                "smooth_window_tokens": 16,
+                "reference_window_tokens": 64,
+                "minimum_drop": 0.2,
+                "minimum_z": 1.0
+              },
+              "alignment": "next_step_boundary",
+              "alignment_lookahead_tokens": 32,
+              "minimum_gap_tokens": 64,
+              "fallback_interval_tokens": null
+            }
+          }
+        },
+        "validity": {
+          "mode": "nonempty"
+        },
+        "maturity": {
+          "kind": "fixed_tokens",
+          "minimum_tokens": 0,
+          "minimum_budget_fraction": 0.0,
+          "online_instability_floor_tokens": 0
+        },
+        "evidence": {
+          "family": "latest",
+          "window_probes": 1,
+          "minimum_valid_probes": 1,
+          "dominant_share_threshold": 1.0,
+          "entropy_threshold": null,
+          "entropy_scope": "window"
+        },
+        "persistence": {
+          "minimum_consistent_accepts": 20,
+          "minimum_consensus_span_tokens": 0
+        },
+        "certainty": {
+          "enabled": false,
+          "minimum_certain_fraction": 1.0
+        },
+        "history": {
+          "maximum_switches": null,
+          "switch_window": {
+            "kind": "tokens",
+            "size": 2048
+          },
+          "minimum_stable_span_tokens": 0
+        },
+        "metadata": {
+          "template": "latest_persistence_fixed_maturity",
+          "axis_values": {
+            "certainty.enabled": false,
+            "history": {
+              "maximum_switches": null,
+              "switch_window": {
+                "kind": "tokens",
+                "size": 2048
+              },
+              "minimum_stable_span_tokens": 0
+            },
+            "history.minimum_stable_span_tokens": 0,
+            "maturity.minimum_tokens": 0,
+            "persistence.minimum_consensus_span_tokens": 0,
+            "persistence.minimum_consistent_accepts": 20,
+            "probe.schedule.interval_tokens": 256,
+            "probe.schedule.start_token": 256,
+            "validity.mode": "nonempty"
+          }
+        }
+      },
+      "source": "post_hoc_long_persistence"
+    },
+    "balanced_knee": {
+      "metrics": {
+        "rule_id": "latest_persistence_fixed_maturity__e734f384418c",
+        "dev_q20_saving_fraction": 0.07973026854262616,
+        "train_q20_saving_fraction": 0.09357700404982985,
+        "mean_dev_saving_fraction": 0.1636176956255772,
+        "positive_saving_fraction": 0.9722222222222222,
+        "max_model_accuracy_drop_pp": 6.925925925925928,
+        "max_benchmark_accuracy_drop_pp": 6.481481481481482,
+        "complexity": 23,
+        "environment_count": 36
+      },
+      "rule": {
+        "rule_id": "latest_persistence_fixed_maturity__e734f384418c",
+        "probe": {
+          "style": "simple",
+          "output_cap": 32,
+          "schedule": {
+            "kind": "fixed",
+            "start_token": 256,
+            "interval_tokens": 128,
+            "phases": [],
+            "agreement_trigger_count": null,
+            "agreement_interval_tokens": null,
+            "event": {
+              "trigger_types": [],
+              "marker_profile": "none",
+              "entropy": {
+                "metric": "teacher_forced_topk_entropy",
+                "top_k": 20,
+                "smooth_window_tokens": 16,
+                "reference_window_tokens": 64,
+                "minimum_drop": 0.2,
+                "minimum_z": 1.0
+              },
+              "alignment": "next_step_boundary",
+              "alignment_lookahead_tokens": 32,
+              "minimum_gap_tokens": 64,
+              "fallback_interval_tokens": null
+            }
+          }
+        },
+        "validity": {
+          "mode": "nonempty"
+        },
+        "maturity": {
+          "kind": "fixed_tokens",
+          "minimum_tokens": 0,
+          "minimum_budget_fraction": 0.0,
+          "online_instability_floor_tokens": 0
+        },
+        "evidence": {
+          "family": "latest",
+          "window_probes": 1,
+          "minimum_valid_probes": 1,
+          "dominant_share_threshold": 1.0,
+          "entropy_threshold": null,
+          "entropy_scope": "window"
+        },
+        "persistence": {
+          "minimum_consistent_accepts": 20,
+          "minimum_consensus_span_tokens": 256
+        },
+        "certainty": {
+          "enabled": false,
+          "minimum_certain_fraction": 1.0
+        },
+        "history": {
+          "maximum_switches": null,
+          "switch_window": {
+            "kind": "tokens",
+            "size": 2048
+          },
+          "minimum_stable_span_tokens": 0
+        },
+        "metadata": {
+          "template": "latest_persistence_fixed_maturity",
+          "axis_values": {
+            "certainty.enabled": false,
+            "history": {
+              "maximum_switches": null,
+              "switch_window": {
+                "kind": "tokens",
+                "size": 2048
+              },
+              "minimum_stable_span_tokens": 0
+            },
+            "history.minimum_stable_span_tokens": 0,
+            "maturity.minimum_tokens": 0,
+            "persistence.minimum_consensus_span_tokens": 256,
+            "persistence.minimum_consistent_accepts": 20,
+            "probe.schedule.interval_tokens": 128,
+            "probe.schedule.start_token": 256,
+            "validity.mode": "nonempty"
+          }
+        }
+      },
+      "source": "post_hoc_long_persistence"
+    },
+    "token_efficient": {
+      "metrics": {
+        "rule_id": "latest_persistence_fixed_maturity__45b50fd6f010",
+        "dev_q20_saving_fraction": 0.10862950719528566,
+        "train_q20_saving_fraction": 0.11378025386069955,
+        "mean_dev_saving_fraction": 0.19636215379142047,
+        "positive_saving_fraction": 0.9722222222222222,
+        "max_model_accuracy_drop_pp": 8.870370370370374,
+        "max_benchmark_accuracy_drop_pp": 8.333333333333334,
+        "complexity": 11,
+        "environment_count": 36
+      },
+      "rule": {
+        "rule_id": "latest_persistence_fixed_maturity__45b50fd6f010",
+        "probe": {
+          "style": "simple",
+          "output_cap": 32,
+          "schedule": {
+            "kind": "fixed",
+            "start_token": 128,
+            "interval_tokens": 256,
+            "phases": [],
+            "agreement_trigger_count": null,
+            "agreement_interval_tokens": null,
+            "event": {
+              "trigger_types": [],
+              "marker_profile": "none",
+              "entropy": {
+                "metric": "teacher_forced_topk_entropy",
+                "top_k": 20,
+                "smooth_window_tokens": 16,
+                "reference_window_tokens": 64,
+                "minimum_drop": 0.2,
+                "minimum_z": 1.0
+              },
+              "alignment": "next_step_boundary",
+              "alignment_lookahead_tokens": 32,
+              "minimum_gap_tokens": 64,
+              "fallback_interval_tokens": null
+            }
+          }
+        },
+        "validity": {
+          "mode": "nonempty"
+        },
+        "maturity": {
+          "kind": "fixed_tokens",
+          "minimum_tokens": 0,
+          "minimum_budget_fraction": 0.0,
+          "online_instability_floor_tokens": 0
+        },
+        "evidence": {
+          "family": "latest",
+          "window_probes": 1,
+          "minimum_valid_probes": 1,
+          "dominant_share_threshold": 1.0,
+          "entropy_threshold": null,
+          "entropy_scope": "window"
+        },
+        "persistence": {
+          "minimum_consistent_accepts": 8,
+          "minimum_consensus_span_tokens": 256
+        },
+        "certainty": {
+          "enabled": false,
+          "minimum_certain_fraction": 1.0
+        },
+        "history": {
+          "maximum_switches": 2,
+          "switch_window": {
+            "kind": "probes",
+            "size": 16
+          },
+          "minimum_stable_span_tokens": 0
+        },
+        "metadata": {
+          "axis_values": {
+            "certainty.enabled": false,
+            "history": {
+              "maximum_switches": 2,
+              "minimum_stable_span_tokens": 0,
+              "switch_window": {
+                "kind": "probes",
+                "size": 16
+              }
+            },
+            "history.minimum_stable_span_tokens": 0,
+            "maturity.minimum_tokens": 0,
+            "persistence.minimum_consensus_span_tokens": 256,
+            "persistence.minimum_consistent_accepts": 8,
+            "probe.schedule.interval_tokens": 256,
+            "probe.schedule.start_token": 128,
+            "validity.mode": "nonempty"
+          },
+          "template": "latest_persistence_fixed_maturity"
+        }
+      },
+      "source": "preregistered"
+    }
+  },
+  "source_sha256": {
+    "benchmark/FalseConsensus/governor_v2/protocol.json": "bb574b499bb777c83159824ecf6843851785b33600d60b782b417e7a35758f9b",
+    "benchmark/FalseConsensus/governor_v2/generated/split_manifest.json": "3d30cd624dd9cd637b5d3f40e030247d225114db6074c6b2d26a1351d676e9a6",
+    "benchmark/FalseConsensus/governor_v2/generated/candidate_rules.jsonl": "56bb5a3a75227a0f6adb4d046b6fd2a51becb44b8604c9576b503906f1983a49",
+    "benchmark/FalseConsensus/governor_v2/generated/long_persistence_sensitivity/candidate_rules_incremental.jsonl": "b4bdecfbe90878d7e3ad61f696a5faf001b7ad47900c6351ef81a3762271e7b4",
+    "benchmark/FalseConsensus/governor_v2/generated/sweep_0.jsonl.gz": "7aba94edc2cd8b70eada8baed9b81f5255cade451559f9ab3a361fbe61aba466",
+    "benchmark/FalseConsensus/governor_v2/generated/sweep_1.jsonl.gz": "4ed4586dbaed70f201d7d39e5077932514409020646e5aafe7f42189525be4f7",
+    "benchmark/FalseConsensus/governor_v2/generated/sweep_2.jsonl.gz": "1a0cdcaa39ab482c2ef2f733956b542b3faf35701090d3f526e9e5d4e700e947",
+    "benchmark/FalseConsensus/governor_v2/generated/sweep_3.jsonl.gz": "c85ab64734e5cb1d3dab4663c8c403f063974207e7084bf09a9ce37825e90b1f",
+    "benchmark/FalseConsensus/governor_v2/generated/sweep_4.jsonl.gz": "08306bae2c042ca520b3c9792402959b2d7691f382cbcc273dc9438f09176008",
+    "benchmark/FalseConsensus/governor_v2/generated/sweep_5.jsonl.gz": "5df4b78f57c8d5b72fd920e6530273e3f25c612fbaaa0c11cd5b842ec7ce14bf",
+    "benchmark/FalseConsensus/governor_v2/generated/sweep_6.jsonl.gz": "d1a2c84c84ed36455d92b406c8578609ce0dfbbbfb208184e383333fa3878721",
+    "benchmark/FalseConsensus/governor_v2/generated/sweep_7.jsonl.gz": "d996ab60991bb9110ae21769c5b57af7edd9033552f5acd4dcc4720852ccc142",
+    "benchmark/FalseConsensus/governor_v2/generated/long_persistence_sensitivity/sweep_0.jsonl.gz": "8d18a8380dfa08c88e40a6eaecd8968e615295aae2cc6b67498c2887ab469df1",
+    "benchmark/FalseConsensus/governor_v2/generated/long_persistence_sensitivity/sweep_1.jsonl.gz": "20e8a514d666e3443fcd5734d2a7b0ab67e22e880dfc021300a41218251b43c6",
+    "benchmark/FalseConsensus/governor_v2/generated/long_persistence_sensitivity/sweep_2.jsonl.gz": "3577ba4ec4ef4b5ce50c8c2fa4bb4559a4d34302c997b9e01622754803ddb600",
+    "benchmark/FalseConsensus/governor_v2/generated/long_persistence_sensitivity/sweep_3.jsonl.gz": "dce54f571c22ed55465a0b2afa54bce8a3abcc4eae8608d43b21af9851f3220d",
+    "benchmark/FalseConsensus/governor_v2/generated/long_persistence_sensitivity/sweep_4.jsonl.gz": "514e70d8c3e4a56e278d6fb16c2405512115b7b0a473e4f84c4277e4fb5ba049",
+    "benchmark/FalseConsensus/governor_v2/generated/long_persistence_sensitivity/sweep_5.jsonl.gz": "b478925327ed770a30ca9fa561503990200561cb8fb3fa2d1581b627bf1d7d01",
+    "benchmark/FalseConsensus/governor_v2/generated/long_persistence_sensitivity/sweep_6.jsonl.gz": "45364aadeeaa1155046e214ae0c09f0998856435ddc2da7cc63b834c6c71f478",
+    "benchmark/FalseConsensus/governor_v2/generated/long_persistence_sensitivity/sweep_7.jsonl.gz": "4b8c0702d866817ba48f168df07939f623505482a825919ec2171c69b8e7ca70"
+  },
+  "integrity": {
+    "selected_distinct": true,
+    "all_selected_present_in_train_dev_candidates": true
+  }
+}

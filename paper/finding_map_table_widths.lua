@@ -39,5 +39,33 @@ function Table(tbl)
   for index, colspec in ipairs(tbl.colspecs) do
     tbl.colspecs[index] = {colspec[1], widths[index]}
   end
+
+  -- Claim audit coloring: supported claims are green, contradicted/unsafe
+  -- claims red, and externally pending claims blue. Color the claim, status,
+  -- and its evidence/limitation pointer rather than relying on a detached key.
+  if first_header == "ID" and #tbl.colspecs == 5 then
+    local function color_cell(cell, color)
+      for _, block in ipairs(cell.contents) do
+        if block.t == "Plain" or block.t == "Para" then
+          table.insert(block.content, 1,
+            pandoc.RawInline("latex", "\\begingroup\\color{" .. color .. "}"))
+          table.insert(block.content,
+            pandoc.RawInline("latex", "\\endgroup"))
+        end
+      end
+    end
+    for _, row in ipairs(tbl.bodies[1].body) do
+      local reliability = pandoc.utils.stringify(row.cells[4].contents)
+      local color = "ClaimGreen"
+      if reliability:find("未完成") then
+        color = "ClaimBlue"
+      elseif reliability:find("低") or reliability:find("不支持") then
+        color = "ClaimRed"
+      end
+      for _, index in ipairs({1, 2, 4, 5}) do
+        color_cell(row.cells[index], color)
+      end
+    end
+  end
   return tbl
 end

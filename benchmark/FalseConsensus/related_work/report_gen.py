@@ -65,7 +65,11 @@ def _method_label(value: Any) -> str:
 
 
 def _dev_table(views: dict) -> str:
-    """Dev-pooled model × benchmark table."""
+    """Evaluation-split pooled model × benchmark table.
+
+    ``dev_pooled`` is retained as the aggregate schema key for backward
+    compatibility.  For a test-only aggregate it contains test rows.
+    """
     dev_pooled = views.get("dev_pooled", [])
     if not dev_pooled:
         return "| 模型 | 基准 | 方法 | 数据待补 |\n|---|---|---|---|\n"
@@ -294,14 +298,21 @@ def generate_report(aggregate_path: Path, output_path: Path) -> str:
 
     coverage = views.get("coverage", {})
     row_count = views.get("row_count", 0)
-    expected = common.EXPECTED_TOTAL_TRAJECTORIES * 3  # 8208
+    test_rows = int(coverage.get("test_rows", 0) or 0)
+    is_test = bool(row_count and test_rows == row_count)
+    trajectories_per_method = 684 if is_test else common.EXPECTED_TOTAL_TRAJECTORIES
+    expected = trajectories_per_method * 3
     data_ready = row_count == expected
+    phase_label = "Test" if is_test else "Development"
 
     report = []
-    report.append("# Governor v2 相关工作基线实验报告\n")
+    report.append(f"# Governor v2 相关工作基线实验报告（{phase_label}）\n")
     report.append("## 1. 执行结论\n")
     if data_ready:
-        report.append(f"全量数据已就绪（{row_count} 行，3 方法 × {common.EXPECTED_TOTAL_TRAJECTORIES} 轨迹/方法）。\n")
+        report.append(
+            f"全量数据已就绪（{row_count} 行，3 方法 × "
+            f"{trajectories_per_method} 轨迹/方法）。\n"
+        )
     else:
         report.append(f"数据尚不完整（{row_count}/{expected} 行）。以下表格中 N/A 表示数据待补。\n")
     report.append(_executive_conclusion(views, data_ready))
@@ -309,9 +320,15 @@ def generate_report(aggregate_path: Path, output_path: Path) -> str:
     report.append("\n## 2. 实验范围与复现标签\n")
     report.append(f"- **模型**: DeepSeek-R1-Distill-Qwen-7B (rev `916b56a`), Qwen3-8B (rev `b968826`)\n")
     report.append(f"- **基准**: MATH500 (400/env), AMC23 (32/env), AIME24 (24/env)\n")
-    report.append(f"- **种子**: 42, 43, 44\n")
-    report.append(f"- **环境数**: 18 (2 模型 × 3 基准 × 3 种子), **轨迹总数**: {common.EXPECTED_TOTAL_TRAJECTORIES}\n")
-    report.append(f"- **阶段**: development (train+dev), 无测试数据\n")
+    report.append(f"- **种子**: {'45, 46, 47' if is_test else '42, 43, 44'}\n")
+    report.append(
+        f"- **环境数**: 18 (2 模型 × 3 基准 × 3 种子), "
+        f"**轨迹总数**: {trajectories_per_method}\n"
+    )
+    report.append(
+        f"- **阶段**: "
+        f"{'confirmation (test only)' if is_test else 'development (train+dev), 无测试数据'}\n"
+    )
     report.append(f"- **协议版本**: `{common.EXPECTED_PROTOCOL_VERSION}`\n")
     report.append(f"- **拆分种子**: `{common.EXPECTED_SPLIT_SEED}`\n")
 
@@ -329,11 +346,13 @@ def generate_report(aggregate_path: Path, output_path: Path) -> str:
     else:
         report.append("数据待补。\n")
 
-    report.append("\n## 5. Dev 模型×基准表\n")
+    report.append(f"\n## 5. {phase_label} 模型×基准表\n")
     report.append(_dev_table(views))
     report.append("")
 
-    report.append("\n## 6. Dev 宏观视图（不使MATH500按样本数主导）\n")
+    report.append(
+        f"\n## 6. {phase_label} 宏观视图（不使MATH500按样本数主导）\n"
+    )
     macro = views.get("dev_macro", [])
     if macro:
         lines = [
@@ -352,6 +371,24 @@ def generate_report(aggregate_path: Path, output_path: Path) -> str:
     else:
         report.append("数据待补。\n")
     report.append("")
+
+    per_seed = views.get("per_seed", [])
+    if per_seed:
+        report.append(f"\n### 6.1 {phase_label} pooled per-seed sensitivity\n")
+        lines = [
+            "| Seed | Method | n | Accuracy | Accuracy diff | All-generated saving | Stop rate |",
+            "|---:|---|---:|---:|---:|---:|---:|",
+        ]
+        for row in per_seed:
+            lines.append(
+                f"| {row.get('base_seed','N/A')} | {_method_label(row.get('method','N/A'))} "
+                f"| {row.get('n','N/A')} | {_pct(row.get('accuracy'))} "
+                f"| {_fmt(row.get('accuracy_diff_pp'),2)} pp "
+                f"| {_pct(row.get('all_generated_token_saving_fraction'))} "
+                f"| {_pct(row.get('stop_rate'))} |"
+            )
+        report.append("\n".join(lines))
+        report.append("")
 
     report.append("\n## 7. Accuracy-compute Pareto\n")
     report.append(_pareto_table(views))
@@ -373,8 +410,12 @@ def generate_report(aggregate_path: Path, output_path: Path) -> str:
     report.append("1. **论文式** `main_tokens_through_stop` - 冻结推理长度到停止（或全长如无停止）\n")
     report.append("2. **公平全量** `all_generated_tokens` = 主停止长度 + 所有探针/试错/读出输出token\n")
     report.append("探针/试错/读出 **prompt token**（重发前缀）单独报告，不计入全量生成token。\n")
-    report.append(f"\n**配对分层 bootstrap**: {metrics.BOOTSTRAP_SAMPLES} 样本, 种子 `{metrics.BOOTSTRAP_SEED}` - "
-                 "先重采样种子，再在种子内重采样配对问题行。仅在 dev-pooled + train+dev 视图运行（非逐环境）。\n")
+    report.append(
+        f"\n**配对分层 bootstrap**: {metrics.BOOTSTRAP_SAMPLES} 样本, "
+        f"种子 `{metrics.BOOTSTRAP_SEED}` - 先重采样种子，再在种子内"
+        f"重采样配对问题行。仅在 {phase_label.lower()}-pooled 与方法汇总视图"
+        "运行（非逐环境）。\n"
+    )
 
     report.append("\n## 10. 失败、截断与解析诊断\n")
     report.append(_diagnostic_table(views))
@@ -406,19 +447,32 @@ def generate_report(aggregate_path: Path, output_path: Path) -> str:
     report.append("bash benchmark/FalseConsensus/results/related_work/_runtime/run_full_model_pipeline.sh deepseek\n")
     report.append("bash benchmark/FalseConsensus/results/related_work/_runtime/run_full_model_pipeline.sh qwen3\n")
     report.append("\n# 后处理（replay + aggregate + report）\n")
-    report.append("python -m benchmark.FalseConsensus.related_work.postprocess\n")
+    if is_test:
+        report.append(
+            "python -m benchmark.FalseConsensus.related_work.aggregate_all "
+            "--inputs benchmark/FalseConsensus/results/related_work/test/_replay/*/replay_rows.jsonl "
+            "--output-dir benchmark/FalseConsensus/results/related_work/test/aggregate --allow-test\n"
+        )
+    else:
+        report.append("python -m benchmark.FalseConsensus.related_work.postprocess\n")
     report.append("\n# PDF渲染\n")
     report.append("bash benchmark/FalseConsensus/results/related_work/_runtime/render_pdf.sh\n")
     report.append("```\n")
 
     report.append("\n## 14. Artifact inventory\n")
-    report.append("- 原始逐题结果：`benchmark/FalseConsensus/results/related_work/full/<model>__<benchmark>__seed_<seed>/<method>/`\n")
-    report.append("- 54 个 replay：`benchmark/FalseConsensus/results/related_work/full/_replay/`\n")
-    report.append("- 聚合 JSON：`benchmark/FalseConsensus/results/related_work/aggregate/aggregate.json`\n")
-    report.append("- 环境/dev/train+dev/宏视图 CSV：`benchmark/FalseConsensus/results/related_work/aggregate/*.csv`\n")
-    report.append("- Markdown 报告：`benchmark/FalseConsensus/results/related_work/aggregate/report.md`\n")
-    report.append("- PDF 报告：`benchmark/FalseConsensus/results/related_work/aggregate/report.pdf`\n")
-    report.append("- 运行/验证日志：`benchmark/FalseConsensus/results/related_work/full/_runtime/`\n")
+    artifact_root = "test" if is_test else "full"
+    aggregate_root = (
+        "benchmark/FalseConsensus/results/related_work/test/aggregate"
+        if is_test
+        else "benchmark/FalseConsensus/results/related_work/aggregate"
+    )
+    report.append(f"- 原始逐题结果：`benchmark/FalseConsensus/results/related_work/{artifact_root}/<model>__<benchmark>__seed_<seed>/<method>/`\n")
+    report.append(f"- 54 个 replay：`benchmark/FalseConsensus/results/related_work/{artifact_root}/_replay/`\n")
+    report.append(f"- 聚合 JSON：`{aggregate_root}/aggregate.json`\n")
+    report.append(f"- 环境/pooled/宏视图 CSV：`{aggregate_root}/*.csv`\n")
+    report.append(f"- Markdown 报告：`{aggregate_root}/report.md`\n")
+    report.append(f"- PDF 报告：`{aggregate_root}/report.pdf`\n")
+    report.append(f"- 运行/验证日志：`benchmark/FalseConsensus/results/related_work/{artifact_root}/_runtime/`\n")
 
     text = "\n".join(report)
     output_path.parent.mkdir(parents=True, exist_ok=True)

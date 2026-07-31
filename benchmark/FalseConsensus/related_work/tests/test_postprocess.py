@@ -112,6 +112,30 @@ class ReportGenTests(unittest.TestCase):
             # must NOT contain fabricated fixture values
             self.assertNotIn("0.85", text)
 
+    def test_report_accepts_complete_test_scope(self):
+        fixture = self._fixture_aggregate()
+        fixture["row_count"] = 2052
+        fixture["coverage"] = {
+            "ok": True,
+            "method_count": 3,
+            "environment_count": 54,
+            "rows_per_method": {
+                "certaindex_mid_frozen": 684,
+                "tje_frozen": 684,
+                "deer_frozen": 684,
+            },
+            "test_rows": 2052,
+        }
+        with tempfile.TemporaryDirectory() as td:
+            aggregate = Path(td) / "aggregate.json"
+            report = Path(td) / "report.md"
+            aggregate.write_text(json.dumps(fixture), encoding="utf-8")
+            text = report_gen.generate_report(aggregate, report)
+        self.assertIn("（Test）", text)
+        self.assertIn("2052 行，3 方法 × 684 轨迹/方法", text)
+        self.assertIn("45, 46, 47", text)
+        self.assertNotIn("2052/8208", text)
+
     def test_report_cli(self):
         with tempfile.TemporaryDirectory() as td:
             agg_path = Path(td) / "aggregate.json"

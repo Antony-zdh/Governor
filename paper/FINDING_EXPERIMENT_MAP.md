@@ -2,7 +2,7 @@
 
 用途：把论文中的每个 finding/claim 拆成可核验陈述，记录直接实验、证据边界、可靠性和下一步。本文是研究台账，不替代论文正文。
 
-引用约定：每个原子 claim 都在对应章节顶部映射到一个或多个附录证据项 `A1-A23`。点击 PDF 中的附录编号可跳转到具体数据表、图、聚合口径和源 artifact；`A15` 专门记录尚未完成、仅探索性或被现有消融削弱的证据，`A16-A23` 记录后续新增的 scale、human evaluation、long-window、probe、related-work frontier 与 calibration 证据。
+引用约定：每个原子 claim 都在对应章节顶部映射到一个或多个附录证据项 `A1-A28`。点击 PDF 中的附录编号可跳转到具体数据表、图、聚合口径和源 artifact；`A15` 专门记录尚未完成、仅探索性或被现有消融削弱的证据，`A16-A28` 记录后续新增的 scale、human evaluation、long-window、probe、related-work frontier、matched-signal、held-out Test、仲裁与 Oracle 证据。
 
 # 1. 可靠性标准
 
@@ -14,21 +14,25 @@
 
 可靠性评估的是“当前数据能否支撑这句话”，不是 finding 是否有研究价值。精确、窄范围的 claim 可以是高可靠；更宏大的外推即使方向合理，也可能只有中或低可靠。
 
+PDF claim 表采用颜色审计：\textcolor{ClaimGreen}{绿色}表示已有直接支撑且量词已收窄；
+\textcolor{ClaimRed}{红色}表示被反例削弱、不可支持或仅能作为限制；
+\textcolor{ClaimBlue}{蓝色}表示依赖独立远端 unseen-model 增量、当前仍未完成。
+
 # 2. 五项主 finding 总览
 
 | Finding | 当前可守住的核心结论 | 总体可靠性 | 最薄弱环节 |
 |---|---|---:|---|
-| F1 False consensus | 在两模型 × 三 benchmark × 六 seeds 的已测数学推理轨迹中，短 local consensus 并不等于终止；提高 persistence 可改善可靠性，但 prompt 从 Simple 换成 CertaIndex 并未延后共识或消除错误早停 | **高（范围内）** | 仍只有竞赛数学；taxonomy 双标已完成但 A/D 边界待仲裁 |
+| F1 False consensus | 在两模型 × 三 benchmark × 六 seeds 的已测数学推理轨迹中，短 local consensus 并不等于终止；提高 persistence 可改善可靠性，但 prompt 从 Simple 换成 CertaIndex 并未延后共识或消除错误早停 | **高（范围内）** | 仍只有竞赛数学；taxonomy 已仲裁，但原始双标的 A/D 边界一致性较低 |
 | F2 Searched-space negative result | 在预注册的 17,712 个 consensus 规则及既定 dense-probe 计费下，dev 上没有规则通过 conservative gate；post-hoc 加入 15,552 个长窗口规则后 gate 仍为空 | **高/中** | 原搜索结论为高；长窗口扩展是 post-hoc sensitivity，不能改称预注册 |
 | F3 Accuracy tax / probe tax | 停在中间答案会损失后续纠错机会；真实 cap × interval 消融表明 interval 同时改变 accuracy-saving trade-off，而 8/16/32-token probe cap 基本不改变 frontier | **高（当前协议）** | output-token probe tax 已量化；prompt/prefill、KV reuse 与在线轨迹改变仍未解决 |
-| F4 Related-work contrast | 同一 frozen harness 中，DEER、TJE、CertaIndex 均已从单点扩展成动态 operating frontier；DEER confidence 可在较低 accuracy drop 下获得显著 saving | **中高（本 harness）** | 仍缺同一候选/trigger/readout 下的 matched-signal 因果对照 |
+| F4 Related-work contrast | 同一 frozen harness 中，DEER、TJE、CertaIndex 均已从单点扩展成动态 operating frontier；严格同位、同候选、同提交和同计费的 CPU 对照进一步隔离了 confidence 与 persistence 信号 | **中高（本 harness）** | matched bank 只覆盖 67.69% 的 DEER events；仍非原论文完整 online deployment |
 | F5 Boundary confidence | Fast path 有 train/dev 配对正面证据；完整 online controller 的 36 个 run directories、1,368 rows 已统一审计，dev 三 seed 宏平均接近中性且有较高 saving | **中（探索性）** | verification branch 当前没有带来净纠错，且没有 test / 新模型验证 |
 
-**总览证据索引**：F1 -> [A1](#app-a1)、[A2](#app-a2)、[A3](#app-a3)、[A4](#app-a4)、[A17](#app-a17)、[A18](#app-a18)、[A19](#app-a19)；F2 -> [A5](#app-a5)、[A6](#app-a6)、[A8](#app-a8)、[A9](#app-a9)、[A16](#app-a16)、[A22](#app-a22)；F3 -> [A7](#app-a7)、[A14](#app-a14)、[A18](#app-a18)、[A20](#app-a20)；F4 -> [A10](#app-a10)、[A18](#app-a18)、[A21](#app-a21)、[A23](#app-a23)；F5 -> [A11](#app-a11)、[A12](#app-a12)、[A13](#app-a13)、[A23](#app-a23)。
+**总览证据索引**：F1 -> [A1](#app-a1)、[A2](#app-a2)、[A3](#app-a3)、[A4](#app-a4)、[A17](#app-a17)、[A18](#app-a18)、[A19](#app-a19)、[A27](#app-a27)；F2 -> [A5](#app-a5)、[A6](#app-a6)、[A8](#app-a8)、[A9](#app-a9)、[A16](#app-a16)、[A22](#app-a22)、[A25](#app-a25)、[A28](#app-a28)；F3 -> [A7](#app-a7)、[A14](#app-a14)、[A18](#app-a18)、[A20](#app-a20)、[A28](#app-a28)；F4 -> [A10](#app-a10)、[A18](#app-a18)、[A21](#app-a21)、[A23](#app-a23)、[A24](#app-a24)、[A26](#app-a26)；F5 -> [A11](#app-a11)、[A12](#app-a12)、[A13](#app-a13)、[A23](#app-a23)。
 
 # 3. F1：False consensus
 
-**逐 claim 附录索引**：F1.1 -> [A1](#app-a1), [A2](#app-a2)；F1.2 -> [A1](#app-a1), [A3](#app-a3), [A18](#app-a18), [A19](#app-a19)；F1.3 -> [A3](#app-a3), [A7](#app-a7), [A18](#app-a18)；F1.4 -> [A3](#app-a3)；F1.5 -> [A2](#app-a2), [A18](#app-a18)；F1.6 -> [A4](#app-a4), [A17](#app-a17)；F1.7 -> [A4](#app-a4), [A17](#app-a17), [A19](#app-a19)；F1.8 -> [A5](#app-a5), [A7](#app-a7), [A19](#app-a19)。
+**逐 claim 附录索引**：F1.1 -> [A1](#app-a1), [A2](#app-a2)；F1.2 -> [A1](#app-a1), [A3](#app-a3), [A18](#app-a18), [A19](#app-a19)；F1.3 -> [A3](#app-a3), [A7](#app-a7), [A18](#app-a18)；F1.4 -> [A3](#app-a3)；F1.5 -> [A2](#app-a2), [A18](#app-a18)；F1.6 -> [A4](#app-a4), [A17](#app-a17), [A27](#app-a27)；F1.7 -> [A19](#app-a19), [A27](#app-a27)；F1.8 -> [A5](#app-a5), [A7](#app-a7), [A19](#app-a19)。
 
 | ID | 原子 claim | 直接实验与主要结果 | 可靠性 | 安全措辞与缺口 |
 |---|---|---|---:|---|
@@ -37,13 +41,13 @@
 | F1.3 | Continued reasoning 经常恢复正确答案 | w=5 first consensus：1,137 recovery vs 39 overthinking（29.15:1）；六个 model × benchmark cells 均同向。1,411 个 first-consensus 与 final 不同样本中 1,139 个最终正确 | **高** | Recovery 是跨当前环境的主要机制；Probe-1 的 86.0%/78.0% 仅作 early-readout control |
 | F1.4 | Consensus 出现得更晚不代表更可靠 | 绝对位置从 `<512` 的 90.5% 降至 `≥8K` 的 39.1%；但按完整轨迹相对位置分箱为 85.6%、93.7%、95.1%、91.7%、84.4%，不单调 | **低-中（描述性）** | 只能说 absolute-token correlation 受难度/长度混杂；不得写成稳健或因果规律 |
 | F1.5 | Window share 不是校准良好的 correctness confidence | 18-environment w=3/5/8 macro CCE 为 0.201/0.203/0.200；strict window 扩展到 w=30 后 stop accuracy 在 pooled/macro 仍只有 85.3%/74.5% | **高（tested windows）** | 可说本次 windows/settings 下 miscalibrated；同时承认更长 persistence 明显改善 trade-off |
-| F1.6 | False-consensus errors 可分成数值/表达式坍缩、符号错误、推导缺口、格式伪影等类型 | Task A 两位标注者均完成 134/134；精确一致 47.76%，kappa=0.286，主要分歧为 D（reasoning gap）与 A（numeric collapse） | **中低** | 类别存在，但比例尚不稳定；70 个冲突需按更明确的“中间量 vs 最终候选答案”定义仲裁 |
+| F1.6 | False-consensus errors 可分成数值/表达式坍缩、符号错误、推导缺口、格式伪影等类型 | Task A 两位标注者均完成 134/134；原始一致率 47.76%、kappa=0.286。仲裁后 A/B/C/D/E 为 24/2/1/82/25，其中 61 个 A/D 冲突按预先明确的项目定义归 D | **中** | 仲裁给出 labels of record，但不会提高原始 inter-rater reliability；类别比例须同时披露操作定义 |
 | F1.7 | 更换为 CertaIndex probe prompt 是否会消除或延后 false consensus | 36-environment paired ablation 中，CertaIndex prompt 反而平均提前 115 main tokens 达成共识，accuracy 比 Simple 低 2.6 pp；两者均有约 99% stop coverage | **中高（两种 prompt）** | 反驳“CertaIndex 通过延后共识解决问题”；不能由两种 prompt 推断所有 probe prompts 等价 |
 | F1.8 | False consensus 不只存在于 Stage 1 的 3072-token 截断设置或单一 prompt | Governor v2 16K/32K caps 的六个 model × benchmark cells 均观察到 last-5 false consensus；Simple/CertaIndex 双 prompt、六 seeds 配对实验也均出现严重 accuracy tax | **高（tested bank）** | 已跨 cap 与两种 probe prompt；仍限定于两模型和三个竞赛数学 benchmark |
 
 # 4. F2：预注册搜索与 “no safe-and-saving rule”
 
-**逐 claim 附录索引**：F2.1 -> [A14](#app-a14)；F2.2 -> [A5](#app-a5), [A14](#app-a14)；F2.3 -> [A5](#app-a5)；F2.4 -> [A5](#app-a5)；F2.5 -> [A5](#app-a5), [A8](#app-a8)；F2.6 -> [A5](#app-a5)；F2.7 -> [A5](#app-a5), [A6](#app-a6), [A14](#app-a14)；F2.8 -> [A6](#app-a6)；F2.9 -> [A8](#app-a8)；F2.10 -> [A8](#app-a8)；F2.11 -> [A9](#app-a9), [A16](#app-a16)；F2.12 -> [A15](#app-a15)。
+**逐 claim 附录索引**：F2.1 -> [A14](#app-a14)；F2.2 -> [A5](#app-a5), [A14](#app-a14), [A22](#app-a22)；F2.3 -> [A5](#app-a5)；F2.4 -> [A5](#app-a5)；F2.5 -> [A5](#app-a5), [A8](#app-a8)；F2.6 -> [A5](#app-a5)；F2.7 -> [A5](#app-a5), [A6](#app-a6), [A14](#app-a14)；F2.8 -> [A6](#app-a6)；F2.9 -> [A8](#app-a8), [A25](#app-a25)；F2.10 -> [A8](#app-a8), [A25](#app-a25)；F2.11 -> [A9](#app-a9), [A16](#app-a16)；F2.12 -> [A15](#app-a15), [A28](#app-a28)。
 
 | ID | 原子 claim | 直接实验与主要结果 | 可靠性 | 安全措辞与缺口 |
 |---|---|---|---:|---|
@@ -55,7 +59,7 @@
 | F2.6 | 所有 17,712 个规则在 Development selection 上的 worst-case per-model drop 都为正 | train+dev selection 为 17,712/17,712；development cells 中 67.72% 掉点、6.75% 提升、25.53% 不变 | **高（Development 搜索空间）** | 不能再用混入无效 Llama run 的四模型 Test 统计扩张该全称；held-out 支撑改由 A8 同两模型 cross-split 提供 |
 | F2.7 | 正净节省至少要付出 4.87 pp 的 per-model drop | 在 dense simple@32、interval 64 等既定 probe 计费下，获得至少三个 positive-saving rules 的最低 worst-case drop 为 4.87 pp，且对 PSF 0.5-0.8 稳定 | **中** | 必须和 dense-probe accounting 绑定；不是 probe 成本下降后的普适 frontier |
 | F2.8 | Adaptive event probing 在当前规则池中被 simple window share 支配 | Dev family frontier：adaptive 最佳 positive-saving 点 worst-case drop 9.70 pp、mean saving 14.2%；window share 对应 4.87 pp | **中高（当前 grid）** | 可说 `did not help in our sweep`；不能否定其他 adaptive trigger/controller |
-| F2.9 | Dev frontier 在同模型 held-out test 上稳定 | 17,712 个规则的同两模型 dev/test worst-case drop Pearson `r=0.962`；dev gate pass 0、test-alone pass 272、both 0；见 [A8 strategy points](../benchmark/FalseConsensus/results/appendix_evidence_upgrade/a8_strategy_points.csv) | **高** | 这是比 exact floor 更可靠的确认结论 |
+| F2.9 | Dev frontier 在同模型 held-out test 上稳定 | 17,712 个规则的同两模型 dev/test worst-case drop Pearson `r=0.962`；扩展 33,264 池只用 Train/Dev 冻结的三个代表点在 Test 分别为 -0.15/6.20、0.73/18.96、2.49/24.15 pp drop/saving（pooled） | **高（同模型 held-out）** | Test 未参与冻结；长 persistence 候选仍须标记 post-hoc sensitivity |
 | F2.10 | Test 上直接选出的“赢家”不能泛化回 dev | 272 个 test-alone gate passers 在 dev 的 per-model drop 为 4.98-5.65 pp，0 个同时通过 | **高** | 直接支撑 held-out selection 的必要性 |
 | F2.11 | Negative frontier 跨规模/架构延伸 | Qwen-32B 有 114 trajectories、3 benches、seed 45 的 scale evidence；修复后 Llama-8B 又完成 3 benches × seeds 42/43/44 的 1,710 条 development trajectories 与 17,712-rule replay | **中** | Llama 修复恢复了跨架构 development evidence，但旧 seed-45 confirmation 仍无效；不得把 dev sweep 当 held-out confirmation |
 | F2.12 | “任何 consensus-based early exit 都不可能安全且省 token” | 当前没有直接实验能覆盖无限规则空间、其他 probe prompt 或其他 domain | **低/不支持** | 必须改为 `no rule in the searched space`; 这是论文措辞的硬边界 |
@@ -64,7 +68,7 @@
 
 # 5. F3：Accuracy tax 与 probe tax
 
-**逐 claim 附录索引**：F3.1 -> [A14](#app-a14), [A20](#app-a20)；F3.2 -> [A14](#app-a14), [A20](#app-a20)；F3.3 -> [A7](#app-a7), [A18](#app-a18)；F3.4 -> [A5](#app-a5), [A7](#app-a7), [A18](#app-a18), [A20](#app-a20)；F3.5 -> [A14](#app-a14), [A18](#app-a18), [A20](#app-a20)；F3.6 -> [A14](#app-a14), [A15](#app-a15), [A20](#app-a20)。
+**逐 claim 附录索引**：F3.1 -> [A14](#app-a14), [A20](#app-a20)；F3.2 -> [A14](#app-a14), [A20](#app-a20)；F3.3 -> [A7](#app-a7), [A18](#app-a18)；F3.4 -> [A5](#app-a5), [A7](#app-a7), [A18](#app-a18), [A20](#app-a20)；F3.5 -> [A14](#app-a14), [A18](#app-a18), [A20](#app-a20)；F3.6 -> [A14](#app-a14), [A15](#app-a15), [A20](#app-a20)；F3.7 -> [A28](#app-a28)。
 
 | ID | 原子 claim | 直接实验与主要结果 | 可靠性 | 安全措辞与缺口 |
 |---|---|---|---:|---|
@@ -74,20 +78,21 @@
 | F3.4 | Dense probing 可把 gross saving 变成负 net saving | 最安全 entropy family 停得晚，仍支付大量 probes；dev 最安全点 net saving 约 `-8%` 至 `-9%` | **高（当前计费）** | 可解释当前负 savings；不可据此说 stop 本身增加 main tokens |
 | F3.5 | Probe density 与 output cap 如何影响 probe tax/frontier | 684 Dev trajectories 的真实 probe 消融：interval 64/128/256/512 显著改变 accuracy 与 saving；cap 8/16/32 在所有 cell 中差异不超过约 0.02 | **高（当前 grid）** | interval 是主要控制杆；多数 probe 在 cap 前遇到 stop，因此本 prompt 下缩短 cap 收益有限 |
 | F3.6 | Accuracy tax 对任何 probing scheme 都不可消除 | 稀疏 interval 确实降低 stop coverage 并改善 accuracy，但同时减少 saving；它没有在当前三策略中免费移除 trade-off | **中高（frozen grid）** | 仍不能外推到改变 main trajectory 的 online controller 或未测 KV-reuse 实现 |
+| F3.7 | Fixed simple@32 probe bank 是否包含足够早的正确信息 | 使用 reference label 的不可部署 Oracle 在 3,420 条轨迹上把 strict accuracy 从 76.55% 提到 80.56%，同时 micro saving 46.70%；77.75% 轨迹至少有一个合法正确 probe | **高（诊断上界）** | 只证明信息可达，不提供可学习或可部署的 stopping signal；不得参与规则选择 |
 
 # 6. F4：Related-work baselines 与 signal 对比
 
 共同证据为 [related-work aggregate report](../benchmark/FalseConsensus/results/related_work/aggregate/report.md)：两模型、三 benchmark、seeds 42/43/44 的 train+dev/frozen-trajectory reproduction；主表为 dev benchmark-macro。
 
-**逐 claim 附录索引**：F4.1 -> [A10](#app-a10), [A21](#app-a21)；F4.2 -> [A10](#app-a10), [A14](#app-a14), [A18](#app-a18), [A21](#app-a21)；F4.3 -> [A10](#app-a10), [A18](#app-a18), [A21](#app-a21)；F4.4 -> [A10](#app-a10), [A15](#app-a15), [A18](#app-a18), [A21](#app-a21)；F4.5 -> [A10](#app-a10), [A14](#app-a14), [A18](#app-a18), [A21](#app-a21), [A22](#app-a22)；F4.6 -> [A14](#app-a14), [A15](#app-a15), [A23](#app-a23)。
+**逐 claim 附录索引**：F4.1 -> [A10](#app-a10), [A21](#app-a21), [A26](#app-a26)；F4.2 -> [A10](#app-a10), [A14](#app-a14), [A18](#app-a18), [A21](#app-a21), [A24](#app-a24), [A26](#app-a26)；F4.3 -> [A10](#app-a10), [A18](#app-a18), [A21](#app-a21), [A24](#app-a24), [A26](#app-a26)；F4.4 -> [A10](#app-a10), [A15](#app-a15), [A18](#app-a18), [A21](#app-a21), [A24](#app-a24)；F4.5 -> [A10](#app-a10), [A14](#app-a14), [A18](#app-a18), [A21](#app-a21), [A22](#app-a22), [A25](#app-a25), [A26](#app-a26)；F4.6 -> [A14](#app-a14), [A15](#app-a15), [A23](#app-a23), [A26](#app-a26)。
 
 | ID | 原子 claim | 直接实验与主要结果 | 可靠性 | 安全措辞与缺口 |
 |---|---|---|---:|---|
 | F4.1 | CertaIndex effort 形成从保守到激进的 accuracy-saving frontier | Test macro：mild/p8 为 16.58 pp drop / 66.69% saving；low/p5 为 31.48/78.97；mid/p3 为 52.81/88.61；high/p2 为 65.18/94.27 | **高（本 harness）** | 四点均为 interval-64 frozen replay；不代表原论文端到端数字，也不包含 interval-32 `crazy` |
 | F4.2 | TJE 表现高度依赖 confidence threshold | Test macro：top1 `Almost certain` 为 10.16 pp drop / 31.83% saving；放宽至 top2 立即变为 42.65/66.90，top3-top6 只增加少量 saving | **中高（阈值异质性）** | top1 是唯一低-drop operating point；仍是 frozen adaptation，不能称完整原方法复现 |
-| F4.3 | DEER confidence frontier 可提供低-drop saving | Cap-30 direct-submit Test：threshold 0.995 为 -0.15 pp drop / 44.13% saving，0.999 为 0.00/37.61，0.99999 为 0.00/19.56 | **中高（本 harness）** | 直接提交与 faithful readout 不同；与 consensus 的 signal-only 因果对照仍待完成 |
-| F4.4 | “问题主要在短 consensus signal，而不是 early exit 本身” | Short windows 严重失准；长 persistence 可移动到 TJE-like 轨迹，但 tested w≤30 仍达不到 DEER stop safety | **中** | 这比“所有 consensus 都无用”更准确；跨方法仍同时改变 trigger、trial generation 与 readout |
-| F4.5 | Related-work frontiers 与 Governor/consensus candidates 的 Pareto 相对位置可审计 | 同一 frozen trajectories、robust grader 与 all-generated output-token accounting；A21-A22 同时展示动态 threshold/effort 与扩展 Governor 候选池 | **中高** | 每张图仍须显式写明聚合口径；跨方法 trigger、candidate generation、readout 不完全相同 |
+| F4.3 | DEER confidence frontier 可提供低-drop saving | Cap-30 direct-submit Test：threshold 0.995 为 -0.15 pp drop / 44.13% saving；严格 matched-signal Test macro 下 threshold 0.995 为 1.50 pp drop / 24.11% saving | **中高（本 harness）** | 两个数字回答不同问题：完整 DEER bank 的 operating point vs 只保留 DEER/TJE 同位事件的信号隔离 |
+| F4.4 | “问题主要在短 consensus signal，而不是 early exit 本身” | 同候选、同位置、同 direct-submit 和同 token 计费下，Test macro 的 persistence w=8 为 0.28 pp drop / 11.21% saving；DEER confidence 0.995 为 1.50/24.11%，体现更多 saving 对少量 drop 的交换 | **中高（matched bank）** | matched events 只占 DEER trials 的 67.69%；结果支持信号差异，但不是 confidence 对 persistence 的普适支配 |
+| F4.5 | Related-work frontiers 与 Governor/consensus candidates 的 Pareto 相对位置可审计 | 同一 frozen trajectories、robust grader 与 all-generated output-token accounting；A24 严格固定 trigger/candidate/action/cost，A25-A26 补充 held-out Test | **高（artifact 可审计）** | 方法效果比较仍须区分 faithful adaptation、direct-submit frontier 与 matched-signal counterfactual |
 | F4.6 | Baseline 数字可视为原论文报告水平 | 本实验没有复现所有原始部署细节，也没有在原论文全套 benchmark/settings 上运行 | **低/不支持** | 只能称 `reproduction/adaptation on our harness` |
 
 # 7. F5：Boundary confidence、fast path 与 verification branch
@@ -114,8 +119,8 @@ Online 证据分两层：seed 42 有正式的 [aggregate report](../benchmark/Fa
 
 | 依赖 | 影响范围 | 当前状态 | 对可靠性的影响 |
 |---|---|---|---|
-| 最终答案 grader 正确性 | 几乎所有 accuracy、recovery、direction-of-effect 结果 | Task B 两位标注者均完成 89/89；是否判对的一致率 94.38%，kappa=0.706，仍有 5 个 verdict 冲突；样本为 risk-enriched 而非总体随机样本 | 支撑 grader 在困难样本上的较高一致性；不能把 8%-12% 的分层样本错误率外推为总体错误率 |
-| Taxonomy 人工一致性 | F1.6-F1.7 | Task A 两位标注者均完成 134/134；精确一致 47.76%，kappa=0.286，70 个冲突主要集中在 A/D 定义 | 完成回收不等于 taxonomy 稳定；仲裁前只能报告分歧结构，不能给最终类别比例 |
+| 最终答案 grader 正确性 | 几乎所有 accuracy、recovery、direction-of-effect 结果 | Task B 两位标注者均完成 89/89；是否判对的一致率 94.38%，kappa=0.706；5 个冲突已仲裁，labels of record 中 8/89 为 grader error | 该 8.99% 只针对 risk-enriched audit sample，不是总体 grader error rate |
+| Taxonomy 人工一致性 | F1.6-F1.7 | Task A 两位标注者均完成 134/134；原始一致率 47.76%、kappa=0.286；70 个冲突全部仲裁，其中 61 个 A/D 冲突按项目定义归 D | 可报告仲裁后 taxonomy，但必须同时披露低原始一致性与操作定义 |
 | Token accounting 口径 | F2、F3、F4、F5 的所有 saving claims | output-token 计费可复算；不同章节存在 net dense-probe、fair/all-generated、macro/pooled 多种视图 | 图表和正文必须同时写清 numerator、probe/readout 是否收费、聚合权重 |
 | Preregistration provenance | F2 的可信度 | split、gates、rule hashes 和 artifacts 已留存 | 建议在最终 release 中提供一份不可变 manifest/commit 对照表 |
 | Domain scope | 所有 finding | 仅 MATH500、AMC23、AIME24，均为可判分竞赛数学 | 任何对 code、open-ended、agentic reasoning 的外推都只有低可靠 |
@@ -123,15 +128,15 @@ Online 证据分两层：seed 42 有正式的 [aggregate report](../benchmark/Fa
 
 # 9. 剩余实验与收口任务（2026-08-01）
 
-下列编号是当前执行队列。1 正在远端运行；2/3/4/6 与 Oracle 均可本地 CPU 完成；5 按已确定的仲裁规则处理。它们与已完成的 A19-A23 分开，避免把计划误写为结果。
+下列编号保留为 2026-08-01 的执行台账。CPU 项目 2-6 与 Oracle 已完成并固化到 A24-A28；项目 1 是独立远端 GPU 补充，不是本次 CPU 收口的阻塞项。
 
 1. **Unseen-model Test 多 seed 补齐（进行中）**：Llama-8B 与 Qwen-32B，三个 benchmark，补 seeds 46/47，并与已有 seed 45 合并。验收必须检查题数、模型 revision、chat template/BOS、probe 顺序、cap 与截断。
-2. **Matched-signal CPU 对照**：在同一 DEER cap-30 Wait positions、trial answers、validity gate 与 direct-submit 成本上，只替换判停信号，比较 confidence threshold、answer persistence/consensus 与可比的 TJE confidence。主指标为 accuracy drop、all-generated saving、stop accuracy、false-stop ratio、harm/rescue 与 coverage。
-3. **扩展 Governor 候选的冻结选择与 Test 汇总**：只用 Train/Dev 从 17,712 + 15,552 个规则中冻结至少三个代表点，再统一报告 Test。长窗口部分必须标记 post-hoc sensitivity，不得冒充原始 preregistration。
-4. **Related-work Test 报告修复与统一聚合**：现有数据为完整的 3 × 684 = 2,052 rows；修复把 8,208 Train/Dev 期望数误用于 Test 的 report-generator bug，并输出最终 per-model、per-benchmark、macro/pooled 表。
-5. **Human adjudication**：Task A 的全部 A/D 冲突按项目操作定义仲裁为 D（中间量、placeholder 或未形成最终候选答案归 reasoning gap），随后重算 taxonomy；Task B 的 5 个 grader verdict 冲突仍需给出最终真值。
-6. **证据与论文收口**：把 1-5 的冻结结果同步到 claim map、论文表图、artifact manifest 与可靠性颜色；检查所有 token-saving numerator、probe/readout 收费和 macro/pooled 标签。
-**Oracle upper bound（新增，CPU）**：对 Train/Dev/Test 每条 dense interval-64 `simple@32` probe 序列扫描首次正确且非空、合法的 probe answer。Oracle 在存在正确 probe 时于最早位置提交，否则回退 full answer；分别报告可达 accuracy、all-generated saving、coverage、首次正确位置分布及 per-model/benchmark/split 结果。该点只表示固定 probe bank 的信息可达上界，不能作为可部署策略或参与规则筛选。
+2. **Matched-signal CPU 对照（完成，A24）**：3,420 trajectories；30,606 个 exact-position matches；同 candidate/action/cost 下比较 DEER confidence、answer persistence 与 TJE labels。
+3. **扩展 Governor 冻结选择与 Test（完成，A25）**：Train/Dev 冻结三点后才读取 684 条 Test；冻结 manifest 明确 `test_data_read=false`，长窗口标记 post-hoc sensitivity。
+4. **Related-work Test 报告（完成，A26）**：修复 scope-aware expected count；3 方法 × 684 = 2,052 rows、54 method-environments 全部通过覆盖检查。
+5. **Human adjudication（完成，A27）**：Task A 70 个冲突和 Task B 5 个冲突全部写入独立 derivative CSV；原始 rater 文件未修改。
+6. **证据与论文收口（本 PDF 完成）**：A24-A28 已加入图表、计费口径、聚合标签与 artifact 指针；本节保留项目 1 为外部增量。
+**Oracle upper bound（完成，A28）**：扫描全部 3,420 条 dense interval-64 `simple@32` trajectories 的首次合法正确 probe；结果只表示固定 probe bank 的信息上界，不参与任何选择。
 
 不列为投稿前硬要求：跨 domain 的 GPQA/code 复现，以及 DEER-inspired verification controller 的大规模 Test。前者要求论文把结论严格限定在竞赛数学；后者若不升格为核心方法贡献，应保留为 exploratory evidence。
 
@@ -685,8 +690,8 @@ risk-enriched sample；上述 8.99%/12.36%/8.33% 均不能外推成全体 grader
 [验收 summary](../benchmark/FalseConsensus/results/human_eval/summary.json)、
 [Task A 分歧表](../benchmark/FalseConsensus/results/human_eval/taxonomy_disagreements.csv)、
 [Task B 分歧表](../benchmark/FalseConsensus/results/human_eval/grader_disagreements.csv)。
-因此，human annotation **回收完成**，但 taxonomy 与 grader audit 的
-**最终仲裁尚未完成**。
+因此，human annotation **回收完成**；本项保留仲裁前状态以审计原始分歧。
+最终 labels of record 与仲裁规则见 [A27](#app-a27)。
 
 \newpage
 
@@ -968,8 +973,9 @@ sweep 中仍全部为 0。
 | 30 | 2,592 | 3 | 1.96 pp | -2.11% |
 
 下面的二维图是便于阅读的 benchmark-macro projection，不替代正式三目标 selector。
-Train projection 中原/扩展 frontier 为 140/153，长窗口 entrants 29；Dev 为
-119/127，entrants 45。图中还叠加 A21 的 DEER/TJE/CertaIndex 动态 frontier。
+Train projection 中原/扩展 frontier 为 140/152，长窗口 entrants 28；Dev 为
+116/126，entrants 44。图中还叠加 A21 的 DEER/TJE/CertaIndex 动态 frontier，
+以及 A28 使用 reference labels 的不可部署 Oracle 上界（黑色星形）。
 
 ![图 A22a：Train 上原 17,712 条规则、15,552 个长窗口候选、扩展 Pareto boundary 与三类 related-work 动态曲线。](../benchmark/FalseConsensus/report/figures/governor_long_persistence_pareto_train.png){width=96%}
 
@@ -1019,7 +1025,163 @@ Test 范围为两模型 × 三 benchmark × seeds 45/46/47，每方法 684 traje
 | DeepSeek-7B drop / saving | 45.78 / 85.64% | 9.54 / 28.92% | 17.37 / 64.01% |
 
 该表按模型内三个 benchmark 等权；saving 为 all-generated output tokens。最终论文前
-仍应完成 Section 9 task 4，修复 report-generator header/expected count，并将静态
-anchors 与 A21 动态 curves 统一输出。原始数据源：
-[Test aggregate](../benchmark/FalseConsensus/results/related_work/test_aggregate/aggregate.json)、
-[environment table](../benchmark/FalseConsensus/results/related_work/test_aggregate/environment_split.csv)。
+report-generator 的 scope-aware header/expected count 已在 A26 修复并通过回归测试。
+原始数据源：[Test aggregate](../benchmark/FalseConsensus/results/related_work/test/aggregate/aggregate.json)、
+[environment table](../benchmark/FalseConsensus/results/related_work/test/aggregate/environment_split.csv)。
+
+\newpage
+
+## A24. Strict matched-signal CPU 对照 {#app-a24}
+
+本实验专门避免把 trigger、candidate generation、readout 与 signal 混为一谈。
+它以 DEER cap-30 bank 为统一动作空间：只在 DEER Wait 与 TJE Wait 的
+`trigger_char_position` **完全相同**时保留事件；所有策略提交同一个 DEER trial
+answer，使用同一 validity gate，并统一计费为停止前 main tokens 加已消费的 DEER
+trial output tokens。TJE confidence query 的输出 token 不计入此处，因为本实验隔离
+的是 signal，而不是复现 TJE 的部署成本。
+
+- 3,420 条 Train/Dev/Test trajectories，45,217 个 DEER trials；
+- 30,606 个 exact-position matches，占 DEER trials 的 67.69%；
+- 3,315/3,420 trajectories 至少有一个 matched event；未匹配事件不插值、不前后挪动。
+
+| Test aggregation | Signal / parameter | Accuracy drop | Saving | Stop accuracy | False-stop | Harm/rescue | Stop coverage |
+|---|---|---:|---:|---:|---:|---:|---:|
+| Pooled | DEER confidence 0.995 | 3.95 pp | 35.04% | 77.85% | 22.15% | 2.59 | 67.98% |
+| Macro | DEER confidence 0.995 | 1.50 pp | 24.11% | 90.90% | 9.10% | 2.59 | 49.81% |
+| Pooled | Persistence 8 | 0.73 pp | 12.99% | 82.68% | 17.32% | 1.71 | 18.57% |
+| Macro | Persistence 8 | 0.28 pp | 11.21% | 77.71% | 22.29% | 1.71 | 20.35% |
+| Pooled | Persistence 12 | 0.58 pp | 5.99% | 86.84% | 13.16% | 2.00 | 11.11% |
+| Macro | Persistence 12 | 0.22 pp | 4.20% | 85.74% | 14.26% | 2.00 | 10.67% |
+
+DEER confidence 在 matched bank 上不是对所有 persistence 点的双指标支配：更严格
+persistence 可取得更小 accuracy drop；confidence 的价值是以约 1-1.5 pp macro drop
+换取明显更高 coverage 和 saving。TJE 的 matched top-k 曲线受 exact-position 子集和
+label 分布限制，不能替代 A21 的完整 TJE frontier。
+
+![图 A24：严格 matched bank 上三种 stopping signals 的 Train/Dev/Test 轨迹。横轴越左、纵轴越高越好；每个点共享 candidate、action 与 generated-token cost。](../benchmark/FalseConsensus/report/figures/matched_signal_frontier.png){width=88%}
+
+数据源：[完整 frontier](../benchmark/FalseConsensus/results/related_work/matched_signal_cpu/frontier.csv)、
+[逐组指标](../benchmark/FalseConsensus/results/related_work/matched_signal_cpu/grouped_metrics.csv)、
+[匹配与计费 manifest](../benchmark/FalseConsensus/results/related_work/matched_signal_cpu/manifest.json)、
+[报告](../benchmark/FalseConsensus/results/related_work/matched_signal_cpu/report.md)。本项对
+“在共同 bank 上 signal 的相对 trade-off”可靠性为**高**；对原论文端到端方法排名为**中**。
+
+\newpage
+
+## A25. 33,264-rule 冻结选择与 held-out Test {#app-a25}
+
+候选池由 17,712 个预注册规则和 15,552 个 post-hoc long-persistence sensitivity
+规则组成。冻结程序先读取且只读取 Train/Dev sweep，写出规则 ID、完整规则 JSON、
+全部输入 SHA-256 与 `test_data_read=false`；随后独立命令验证这些 hashes，才读取
+seeds 45/46/47 的 Test。共同过滤器要求 latest-answer persistence、Dev q20 saving
+为正、36 个 Train/Dev cells 中至少 80% 正节省，并在冻结目标上非支配。
+
+| Frozen profile | Persistence / interval | Test pooled drop / saving | Test macro drop / saving | Pooled false-stop | Pooled harm/rescue |
+|---|---:|---:|---:|---:|---:|
+| Safe | 20 / 256 | -0.15 pp / 6.20% | 0.18 pp / 6.19% | 17.39% | 0.80 |
+| Balanced knee | 16 / 128 | 0.73 pp / 18.96% | 0.51 pp / 17.12% | 20.16% | 1.83 |
+| Token-efficient | 8 / 128 | 2.49 pp / 24.15% | 1.18 pp / 21.32% | 23.57% | 4.40 |
+
+三点覆盖 684 条 Test trajectories，逐题输出共 2,052 rows，18 个 Test environments
+× 3 rules 均完整。Safe 与 Balanced 来自 post-hoc long-window pool；Token-efficient
+来自预注册 pool。它们是透明的代表 operating points，不是“原 conservative gate
+成功”：原 gate 在预注册和扩展 pool 中仍为空。
+
+![图 A25：只用 Train/Dev 冻结的三个 Governor 点在 Test 上的位置；背景为 Test related-work 动态 frontiers，黑星为使用标签的不可部署 Oracle。](../benchmark/FalseConsensus/report/figures/governor_extended_frozen_test.png){width=84%}
+
+数据源：[冻结 manifest](../benchmark/FalseConsensus/results/governor_v2/extended_frozen_selection/selection_manifest.json)、
+[评估 manifest](../benchmark/FalseConsensus/results/governor_v2/extended_frozen_selection/evaluated_manifest.json)、
+[Test summary](../benchmark/FalseConsensus/results/governor_v2/extended_frozen_selection/test_summary.csv)、
+[报告](../benchmark/FalseConsensus/results/governor_v2/extended_frozen_selection/report.md)。
+
+\newpage
+
+## A26. Related-work held-out Test 统一报告 {#app-a26}
+
+旧报告错误地把每方法 Train/Dev 的 2,736 条期望数用于 Test，因而把实际完整的
+2,052 rows 显示为 incomplete。修复后的 aggregator/report generator 自动识别
+Test-only scope，期望每方法 684 trajectories，并保留 10,000 次 paired hierarchical
+bootstrap。覆盖为 3 方法 × 18 environments × 各环境题数，合计 54 method-environments、
+2,052 rows；seeds 为 45/46/47。
+
+| Test model-macro | CertaIndex mid | DEER faithful | TJE frozen |
+|---|---:|---:|---:|
+| Qwen3-8B drop / saving | 59.83 / 91.59% | 0.33 / 21.07% | 2.94 / -0.35% |
+| DeepSeek-7B drop / saving | 45.78 / 85.64% | 9.54 / 28.92% | 17.37 / 64.01% |
+
+上述 saving 均为 main-through-stop 加 probe/trial/readout output 的 all-generated
+token saving；prompt/prefill 单列而不进入 numerator。DEER 在 Qwen3 上近中性，
+但在 DeepSeek 上掉 9.54 pp；因此任何“DEER 普遍接近无损”的 claim 都不成立。
+CertaIndex 极高 saving 来自几乎总是很早停止，同时伴随 45-60 pp accuracy drop。
+
+数据源：[完整 Test 报告](../benchmark/FalseConsensus/results/related_work/test/aggregate/report.md)、
+[aggregate JSON](../benchmark/FalseConsensus/results/related_work/test/aggregate/aggregate.json)、
+[environment table](../benchmark/FalseConsensus/results/related_work/test/aggregate/environment_split.csv)、
+[回归测试](../benchmark/FalseConsensus/related_work/tests/test_postprocess.py)。
+
+\newpage
+
+## A27. Human-evaluation 最终仲裁层 {#app-a27}
+
+原始四份 rater CSV 与两个 HTML 均未修改；仲裁输出位于独立 derivative 目录，并记录
+source SHA-256。Task A 的 61 个 A/D 冲突按项目操作定义归为 D：中间量、placeholder
+或尚未形成最终候选答案的早停错误属于 reasoning gap；其余 9 个冲突逐条裁定。
+
+| Task A final label | A Numeric | B Expression | C Sign | D Reasoning gap | E Format |
+|---|---:|---:|---:|---:|---:|
+| Count / 134 | 24 (17.91%) | 2 (1.49%) | 1 (0.75%) | 82 (61.19%) | 25 (18.66%) |
+
+Task B 的 5 个 true-verdict 冲突逐条核对后，labels of record 中 8/89 为 grader
+error，即 risk-enriched audit sample 内 8.99%，Wilson 95% CI [4.63%, 16.75%]。
+该样本故意过采样等价表达和近似答案，不能外推为总体 grader error rate。
+
+![图 A27：左为仲裁后 taxonomy 分布；右为 risk-enriched grader audit 的最终错误率与 Wilson 区间。](figures/finding_map_appendix/a17_human_adjudicated.png){width=78%}
+
+原始 Task A 一致率仍为 47.76%、kappa=0.286；Task B 为 94.38%、kappa=0.706。
+仲裁产生最终标签，但不会倒推提高 inter-rater reliability。数据源：
+[summary](../benchmark/FalseConsensus/results/human_eval/adjudicated/summary.json)、
+[Task A adjudicated CSV](../benchmark/FalseConsensus/results/human_eval/adjudicated/taxonomy_adjudicated.csv)、
+[Task B adjudicated CSV](../benchmark/FalseConsensus/results/human_eval/adjudicated/grader_adjudicated.csv)、
+[报告](../benchmark/FalseConsensus/results/human_eval/adjudicated/report.md)。
+
+\newpage
+
+## A28. interval-64 simple@32 不可部署 Oracle 上界 {#app-a28}
+
+Oracle 在每条冻结 probe sequence 中扫描第一个**非空、schema-valid 且 reference-correct**
+的 simple@32 answer；找到即提交，否则回退观察到的 full trajectory。计费包含停止前
+main decode 与截至停止的 probe output；回退则包含 full main 与全部 dense probe
+outputs。Full strict accuracy 要求 natural completion 且 final answer 正确；另保留
+capped-but-answer-correct 的 observed sensitivity column。
+
+| Scope | n | Full strict acc. | Oracle strict acc. | Correct-probe coverage | Micro saving |
+|---|---:|---:|---:|---:|---:|
+| Train | 2,052 | 74.95% | 79.24% | 76.66% | 45.94% |
+| Dev | 684 | 77.19% | 82.16% | 79.09% | 43.63% |
+| Test | 684 | 80.70% | 82.89% | 79.68% | 52.46% |
+| All | 3,420 | 76.55% | 80.56% | 77.75% | 46.70% |
+
+| Axis | n | Full strict acc. | Oracle strict acc. | Micro saving |
+|---|---:|---:|---:|---:|
+| Qwen3-8B | 1,710 | 77.49% | 81.52% | 52.21% |
+| DeepSeek-7B | 1,710 | 75.61% | 79.59% | 39.54% |
+| MATH500 | 3,000 | 76.70% | 80.10% | 49.13% |
+| AMC23 | 240 | 84.58% | 93.75% | 61.90% |
+| AIME24 | 180 | 63.33% | 70.56% | 22.83% |
+
+在 2,659 条能找到正确 probe 的轨迹中，首次正确位置的 P25/median/P75 为
+64/512/1,216 main tokens，均值 1,236；22.25% 的轨迹没有合法正确 probe，使用
+full fallback。逐 seed、逐 environment 与 environment-macro 分解均保存在结构化表中。
+
+![图 A28：各 split 的 strict accuracy 上界与 earliest-correct-probe micro saving。](../benchmark/FalseConsensus/report/figures/simple32_oracle_upper_bound.png){width=80%}
+
+Oracle 在更新后的 A22 Train/Dev Pareto 与 A25 Test 图中均以黑星标出。其负 accuracy
+drop（比 full 更准）来自标签选择：Oracle 可从最终错误轨迹中挑出中途正确答案。
+因此它证明 dense probe bank 中存在可利用信息，也量化了实际 Governor 与信息上界的
+差距；它**不是策略**、不得参与筛选，也不能被写成可实现性能。
+
+数据源：[逐题结果](../benchmark/FalseConsensus/results/governor_v2/simple32_oracle/per_problem.csv)、
+[environment table](../benchmark/FalseConsensus/results/governor_v2/simple32_oracle/per_environment.csv)、
+[summary](../benchmark/FalseConsensus/results/governor_v2/simple32_oracle/summary.csv)、
+[macro summary](../benchmark/FalseConsensus/results/governor_v2/simple32_oracle/macro_summary.csv)、
+[防泄漏与计费 manifest](../benchmark/FalseConsensus/results/governor_v2/simple32_oracle/manifest.json)。
