@@ -1,0 +1,43 @@
+{
+  "method": "deer_confidence_bank_cap30",
+  "purpose": "threshold-agnostic DEER confidence frontier with direct submission of the parsed trial answer",
+  "reproduction_class": "post-hoc frozen-trajectory DEER signal analysis; faithful DEER baseline remains unchanged",
+  "source_method": "deer_frozen",
+  "source_commit": "c9dd19fbffa27f841cfe47502d015b63811b4d1b",
+  "trigger": "first 30 case-insensitive whole-word Wait positions",
+  "max_attempts": 30,
+  "trial_cap": 20,
+  "temperature": 0.0,
+  "top_p": 1.0,
+  "confidence_threshold_during_collection": null,
+  "early_exit_during_collection": false,
+  "formal_readout": false,
+  "offline_decision": "first non-empty parsed trial_answer with confidence strictly greater than threshold",
+  "fallback": "frozen Full answer when no valid trial crosses threshold",
+  "threshold_selection": "build on train/dev, freeze selected operating points before test reporting",
+  "accounting": "main tokens through accepted Wait plus all trial output tokens through acceptance; prompt/prefill tokens reported separately",
+  "models": {
+    "deepseek": {
+      "model_id": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+      "revision": "916b56a44061fd5cd7d6a8fb632557ed4f724f60",
+      "policy": "avg1"
+    },
+    "qwen3": {
+      "model_id": "Qwen/Qwen3-8B",
+      "revision": "b968826d9c46dd6066d109eabc6255188de91218",
+      "policy": "avg2",
+      "require_think_close": true
+    }
+  },
+  "scopes": {
+    "full": {
+      "main_prefix": "development",
+      "seeds": [42, 43, 44]
+    },
+    "test": {
+      "main_prefix": "confirmation",
+      "seeds": [45, 46, 47]
+    }
+  },
+  "benchmarks": ["math500", "amc23", "aime24"]
+}
