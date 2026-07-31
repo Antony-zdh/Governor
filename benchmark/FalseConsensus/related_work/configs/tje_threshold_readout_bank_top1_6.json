@@ -1,0 +1,51 @@
+{
+  "method": "tje_threshold_readout_bank_top1_6",
+  "purpose": "discrete TJE confidence-threshold frontier with threshold-specific readouts",
+  "source_method": "tje_frozen",
+  "confidence_reuse": "reuse all faithful TJE confidence labels; generate zero confidence queries",
+  "trigger_policy": "all case-insensitive whole-word Wait positions plus final </think>; no artificial maximum trigger count",
+  "thresholds": {
+    "top_1": "Almost certain",
+    "top_2": "Highly likely",
+    "top_3": "Very good chance",
+    "top_4": "Likely",
+    "top_5": "Better than even",
+    "top_6": "Less than even"
+  },
+  "decision": "for each threshold, stop at the first stored label at or above that threshold",
+  "readout": "reuse faithful top-1 readout when positions match; generate each missing unique threshold-specific readout once",
+  "readout_cap": 8192,
+  "temperature": 0.6,
+  "top_p": 0.95,
+  "top_k": 20,
+  "expected_coverage": {
+    "environments": 36,
+    "trajectories": 3420,
+    "new_unique_readouts": 4366,
+    "full_new_unique_readouts": 3484,
+    "test_new_unique_readouts": 882
+  },
+  "models": {
+    "deepseek": {
+      "model_id": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+      "revision": "916b56a44061fd5cd7d6a8fb632557ed4f724f60",
+      "max_model_len": 34816
+    },
+    "qwen3": {
+      "model_id": "Qwen/Qwen3-8B",
+      "revision": "b968826d9c46dd6066d109eabc6255188de91218",
+      "max_model_len": 33792
+    }
+  },
+  "scopes": {
+    "full": {
+      "main_prefix": "development",
+      "seeds": [42, 43, 44]
+    },
+    "test": {
+      "main_prefix": "confirmation",
+      "seeds": [45, 46, 47]
+    }
+  },
+  "benchmarks": ["math500", "amc23", "aime24"]
+}
