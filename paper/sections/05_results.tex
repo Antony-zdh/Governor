@@ -1,13 +1,12 @@
 \section{Experiments}
 \label{sec:results}
 
-We first confirm the phenomenon the paper turns on---intermediate consensus is
-non-terminal (\S\ref{sec:exp-fc})---then report the preregistered sweep and its
-central negative result (\S\ref{sec:exp-sweep}), reproduce three prior
-early-stoppers on identical trajectories (\S\ref{sec:exp-prior}), and confirm the
-frontier out of distribution (\S\ref{sec:exp-heldout}).
+We first characterize intermediate consensus (\S\ref{sec:exp-fc}), then report
+the preregistered rule sweep (\S\ref{sec:exp-sweep}), compare prior stopping
+methods on the same trajectories (\S\ref{sec:exp-prior}), and evaluate the
+frontier on held-out data (\S\ref{sec:exp-heldout}).
 
-\subsection{False consensus is real}
+\subsection{Intermediate-consensus trajectories}
 \label{sec:exp-fc}
 We log a dense probe stream for every \textsc{MATH}500 problem under \dsseven{},
 never intervening---the probe is a separate forward pass that only observes the
@@ -40,7 +39,7 @@ A good stopping rule must therefore be much more than ``agreement.'' The rest of
 this section asks whether the \emph{best possible} such rule, drawn from a large
 preregistered space, can be both safe and economical.
 
-\subsection{The safe-and-saving corner is empty}
+\subsection{Preregistered rule sweep}
 \label{sec:exp-sweep}
 We aggregate the sweep into per-environment metrics---$637{,}632$ rows
 $=17{,}712$ rules $\times$ $18$ environments $\times$ $2$ splits (train, dev)---
@@ -65,7 +64,7 @@ Section~\ref{sec:mechanism} argues, is probe-independent; the savings claim
 (positive net savings costs $\ge4.87\pp$, whether the psf floor is $0.8/0.7/0.6/0.5$)
 additionally depends on the dense-probe accounting.
 
-\paragraph{On the least-bad rule (and why we do not lean on it).}
+\paragraph{Minimum observed accuracy drop.}
 \label{sec:floor}
 The smallest per-model drop anywhere is $1.85\pp$---already above the gate---from
 an \texttt{entropy\_budget\_fraction} rule that stops so rarely its net savings are
@@ -79,7 +78,7 @@ tokens (net $-8$ to $-9\%$)---and on the held-out reproduction of
 diagnostic a single competition-set problem cannot resolve
 (Section~\ref{sec:resolution}).
 
-\paragraph{Sophistication does not help.}
+\paragraph{Rule-family comparison.}
 The ordering across families is one-directional: the simplest evidence signal
 (\texttt{window\_share}) gives the best safe-with-positive-savings point
 ($4.87\pp$); \texttt{entropy\_budget\_fraction} reaches $1.85\pp$ only by stopping
@@ -111,7 +110,7 @@ tokens (probe tax, Section~\ref{sec:mechanism}).
   \label{tab:main}
 \end{table}
 
-\subsection{Prior stoppers on the same trajectories}
+\subsection{Comparison with prior stopping methods}
 \label{sec:exp-prior}
 To place published methods on the same footing, we reproduce three in a common
 harness---the same frozen trajectories, the same \simplek{} probe bank, the same
@@ -157,7 +156,7 @@ DEER---outside the swept space---occupies the low-drop corner. TJE is unsafe on
 the weaker model. That only the non-consensus method survives is the crux we
 analyze in Section~\ref{sec:mechanism}.
 
-\subsection{The frontier reproduces out of distribution}
+\subsection{Held-out evaluations}
 \label{sec:exp-heldout}
 We read the test split once (commitment~C3). Because the development result is that
 \emph{no} rule clears the gate, there is nothing to confirm by re-selection; we ask
