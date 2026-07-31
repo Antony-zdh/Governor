@@ -4,6 +4,48 @@
 
 ---
 
+## 2026-07-31 · ✅ ③ Probe-robustness 全部跑完（4 种 probe 后缀，floor + CertaIndex/DoE）
+
+**动机**：审稿人会质疑「false consensus 是不是你那一个 probe 后缀的伪影？换个提问方式就没了？」
+③ 就是把整套 17,712-rule sweep + CertaIndex 复现 + direction-of-effect 在**4 种不同 probe 后缀**
+下各重跑一遍，看结论是否 probe-invariant。4 个 variant：`certaindex`（原版 boxed 后缀）、
+`chat_templated`（走 chat 模板）、`open_ended`（开放式提问）、`longer_trial`（更长 trial）。
+
+**Phase A — 准确率 floor（min over rules of max per-model drop）+ floor 处的省 token**：
+
+| variant | floor drop | floor 处 dev_q20 saving | psf@floor | frontier 上首个正省 token 点的 drop |
+|---|---|---|---|---|
+| certaindex     | 0.074 pp  | **−0.027**（负） | 0.056 | 3.130 pp |
+| chat_templated | 1.519 pp  | **−0.016**（负） | 0.778 | 3.481 pp |
+| open_ended     | −0.000 pp | **−0.059**（负） | 0.000 | 3.259 pp |
+| longer_trial   | 3.370 pp  | **−0.024**（负） | 0.139 | 4.870 pp |
+
+- **关键不变量（正是要的结论）**：**4 种后缀下，最小准确率下降的那条 rule 的净省 token 一律为负**
+  （dev_q20 saving < 0）。`certaindex`/`open_ended` 那两个 drop≈0 的点，是靠「几乎不停」换来的
+  （psf=0.056 / 0.000，也就是几乎没有 env 能正省），一旦 Pareto frontier 上进入正省 token 区间，
+  准确率下降立刻跳到 **≥3.1 pp**——远超 1.5pp 的 conservative gate。换任何 probe 后缀，
+  **safe-AND-saving 的角落都是空的**，结构和正文 floor（1.85pp / 净 −8~−9%）完全一致。
+  → 结论 probe-invariant，不是那一个后缀的伪影。
+
+**Phase B — CertaIndex 复现 + direction-of-effect（35:1 那个不对称）在替代后缀下**：
+
+- naive consensus stopper 的 destroy:bank 比（FC/SW 毁掉的 vs FW/SC 侥幸捞到的），pooled：
+  `certaindex` **24.13:1**（Qwen 27.6 / DS-7B 21.1）、`open_ended` **18.63:1**（19.3 / 17.8）、
+  `longer_trial` **21.65:1**（24.3 / 19.1）。正文 §5 的 35:1 在 3 种替代后缀下复现为 **18–24:1**，
+  方向完全一致、恒 ≫1。保守版 governor（conservative/balanced）如预期低一些（2.75–6.65），因为它停得少。
+- CertaIndex 复现：`certaindex`、`open_ended` 各 18 runs 跑完；`longer_trial` 按设计跳过（cap=64≠32）；
+  `chat_templated` 的 CertaIndex/DoE 段无输出（同样被 cap 跳过）。
+
+**产出**：`benchmark/FalseConsensus/governor_v2/generated/probe_robust_summary.txt`（完整 4-variant 汇总）；
+各 variant 的 `existing_methods_probe_<v>/`（governor_aggregate.json 等）。`~/DONE_probe` 已写。
+
+**收尾**：③ 是我这边最后一个吃 GPU 的任务。跑完后把两台闲置 vLLM（`vllm_7b`/`vllm_8b`，0% util、
+各占 76G、挂了 1.75 天）关掉，释放 GPU 2/3（共 152G）——聚合是纯 CPU offline（同事在跑），不需要 vLLM。
+**待办**：把 ③ 作为一个 robustness 附录/小节折进 paper（正文说「结论对 probe 后缀不敏感」+ 引 18–24:1 与空角落）——
+等作者本人决定要不要加、加哪。
+
+---
+
 ## 2026-07-30（续3）· ✅ Llama-8B 修复后重采完成（三 seed 验证健康）+ BOS 机制更正 + 聚合启动
 
 本条**正式作废并取代**上一条（续2）里已 push 的 Llama-8B 数据 —— 用修复模板重采的干净数据为准。
