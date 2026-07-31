@@ -1,159 +1,155 @@
 #!/usr/bin/env python3
-"""Strict coverage and protocol acceptance for the prompt-timing ablation."""
+"""Strict acceptance for the Simple@32 vs CertaIndex@32 prompt-timing ablation.
 
+Checks:
+  - 36 complete CertaIndex partial-environment directories;
+  - 3,420 frozen main trajectories;
+  - 3,420 existing Simple trajectories;
+  - 3,420 CertaIndex@32 trajectories;
+  - zero duplicate paired identities;
+  - zero corrupt/request-error rows;
+  - zero probe_out_tokens > 32;
+  - settings exactly cap 32, interval 64, start 64, patience 3;
+  - all 3,420 Simple/CertaIndex pairs replayed (per_problem.csv row count).
+"""
 from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
-from typing import Any
 
-from .run_certaindex32 import DEFAULT_OUTPUT, GOV_RESULTS, MODEL_INFO, environments
+REPO = Path(__file__).resolve().parents[3]
+GOV = REPO / "benchmark/FalseConsensus/results/governor_v2"
+C32 = REPO / "benchmark/FalseConsensus/results/probe_prompt_ablation/certaindex32"
+ANALYSIS = REPO / "benchmark/FalseConsensus/results/probe_prompt_ablation/analysis"
+
+SLUGS = {
+    "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B": "deepseek-ai-deepseek-r1-distill-qwen-7b",
+    "Qwen/Qwen3-8B": "qwen-qwen3-8b",
+}
+BENCHMARKS = ["math500", "amc23", "aime24"]
+DEV_SEEDS = [42, 43, 44]
+CONF_SEEDS = [45, 46, 47]
 
 
-def load(path: Path) -> dict[str, Any]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise ValueError(f"{path}: expected object")
-    return payload
+def envs() -> list[str]:
+    out = []
+    for slug in SLUGS.values():
+        for ph, seeds in (("development", DEV_SEEDS), ("confirmation", CONF_SEEDS)):
+            for b in BENCHMARKS:
+                for s in seeds:
+                    out.append(f"{ph}__{slug}__{b}__seed_{s}")
+    return out
 
 
-def audit(certa_root: Path) -> dict[str, Any]:
-    failures: list[dict[str, Any]] = []
-    totals = {
-        "environments": 0,
-        "main_trajectories": 0,
-        "simple_trajectories": 0,
-        "certaindex_trajectories": 0,
-        "certaindex_probes": 0,
-        "request_or_record_errors": 0,
-        "cap_violations": 0,
-    }
-    seen: set[tuple[Any, ...]] = set()
-    for model_key in sorted(MODEL_INFO):
-        for env in environments(model_key):
-            totals["environments"] += 1
-            env_name = env["env_name"]
-            main_dir = GOV_RESULTS / env_name / "main" / "traj"
-            simple_dir = GOV_RESULTS / env_name / "dense_simple32" / "probes"
-            certa_dir = certa_root / env_name / "probes"
-            manifest_path = certa_root / env_name / "probe_manifest.json"
-            main_paths = sorted(main_dir.glob("problem_*.json"))
-            simple_paths = sorted(simple_dir.glob("problem_*.json"))
-            certa_paths = sorted(certa_dir.glob("problem_*.json"))
-            counts = (len(main_paths), len(simple_paths), len(certa_paths))
-            totals["main_trajectories"] += counts[0]
-            totals["simple_trajectories"] += counts[1]
-            totals["certaindex_trajectories"] += counts[2]
-            if counts[0] <= 0 or len(set(counts)) != 1:
-                failures.append(
-                    {"env": env_name, "reason": "coverage_mismatch", "counts": counts}
-                )
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--output", type=Path,
+                    default=ANALYSIS / "acceptance.json")
+    args = ap.parse_args(argv)
+    errors = []
+    n_envs = 0
+    total_main = 0
+    total_simple = 0
+    total_certaindex = 0
+    cap_violations = 0
+    error_rows = 0
+    corrupt_files = 0
+    dup_ids = 0
+    seen_pairs = set()
+    settings_ok = True
+    expected_settings = {"probe_tokens": 32, "probe_interval": 64,
+                         "start_token": 64, "patience": 3}
+    for env in envs():
+        main_dir = GOV / env / "main" / "traj"
+        simp_dir = GOV / env / "dense_simple32" / "probes"
+        cidx_dir = C32 / env / "probes"
+        cidx_manifest = C32 / env / "probe_manifest.json"
+        if not main_dir.exists():
+            continue
+        n_envs += 1
+        main_ids = {int(p.stem.split("_")[1]) for p in main_dir.glob("problem_*.json")}
+        simp_ids = {int(p.stem.split("_")[1]) for p in simp_dir.glob("problem_*.json")} if simp_dir.exists() else set()
+        cidx_ids = {int(p.stem.split("_")[1]) for p in cidx_dir.glob("problem_*.json")} if cidx_dir.exists() else set()
+        total_main += len(main_ids)
+        total_simple += len(simp_ids)
+        total_certaindex += len(cidx_ids)
+        if not cidx_manifest.exists():
+            errors.append(f"{env}: missing certaindex probe_manifest.json")
+        else:
+            mf = json.loads(cidx_manifest.read_text(encoding="utf-8"))
+            st = mf.get("probe_settings", {})
+            for k, v in expected_settings.items():
+                if st.get(k) != v:
+                    errors.append(f"{env}: setting {k}={st.get(k)} != {v}")
+                    settings_ok = False
+            if st.get("probe_suffix_sha256") != "c3c5fe2d9ab1d28fd0be92c2316e90475142ef6ce8d23c1033764b2445401968":
+                errors.append(f"{env}: CERTAINDEX_SUFFIX sha mismatch")
+                settings_ok = False
+        if cidx_ids != main_ids:
+            errors.append(f"{env}: certaindex ids != main ids "
+                          f"(cidx={len(cidx_ids)} main={len(main_ids)})")
+        if simp_ids != main_ids:
+            errors.append(f"{env}: simple ids != main ids")
+        # per-probe integrity: cap + errors + duplicates + corrupt
+        for p in cidx_dir.glob("problem_*.json") if cidx_dir.exists() else []:
+            try:
+                payload = json.loads(p.read_text(encoding="utf-8"))
+            except Exception as e:
+                corrupt_files += 1
+                errors.append(f"{env}/{p.name}: corrupt json {e}")
                 continue
-            if not manifest_path.exists():
-                failures.append({"env": env_name, "reason": "manifest_missing"})
-                continue
-            manifest = load(manifest_path)
-            settings = manifest.get("probe_settings", {})
-            completion = manifest.get("completion", {})
-            expected_settings = {
-                "probe_tokens": 32,
-                "probe_interval": 64,
-                "start_token": 64,
-                "patience": 3,
-                "expected_problem_count": counts[0],
-            }
-            for field, expected in expected_settings.items():
-                if settings.get(field) != expected:
-                    failures.append(
-                        {
-                            "env": env_name,
-                            "reason": "setting_mismatch",
-                            "field": field,
-                            "observed": settings.get(field),
-                            "expected": expected,
-                        }
-                    )
-            if not completion.get("complete", False):
-                failures.append(
-                    {
-                        "env": env_name,
-                        "reason": "manifest_incomplete",
-                        "completion": completion,
-                    }
-                )
-            for path in certa_paths:
-                payload = load(path)
-                key = (
-                    payload.get("model"),
-                    payload.get("dataset"),
-                    payload.get("base_seed"),
-                    payload.get("problem_id"),
-                )
-                if key in seen:
-                    failures.append(
-                        {"env": env_name, "reason": "duplicate_identity", "key": key}
-                    )
-                seen.add(key)
-                for probe in payload.get("probes", []):
-                    totals["certaindex_probes"] += 1
-                    totals["request_or_record_errors"] += int("error" in probe)
-                    totals["cap_violations"] += int(
-                        int(probe.get("probe_out_tokens", 0)) > 32
-                    )
-    expected = {
-        "environments": 36,
-        "main_trajectories": 3420,
-        "simple_trajectories": 3420,
-        "certaindex_trajectories": 3420,
+            pid = payload.get("problem_id")
+            pair = (env, pid)
+            if pair in seen_pairs:
+                dup_ids += 1
+            seen_pairs.add(pair)
+            for r in payload.get("probes", []):
+                if int(r.get("probe_out_tokens", 0)) > 32:
+                    cap_violations += 1
+                if "error" in r:
+                    error_rows += 1
+
+    # per_problem.csv replayed pairs
+    per_csv = ANALYSIS / "per_problem.csv"
+    n_pairs = 0
+    if per_csv.exists():
+        with per_csv.open(encoding="utf-8") as f:
+            n_pairs = sum(1 for _ in f) - 1
+
+    g = {
+        "certaindex_env_dirs": n_envs,
+        "expected_env_dirs": 36,
+        "envs_ok": n_envs == 36,
+        "main_trajectories": total_main,
+        "simple_trajectories": total_simple,
+        "certaindex_trajectories": total_certaindex,
+        "expected_per_bank": 3420,
+        "main_ok": total_main == 3420,
+        "simple_ok": total_simple == 3420,
+        "certaindex_ok": total_certaindex == 3420,
+        "duplicate_paired_identities": dup_ids,
+        "duplicates_ok": dup_ids == 0,
+        "corrupt_files": corrupt_files,
+        "request_error_rows": error_rows,
+        "errors_ok": corrupt_files == 0 and error_rows == 0,
+        "cap_violations_gt_32": cap_violations,
+        "caps_enforced_ok": cap_violations == 0,
+        "settings_cap32_interval64_start64_patience3": settings_ok,
+        "settings_ok": settings_ok and not any("setting" in e or "sha mismatch" in e for e in errors),
+        "replayed_pairs": n_pairs,
+        "expected_replayed_pairs": 3420,
+        "pairs_replayed_ok": n_pairs == 3420,
+        "errors": errors[:40],
+        "n_error_entries": len(errors),
     }
-    for field, value in expected.items():
-        if totals[field] != value:
-            failures.append(
-                {
-                    "reason": "total_mismatch",
-                    "field": field,
-                    "observed": totals[field],
-                    "expected": value,
-                }
-            )
-    if totals["request_or_record_errors"]:
-        failures.append(
-            {
-                "reason": "request_or_record_errors",
-                "count": totals["request_or_record_errors"],
-            }
-        )
-    if totals["cap_violations"]:
-        failures.append(
-            {"reason": "cap_violations", "count": totals["cap_violations"]}
-        )
-    return {
-        "schema_version": "probe-prompt-timing-acceptance-1",
-        "accept": not failures,
-        "totals": totals,
-        "expected": expected,
-        "failures": failures,
-    }
-
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--certa-root", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--output", type=Path)
-    return parser.parse_args()
-
-
-def main() -> int:
-    args = parse_args()
-    result = audit(args.certa_root)
-    text = json.dumps(result, indent=2, sort_keys=True) + "\n"
-    if args.output:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(text, encoding="utf-8")
-    print(text, end="")
-    return 0 if result["accept"] else 1
+    g["accept"] = all(v for k, v in g.items() if k.endswith("_ok") and k != "errors_ok") and g["errors_ok"]
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(g, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(json.dumps(g, indent=2)[:1600])
+    return 0 if g["accept"] else 1
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

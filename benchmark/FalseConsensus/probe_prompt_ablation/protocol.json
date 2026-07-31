@@ -1,99 +1,68 @@
 {
-  "schema_version": "probe-prompt-timing-ablation-1",
-  "status": "frozen before matched CertaIndex@32 collection",
-  "objective": "Test whether the CertaIndex probe prompt delays first answer consensus and improves the accuracy-output-token trade-off relative to Simple@32.",
-  "scope": {
-    "models": [
-      {
-        "key": "deepseek",
-        "id": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
-        "revision": "916b56a44061fd5cd7d6a8fb632557ed4f724f60"
-      },
-      {
-        "key": "qwen3",
-        "id": "Qwen/Qwen3-8B",
-        "revision": "b968826d9c46dd6066d109eabc6255188de91218"
-      }
+  "schema_version": "probe-prompt-ablation-1",
+  "created_at": "2026-07-30",
+  "goal": "Test whether the CertaIndex probe prompt improves the accuracy-output-token trade-off by delaying the first answer consensus relative to Simple@32.",
+  "design": {
+    "type": "prompt-timing ablation (NOT a comparison of stopping rules)",
+    "shared": [
+      "same frozen main trajectory (not regenerated)",
+      "probe every 64 main tokens starting at token 64",
+      "max_tokens=32, stop sequence ']'",
+      "temperature/top_p/seed inherited from the frozen main run (base_seed)",
+      "stop on the first window of 3 consecutive probes whose answers are non-empty, mathematically equivalent, and certain (CertaIndex mid patience=3 rule)"
     ],
+    "arms": {
+      "simple": {
+        "suffix": "SIMPLE_SUFFIX = '**Final Answer**\\n\\n\\\\[ \\\\boxed{'",
+        "suffix_sha256": "1ca95d91a95141e1a735117f1efcc3440c2fc554ab510f7089da0a2b607d4895",
+        "bank": "existing frozen dense_simple32 (governor_v2 .../dense_simple32); NOT regenerated",
+        "collector": "governor_v2/dense_probe.py"
+      },
+      "certaindex": {
+        "suffix": "CERTAINDEX_SUFFIX = '... Oh, I suddenly got the answer to the whole problem, **Final Answer**\\n\\n\\\\[ \\\\boxed{'",
+        "suffix_sha256": "c3c5fe2d9ab1d28fd0be92c2316e90475142ef6ce8d23c1033764b2445401968",
+        "bank": "newly collected certaindex32 (probe_prompt_ablation/certaindex32/)",
+        "collector": "related_work/certaindex_mid.py (faithful dynasor cot.py mid rule)",
+        "online_stop": "the CertaIndex collector may stop issuing future probes once its first eligible three-probe consensus is observed (online cost optimization; preserves the first-consensus estimand)"
+      }
+    },
+    "only_difference": "the probe suffix"
+  },
+  "frozen_scope": {
+    "models": {
+      "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B": "916b56a44061fd5cd7d6a8fb632557ed4f724f60",
+      "Qwen/Qwen3-8B": "b968826d9c46dd6066d109eabc6255188de91218"
+    },
     "benchmarks": ["math500", "amc23", "aime24"],
     "development_seeds": [42, 43, 44],
     "confirmation_seeds": [45, 46, 47],
-    "problem_seed_trajectories": 3420,
-    "report_split_policy": "pool all available problem-seed trajectories; do not report or select by split",
-    "diagnostic_grouping": "retain model, benchmark, and seed for pairing and equal-environment macro aggregation"
+    "partial_environments_per_arm": 36,
+    "paired_trajectories_per_arm": 3420,
+    "per_model": {"environments": 18, "main_trajectories": 1710, "simple_trajectories": 1710},
+    "note": "different seed sets reflect the already-collected train/dev and test banks; every benchmark problem has three sampled trajectories. The report pools all 3420 rows and includes no train/dev/test table."
   },
-  "frozen_main": {
-    "development_namespace": "benchmark/FalseConsensus/results/governor_v2/development__{model_slug}__{benchmark}__seed_{42,43,44}",
-    "confirmation_namespace": "benchmark/FalseConsensus/results/governor_v2/confirmation__{model_slug}__{benchmark}__seed_{45,46,47}",
-    "regenerate_main": false
-  },
-  "probe_arms": {
-    "simple32": {
-      "source": "existing dense_simple32 bank",
-      "regenerate": false,
-      "suffix": "Governor v2 SIMPLE_SUFFIX",
-      "max_output_tokens": 32
-    },
-    "certaindex32": {
-      "source": "new matched collection via related_work.certaindex_mid",
-      "suffix": "faithful CertaIndex CERTAINDEX_SUFFIX",
-      "max_output_tokens": 32,
-      "difference_from_original_certaindex_mid": "matched cap 32 instead of the original cap 20"
-    }
-  },
-  "shared_collection": {
+  "probe_settings": {
+    "cap": 32,
+    "interval": 64,
     "start_token": 64,
-    "interval_tokens": 64,
-    "temperature": "inherit frozen main run",
-    "top_p": "inherit frozen main run",
-    "seed": "inherit frozen main run",
-    "stop_sequence": "\\]",
     "patience": 3,
-    "online_optimization": "stop collecting a problem after the first eligible three-probe consensus"
+    "temperature": 0.6,
+    "top_p": 0.95,
+    "stop": "\\]",
+    "probe_seed_policy": "base_seed (prompt-matched to the frozen main run)"
   },
-  "shared_stop_rule": {
-    "window": 3,
-    "requirements": [
-      "three consecutive probes",
-      "all answers non-empty",
-      "all answers mathematically equivalent",
-      "all probes certain under the same uncertainty-word predicate"
-    ],
-    "delivery": "latest answer in the first eligible consensus window",
-    "no_stop": "deliver the frozen full answer if naturally completed; otherwise empty/incorrect"
+  "budgets": {"math500": 16384, "amc23": 16384, "aime24": 32768},
+  "endpoints": {
+    "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B": "http://127.0.0.1:18000/v1",
+    "Qwen/Qwen3-8B": "http://127.0.0.1:18001/v1"
   },
-  "primary_metrics": [
-    "first-consensus token position",
-    "stop rate",
-    "delivered accuracy and accuracy delta versus frozen full generation",
-    "wrong among stops",
-    "Harm: full correct and stopped delivery wrong",
-    "Rescue: full wrong and stopped delivery correct",
-    "Harm/Rescue ratio",
-    "main-token saving",
-    "all-generated output-token saving including consumed probe outputs",
-    "probe-output tax",
-    "CertaIndex delay/advance/tie/no-stop transitions relative to Simple",
-    "Simple harms protected and new harms introduced by CertaIndex"
-  ],
-  "aggregation": {
-    "primary": "problem-pooled across all 3420 trajectories",
-    "robustness": "equal-weight macro over model x benchmark x seed environments",
-    "split_tables": false,
-    "selection_or_tuning": false
-  },
-  "cost_boundary": {
-    "included": "main output tokens through stop plus consumed probe output tokens",
-    "reported_separately": "probe prompt/prefill tokens and auxiliary wall time",
-    "excluded_from_primary": "prompt/prefill tokens, wall-clock latency, KV-cache memory"
-  },
-  "acceptance": {
-    "simple_trajectories": 3420,
-    "certaindex_trajectories": 3420,
-    "paired_rows_per_arm": 3420,
-    "duplicate_identity_rows": 0,
-    "request_or_corrupt_rows": 0,
-    "cap_violations": 0,
-    "all_36_partial_environment_directories_complete": true
+  "formal_output_root": "benchmark/FalseConsensus/results/probe_prompt_ablation/certaindex32/",
+  "certaindex_source_commit": "dbe76ad50d100f4bf237688f31942e4dc745fb07",
+  "certaindex_source_url": "in-repo dynasor/core/cot.py (effort_level('mid'))",
+  "split_manifest": "benchmark/FalseConsensus/governor_v2/generated/split_manifest.json",
+  "split_manifest_sha256": "3d30cd624dd9cd637b5d3f40e030247d225114db6074c6b2d26a1351d676e9a6",
+  "cost_accounting": {
+    "primary": "main tokens through stop + consumed probe output tokens (generated output tokens only)",
+    "separately_reported": "probe prompt/prefill tokens and wall time (never called total GPU compute or latency)"
   }
 }

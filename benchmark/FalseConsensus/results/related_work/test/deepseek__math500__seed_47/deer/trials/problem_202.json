@@ -1,0 +1,90 @@
+{
+  "schema_version": "related-work-deer-trial-1",
+  "method": "deer_frozen",
+  "reproduction_class": "frozen-trajectory DEER reproduction (official probes on frozen prefix)",
+  "problem_id": 202,
+  "dataset": "math500",
+  "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+  "base_seed": 47,
+  "main_token_count_recorded": 3397,
+  "main_token_count_reencoded": 3396,
+  "token_alignment": {
+    "recorded": 3397,
+    "reencoded": 3396,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 17,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "68d551d18a1dcccf239020261f2b84f6a7ca79b36026f0e0e1bbc67ce4b6ae69",
+  "policy": "avg1",
+  "threshold": 0.95,
+  "require_think_close": false,
+  "trials": [
+    {
+      "candidate_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 1990,
+      "token_position": 512,
+      "trial_text": "{\\dfrac{2}{3}}\n",
+      "trial_answer": "\\dfrac{2}{3}",
+      "logprobs": [
+        {
+          "token": "{\\",
+          "logprob": -0.00011062010162277147
+        },
+        {
+          "token": "d",
+          "logprob": -0.0005613181856460869
+        },
+        {
+          "token": "frac",
+          "logprob": -1.6689286894688848e-06
+        },
+        {
+          "token": "{",
+          "logprob": -1.5735502529423684e-05
+        },
+        {
+          "token": "2",
+          "logprob": -0.25205346941947937
+        },
+        {
+          "token": "}{",
+          "logprob": -7.152555099310121e-07
+        },
+        {
+          "token": "3",
+          "logprob": -0.0006295844214037061
+        },
+        {
+          "token": "}}\n",
+          "logprob": -0.005440311040729284
+        }
+      ],
+      "confidence": 0.9672241392135282,
+      "policy": "avg1",
+      "last_token_decoded": "}}\n",
+      "think_close_emitted": false,
+      "meets_threshold": true,
+      "trial_out_tokens": 8,
+      "trial_prompt_tokens": 599,
+      "trial_finish_reason": "stop",
+      "trial_latency_seconds": 1.9004805010044947,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "\\frac{2}{3}",
+    "readout_text": "Alright, so let me formalize this. The probability that Alice wins on her nth turn is (1/2)^(2n - 1). Because each time, both Alice and Bob have to fail once before it comes back to Alice. So, for each round, it's (1/2) * (1/2) = 1/4 chance the game continues. Then, on Alice's turn, she has a 1/2 chance to win.\n\nSo, the total probability that Alice wins is the sum over all n of (1/4)^(n - 1) * (1/2). That's a geometric series with first term 1/2 and common ratio 1/4.\n\nThe sum of an infinite geometric series is a / (1 - r), so here it's (1/2) / (1 - 1/4) = (1/2) / (3/4) = 2/3.\n\nWait, so the probability is 2/3? Let me check that again.\n\nAlternatively, let me model it as a recursive probability. Let P be the probability that Alice wins. On her first turn, she has a 1/2 chance to win immediately. If she doesn't, which is 1/2, then Bob gets a turn. Now, Bob has a 1/2 chance to win. If he doesn't, which is another 1/2, then it's back to Alice's turn, and the situation is the same as the beginning.\n\nSo, P = 1/2 + (1/2) * (1/2) * P.\n\nWait, let me explain that equation. P is the probability Alice wins. She can win immediately with 1/2. If she doesn't (1/2), then Bob gets a turn. Bob can win with 1/2, so the probability that Bob doesn't win is 1/2. Then, it's back to Alice, so the probability from there is P again.\n\nSo, putting it together: P = 1/2 + (1/2) * (1/2) * P.\n\nSimplify that: P = 1/2 + (1/4)P.\n\nSubtract (1/4)P from both sides: P - (1/4)P = 1/2 => (3/4)P = 1/2 => P = (1/2) / (3/4) = 2/3.\n\nYes, that confirms it. So, the probability that Alice wins is 2/3.\n\n**Final Answer**\nThe probability that Alice wins the game is \\boxed{\\dfrac{2}{3}}.\n</think>\n\nAlice and Bob are playing a game where they take turns flipping coins. Alice starts first. If she gets heads, she wins. If not, Bob gets a turn. Bob needs to get tails to win. If he doesn't, the game returns to Alice. We need to find the probability that Alice wins the game.\n\nFirst, we model the probability that Alice wins on her first turn, second turn, etc. The probability that Alice wins on her first flip is \\( \\frac{1}{2} \\). If Alice doesn't win on her first flip (probability \\( \\frac{1}{2} \\)), Bob gets a turn. Bob can win with probability \\( \\frac{1}{2} \\), or he can also fail with probability \\( \\frac{1}{2} \\), which brings us back to Alice's turn.\n\nWe set up the recursive probability \\( P \\) that Alice wins. The equation is:\n\\[ P = \\frac{1}{2} + \\left( \\frac{1}{2} \\times \\frac{1}{2} \\right) P \\]\n\nSimplifying this equation:\n\\[ P = \\frac{1}{2} + \\frac{1}{4}P \\]\n\\[ P - \\frac{1}{4}P = \\frac{1}{2} \\]\n\\[ \\frac{3}{4}P = \\frac{1}{2} \\]\n\\[ P = \\frac{1}{2} \\div \\frac{3}{4} \\]\n\\[ P = \\frac{1}{2} \\times \\frac{4}{3} \\]\n\\[ P = \\frac{2}{3} \\]\n\nThus, the probability that Alice wins the game is \\boxed{\\dfrac{2}{3}}.",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 934,
+    "readout_prompt_tokens": 595,
+    "readout_latency_seconds": 23.13136159896385,
+    "at_candidate_id": 1,
+    "retry_count": 0
+  }
+}

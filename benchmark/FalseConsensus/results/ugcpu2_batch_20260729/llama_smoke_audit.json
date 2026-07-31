@@ -1,0 +1,21 @@
+{
+  "model": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+  "revision": "6a6f4aa4197940add57724a7707d069478df56b1",
+  "snapshot": "/localdata/dzhaoah/hf-cache/hub/models--deepseek-ai--DeepSeek-R1-Distill-Llama-8B/snapshots/6a6f4aa4197940add57724a7707d069478df56b1",
+  "vllm_version": "0.26.0",
+  "gpu": 5,
+  "port": 18000,
+  "root_cause": "vLLM 0.26+ does not auto-add BOS for Llama tokenizer; clients.py template omitted BOS, producing garbled output from first token",
+  "fix": "Added BOS prefix <｜begin▁of▁sentence｜> and  immédia to clients.py MODEL_TEMPLATES for Llama-8B",
+  "smoke_output": "Readable English reasoning ending with \\boxed{5} for 2+3",
+  "smoke_pass": true,
+  "gates": {
+    "utf8_readable": true,
+    "relevant_to_problem": true,
+    "tokenizer_roundtrip": true,
+    "nonempty_answer_parsed": true,
+    "manifest_consistent": true,
+    "gpu_memory_under_12gib": false,
+    "gpu_memory_actual": "22.3 GiB on GPU 5 (TP=1)"
+  }
+}

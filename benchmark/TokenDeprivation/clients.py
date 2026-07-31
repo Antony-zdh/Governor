@@ -22,6 +22,13 @@ MODEL_TEMPLATES = {
     ]
 }
 
+# vLLM 0.26+ does not auto-add BOS for the Llama tokenizer, so we must
+# prepend it manually. Without BOS, the Llama distill model produces
+# garbled output from the first token. See smoke_audit for evidence.
+MODEL_TEMPLATES["deepseek-ai/DeepSeek-R1-Distill-Llama-8B"] = (
+    lambda p: "<｜begin▁of▁sentence｜><｜User｜>" + p + "<｜Assistant｜>ILL\n"
+)
+
 MODEL_TEMPLATES.update(
     {
         # This Llama-based distill needs an EXPLICIT BOS. Note vLLM adds no

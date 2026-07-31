@@ -1,174 +1,151 @@
 #!/usr/bin/env python3
-"""Restartable launcher for the matched CertaIndex@32 probe arm.
+"""Matched Simple@32 vs CertaIndex@32 prompt-timing ablation launcher.
 
-This script does not start or stop model servers.  It talks only to the
-configured endpoints and writes to the prompt-ablation namespace.
+Drives ``related_work/certaindex_mid.py`` (the faithful frozen-trajectory
+CertaIndex ``mid`` collector) over all 18 frozen environments for one model
+(development seeds 42/43/44 + confirmation seeds 45/46/47 x 3 benchmarks),
+with cap 32 / interval 64 / start 64 / patience 3 and the faithful
+CERTAINDEX_SUFFIX. The Simple@32 arm is the *existing* ``dense_simple32`` bank
+(not regenerated) and is replayed with the identical patience-3 stop rule in
+``analyze_prompt_timing.py``.
+
+Modes:
+  --check-inputs   preflight: report 18 envs + 1710 main/Simple inputs
+  --smoke           2-problem CertaIndex@32 smoke to a _smoke dir
+  (default)         formal collection to results/probe_prompt_ablation/certaindex32/
 """
-
 from __future__ import annotations
 
 import argparse
-import json
-import subprocess
 import sys
+import time
 from pathlib import Path
-from typing import Any
-
 
 REPO = Path(__file__).resolve().parents[3]
-GOV_RESULTS = REPO / "benchmark/FalseConsensus/results/governor_v2"
-DEFAULT_OUTPUT = (
-    REPO / "benchmark/FalseConsensus/results/probe_prompt_ablation/certaindex32"
-)
-SPLIT_MANIFEST = (
-    REPO / "benchmark/FalseConsensus/governor_v2/generated/split_manifest.json"
-)
-PROTOCOL = Path(__file__).with_name("protocol.json")
+GOV = REPO / "benchmark/FalseConsensus/results/governor_v2"
+OUT_ROOT = REPO / "benchmark/FalseConsensus/results/probe_prompt_ablation/certaindex32"
+SPLIT = REPO / "benchmark/FalseConsensus/governor_v2/generated/split_manifest.json"
 
-MODEL_INFO = {
+MODELS = {
     "deepseek": {
-        "id": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+        "model_id": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
         "slug": "deepseek-ai-deepseek-r1-distill-qwen-7b",
         "revision": "916b56a44061fd5cd7d6a8fb632557ed4f724f60",
         "url": "http://127.0.0.1:18000/v1",
     },
     "qwen3": {
-        "id": "Qwen/Qwen3-8B",
+        "model_id": "Qwen/Qwen3-8B",
         "slug": "qwen-qwen3-8b",
         "revision": "b968826d9c46dd6066d109eabc6255188de91218",
         "url": "http://127.0.0.1:18001/v1",
     },
 }
-BENCHMARKS = ("math500", "amc23", "aime24")
-PHASES = (("development", (42, 43, 44)), ("confirmation", (45, 46, 47)))
+BENCHMARKS = ["math500", "amc23", "aime24"]
+DEV_SEEDS = [42, 43, 44]
+CONF_SEEDS = [45, 46, 47]
 
 
-def environments(model_key: str) -> list[dict[str, Any]]:
-    info = MODEL_INFO[model_key]
-    rows: list[dict[str, Any]] = []
-    for phase, seeds in PHASES:
-        for benchmark in BENCHMARKS:
-            for seed in seeds:
-                env_name = (
-                    f"{phase}__{info['slug']}__{benchmark}__seed_{seed}"
-                )
-                rows.append(
-                    {
-                        "phase": phase,
-                        "benchmark": benchmark,
-                        "seed": seed,
-                        "env_name": env_name,
-                        "main_run": GOV_RESULTS / env_name / "main",
-                    }
-                )
-    return rows
+def envs_for(slug: str) -> list[str]:
+    out = []
+    for ph, seeds in (("development", DEV_SEEDS), ("confirmation", CONF_SEEDS)):
+        for b in BENCHMARKS:
+            for s in seeds:
+                out.append(f"{ph}__{slug}__{b}__seed_{s}")
+    return out
 
 
-def expected_count(main_run: Path) -> int:
-    return len(list((main_run / "traj").glob("problem_*.json")))
+def parse_args(argv=None) -> argparse.Namespace:
+    p = argparse.ArgumentParser()
+    p.add_argument("--model", required=True, choices=list(MODELS))
+    p.add_argument("--workers", type=int, default=16)
+    p.add_argument("--url", default=None, help="override endpoint")
+    p.add_argument("--check-inputs", action="store_true")
+    p.add_argument("--smoke", action="store_true")
+    return p.parse_args(argv)
 
 
-def validate_existing_inputs(model_key: str) -> list[dict[str, Any]]:
-    failures = []
-    for env in environments(model_key):
-        main_run = env["main_run"]
-        simple = main_run.parent / "dense_simple32" / "probes"
-        main_count = expected_count(main_run)
-        simple_count = len(list(simple.glob("problem_*.json")))
-        if main_count <= 0 or simple_count != main_count:
-            failures.append(
-                {
-                    "env": env["env_name"],
-                    "main": main_count,
-                    "simple": simple_count,
-                }
-            )
-    return failures
+def check_inputs(model_key: str) -> int:
+    cfg = MODELS[model_key]
+    envs = envs_for(cfg["slug"])
+    n_envs = 0
+    total_main = 0
+    total_simple = 0
+    complete_envs = 0
+    for env in envs:
+        main_dir = GOV / env / "main" / "traj"
+        simp_dir = GOV / env / "dense_simple32" / "probes"
+        if not main_dir.exists():
+            print(f"[missing main] {env}")
+            continue
+        n_envs += 1
+        n_main = len(list(main_dir.glob("problem_*.json")))
+        n_simp = len(list(simp_dir.glob("problem_*.json"))) if simp_dir.exists() else 0
+        total_main += n_main
+        total_simple += n_simp
+        if n_main and n_main == n_simp:
+            complete_envs += 1
+        else:
+            print(f"[incomplete] {env}: main={n_main} simple={n_simp}")
+    print(f"model={cfg['model_id']} environments={n_envs} (expected 18)")
+    print(f"main trajectories={total_main} (expected 1710)")
+    print(f"simple trajectories={total_simple} (expected 1710)")
+    print(f"complete main/Simple envs={complete_envs}")
+    ok = n_envs == 18 and total_main == 1710 and total_simple == 1710
+    print("PREFLIGHT", "PASS" if ok else "FAIL")
+    return 0 if ok else 1
 
 
-def collector_command(
-    model_key: str,
-    env: dict[str, Any],
-    output_root: Path,
-    workers: int,
-) -> list[str]:
-    info = MODEL_INFO[model_key]
-    return [
-        sys.executable,
-        "-m",
-        "benchmark.FalseConsensus.related_work.certaindex_mid",
-        "--main-run",
-        str(env["main_run"]),
-        "--output",
-        str(output_root / env["env_name"]),
-        "--url",
-        str(info["url"]),
-        "--model",
-        str(info["id"]),
-        "--model-revision",
-        str(info["revision"]),
-        "--split-manifest",
-        str(SPLIT_MANIFEST),
-        "--interval",
-        "64",
-        "--start-token",
-        "64",
-        "--probe-tokens",
-        "32",
-        "--patience",
-        "3",
-        "--workers",
-        str(workers),
+def run_one_env(cfg, env: str, workers: int, url: str, output_root: Path,
+                limit: int = 0, problem_ids=None) -> int:
+    from benchmark.FalseConsensus.related_work import certaindex_mid
+    main_run = GOV / env / "main"
+    output = output_root / env
+    output.mkdir(parents=True, exist_ok=True)
+    argv = [
+        "--main-run", str(main_run),
+        "--output", str(output),
+        "--url", url,
+        "--model", cfg["model_id"],
+        "--model-revision", cfg["revision"],
+        "--interval", "64",
+        "--start-token", "64",
+        "--probe-tokens", "32",
+        "--patience", "3",
+        "--workers", str(workers),
+        "--split-manifest", str(SPLIT),
     ]
+    if limit:
+        argv += ["--limit", str(limit)]
+    if problem_ids:
+        for pid in problem_ids:
+            argv += ["--problem-id", str(pid)]
+    print(f"\n=== {env} -> {url} ===", flush=True)
+    t0 = time.perf_counter()
+    certaindex_mid.main(argv)
+    print(f"=== {env} done in {time.perf_counter()-t0:.0f}s ===", flush=True)
+    return 0
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--model", choices=sorted(MODEL_INFO), required=True)
-    parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--workers", type=int, default=16)
-    parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--check-inputs", action="store_true")
-    return parser.parse_args()
-
-
-def main() -> int:
-    args = parse_args()
-    if args.workers < 1:
-        raise ValueError("--workers must be positive")
-    failures = validate_existing_inputs(args.model)
-    if failures:
-        print(json.dumps({"input_failures": failures}, indent=2))
-        return 1
-    envs = environments(args.model)
-    commands = [
-        collector_command(args.model, env, args.output_root, args.workers)
-        for env in envs
-    ]
+def main(argv=None) -> int:
+    args = parse_args(argv)
+    cfg = MODELS[args.model]
+    url = args.url or cfg["url"]
     if args.check_inputs:
-        print(
-            json.dumps(
-                {
-                    "model": args.model,
-                    "environments": len(envs),
-                    "main_and_simple_inputs": "complete",
-                    "trajectories": sum(expected_count(env["main_run"]) for env in envs),
-                },
-                sort_keys=True,
-            )
-        )
-        return 0
-    if args.dry_run:
-        print(f"protocol={PROTOCOL}")
-        for command in commands:
-            print(" ".join(command))
-        return 0
-    for index, command in enumerate(commands, start=1):
-        print(f"[{index}/{len(commands)}] {' '.join(command)}", flush=True)
-        subprocess.run(command, cwd=REPO, check=True)
-    print(f"completed model={args.model} output={args.output_root}")
+        return check_inputs(args.model)
+    if args.smoke:
+        envs = envs_for(cfg["slug"])
+        smoke_env = next(e for e in envs if "math500__seed_42" in e)
+        smoke_root = REPO / "benchmark/FalseConsensus/results/probe_prompt_ablation/_smoke" / args.model
+        print(f"smoke: 2 problems from {smoke_env} -> {smoke_root}")
+        return run_one_env(cfg, smoke_env, workers=2, url=url,
+                           output_root=smoke_root, limit=2)
+    # formal
+    started = time.perf_counter()
+    for env in envs_for(cfg["slug"]):
+        run_one_env(cfg, env, workers=args.workers, url=url, output_root=OUT_ROOT)
+    print(f"\n=== {args.model} formal collection complete in {time.perf_counter()-started:.0f}s ===", flush=True)
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

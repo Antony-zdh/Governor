@@ -1,0 +1,71 @@
+{
+  "schema_version": "probe-cost-ablation-2",
+  "created_at": "2026-07-30",
+  "git_branch": "ugcpu2-batch-20260729",
+  "supersedes": "probe-cost-ablation-1 (protocol.json + run_ablation.py + ablation_rows.jsonl + ablation_summary.json)",
+  "why_redone": [
+    "truncate_probe_text sliced cap*4 characters, not model tokens",
+    "stored dense-probe records lack probe_text, so truncation was meaningless",
+    "total_probe_out_tokens summed original probe_out_tokens, so cap 8/16/32 were identical",
+    "no Governor rule replayed, no stop/delivered answer, no grader",
+    "accuracy, accuracy drop, gross/net/zero-tax saving, PSF, Pareto all absent",
+    "script hard-coded /localdata/dzhaoah/Governor"
+  ],
+  "scope": {
+    "bank": "frozen Governor-v2 DEV bank (development__{ds-qwen-7b,qwen3-8b}__{math500,amc23,aime24}__seed_{42,43,44})",
+    "split": "dev only (from split_manifest.json assignments where split=dev)",
+    "models": {
+      "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B": "916b56a44061fd5cd7d6a8fb632557ed4f724f60",
+      "Qwen/Qwen3-8B": "b968826d9c46dd6066d109eabc6255188de91218"
+    },
+    "benchmarks": ["math500", "amc23", "aime24"],
+    "seeds": [42, 43, 44],
+    "dev_trajectories_per_model": 342,
+    "dev_trajectories_total": 684,
+    "main_trajectories": "frozen, NOT regenerated"
+  },
+  "probe_schedule": {
+    "start_token": 64,
+    "interval_grid": 64,
+    "intervals_evaluated": [64, 128, 256, 512],
+    "interval_method": "strict position downsampling from the interval-64 bank: keep probes at positions p with (p - start_token) % interval == 0",
+    "convention_record": "start=64 for all intervals; dense_probe.py default start_token=64, interval=64"
+  },
+  "caps": {
+    "caps_evaluated": [8, 16, 32],
+    "method": "REAL capped generation: each cap is an independent completions call with max_tokens=cap, stop=['\\]'], temperature/top_p/seed identical to dense_simple32. NO character slicing, NO truncation of a cap-32 answer.",
+    "prompt_semantics": "apply_chat_template(problem) + decode(token_ids[:position]) + SIMPLE_SUFFIX ('**Final Answer**\\n\\n\\\\[ \\\\boxed{'), identical to dense_probe.py so cap-32 is comparable to the authoritative dense bank",
+    "cap_enforcement": "checked with the model's own tokenizer: actual completion_tokens <= cap; re-encoded count stored alongside"
+  },
+  "policies": {
+    "source": "benchmark/FalseConsensus/final_eval/protocol.json (frozen v1 methods; v1_protocol_sha256 recorded)",
+    "roles": {
+      "governor_conservative": "frozen_methods.conservative",
+      "governor_balanced_task_aware_secondary": "frozen_methods.balanced_math on MATH500; non_math_policy.optional_general_balanced_candidate on AMC23/AIME24",
+      "governor_naive_agreement": "frozen_methods.naive_agreement (control)"
+    },
+    "rule_interpreter": "benchmark/FalseConsensus/governor_v2/evaluate_existing_methods.decide_stop / _valid / _equivalence_ids (authoritative, not a substitute)",
+    "grader": "replay_rules.answers_equal + grading.robust_answers_equal",
+    "no_tuning": true
+  },
+  "cost_accounting": {
+    "primary_total_token_cost": "consumed_main_tokens + probe_output_tokens_used",
+    "gross_tokens_used": "consumed_main_tokens",
+    "actual_total_tokens_used": "consumed_main_tokens + probe_output_tokens_used",
+    "ideal_zero_probe_tax_tokens_used": "consumed_main_tokens (probe output tax zeroed)",
+    "denominator": "full_main_tokens (frozen full main generation)",
+    "gross_saving": "(full_main - consumed_main) / full_main",
+    "actual_net_saving": "(full_main - (consumed_main + probe_output_tokens)) / full_main",
+    "ideal_zero_probe_tax_saving": "(full_main - consumed_main) / full_main == gross_saving",
+    "probe_tax": "gross_saving - actual_net_saving",
+    "PSF": "fraction of trajectories with actual_net_saving > 0",
+    "probe_prompt_tokens": "reported separately (sensitivity view adds them: actual + probe_prompt)"
+  },
+  "aggregation": {
+    "environment": "model x benchmark x seed",
+    "macro": "equal-weight macro-average over environments",
+    "bootstrap": "paired hierarchical resampling over seeds+problems, 10000 samples, seed 20260727 (reuses related_work.metrics shape)"
+  },
+  "expected_rows": "684 dev trajectories x 12 (4 intervals x 3 caps) x 3 policies = 24624",
+  "frozen_main_denominator_sha256_note": "full_main_tokens taken from the frozen DEV main trajectories; not recomputed"
+}

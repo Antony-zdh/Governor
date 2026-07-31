@@ -1,0 +1,44 @@
+{
+  "schema_version": "governor-v2-llama-corrected-bank-1",
+  "namespace": "benchmark/FalseConsensus/results/governor_v2_scale_dev_llama_corrected/",
+  "created_at": "2026-07-30",
+  "branch": "ugcpu2-batch-20260729",
+  "purpose": "Complete post-BOS-fix multi-seed Llama-8B development collection (seeds 42/43/44). Held-out architecture evidence; no policy search is performed on Llama.",
+  "supersedes": {
+    "statement": "This corrected namespace supersedes ALL pre-BOS-fix Llama seeds 42/43/44 scale-development outputs (the teammate's invalid bank: only math500+amc23, ~93.2% truncated, ~86.5% empty answers, 2/1620 correct).",
+    "invalid_bank_location": "origin/main benchmark/FalseConsensus/results/governor_v2_scale_dev/development__...llama-8b... (NOT present on this branch by design; not fetched/merged)"
+  },
+  "seed45_distinct": "The corrected seed-45 confirmation bank (results/governor_v2/confirmation__...llama-8b__seed_45) is a separate held-out bank and is NOT included here.",
+  "no_invalid_reuse": "No file from the invalid pre-fix Llama bank was reused. Main trajectories, dense probes, and adaptive probes are all generated fresh from the corrected BOS client.",
+  "matrix_source": {
+    "file": "benchmark/FalseConsensus/governor_v2/generated/matrix_scale_dev.jsonl (from origin/main, fetched for inspection only; not merged)",
+    "llama_jobs": 27,
+    "note": "27 = 3 benchmarks x 3 seeds x 3 stages (main_generation, dense_probe, adaptive_probe)"
+  },
+  "model": {
+    "model_id": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+    "revision": "6a6f4aa4197940add57724a7707d069478df56b1",
+    "dtype": "bfloat16",
+    "quantization": "none",
+    "hf_cache": "/localdata/dzhaoah/hf-cache/hub/models--deepseek-ai--DeepSeek-R1-Distill-Llama-8B/snapshots/6a6f4aa4197940add57724a7707d069478df56b1"
+  },
+  "runtime": {
+    "vllm_version": "0.26.0",
+    "transformers_version": "5.14.1 (tokenizer only, server-side)",
+    "python": "3.13 (gov2-venv, server) / 3.9 (gov-venv, collection client + dynasor)",
+    "torch": "2.11.0+cu13",
+    "max_model_len": 49152,
+    "gpu_memory_utilization": 0.92,
+    "enable_prefix_caching": true,
+    "vllm_use_flashinfer_sampler": "0 (PyTorch-native sampler; flashinfer sampling JIT bypassed due to CUDA 10.1 header leak)",
+    "bos_fix": "clients.py MODEL_TEMPLATES for Llama-8B prepends exactly one <｜begin▁of▁sentence｜>; vLLM 0.26 completions endpoint tokenizes with add_special_tokens=False (verified via /tokenize), so the model sees exactly one BOS"
+  },
+  "expected_coverage": {
+    "environments": 9,
+    "main_trajectories": 1710,
+    "dense_probe_records": 1710,
+    "adaptive_probe_records": 1710,
+    "breakdown": {"math500": "500 x 3 = 1500", "amc23": "40 x 3 = 120", "aime24": "30 x 3 = 90"}
+  },
+  "bos_smoke": "results/governor_v2_scale_dev_llama_corrected/_bos_smoke.json (all gates green: exactly_one_bos, vllm_exactly_one_bos, no_duplicate_bos, coherent_reasoning, valid_boxed_answer=5 for 2+3, shared_prefix_semantics)"
+}

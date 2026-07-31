@@ -1,0 +1,78 @@
+{
+  "schema_version": "related-work-deer-trial-1",
+  "method": "deer_frozen",
+  "reproduction_class": "frozen-trajectory DEER reproduction (official probes on frozen prefix)",
+  "problem_id": 448,
+  "dataset": "math500",
+  "model": "Qwen/Qwen3-8B",
+  "base_seed": 47,
+  "main_token_count_recorded": 3943,
+  "main_token_count_reencoded": 3942,
+  "token_alignment": {
+    "recorded": 3943,
+    "reencoded": 3942,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 20,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "976a4d5d95db1dcf3c37ee13afaa51db8fe83854dc9dde2643382a4b56995b69",
+  "policy": "avg2",
+  "threshold": 0.95,
+  "require_think_close": true,
+  "trials": [
+    {
+      "candidate_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 2318,
+      "token_position": 952,
+      "trial_text": "{44}\n</think>",
+      "trial_answer": "44",
+      "logprobs": [
+        {
+          "token": "{",
+          "logprob": 0.0
+        },
+        {
+          "token": "4",
+          "logprob": 0.0
+        },
+        {
+          "token": "4",
+          "logprob": 0.0
+        },
+        {
+          "token": "}\n",
+          "logprob": -0.00033539868309162557
+        },
+        {
+          "token": "</think>",
+          "logprob": -2.3841855067985307e-07
+        }
+      ],
+      "confidence": 0.9999160942448743,
+      "policy": "avg2",
+      "last_token_decoded": "</think>",
+      "think_close_emitted": true,
+      "meets_threshold": true,
+      "trial_out_tokens": 5,
+      "trial_prompt_tokens": 1021,
+      "trial_finish_reason": "stop",
+      "trial_latency_seconds": 1.7350396359688602,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "44",
+    "readout_text": "To compute the modular inverse of $ 17 \\mod 83 $, we are looking for an integer $ x $ such that:\n\n$$\n17x \\equiv 1 \\pmod{83}\n$$\n\nThis means that $ 17x - 1 $ is divisible by 83, or equivalently:\n\n$$\n17x + 83y = 1\n$$\n\nfor some integer $ y $. This is a classic setup for the **Extended Euclidean Algorithm**, which allows us to find such integers $ x $ and $ y $.\n\n---\n\n### Step 1: Apply the Euclidean Algorithm\n\nWe begin by applying the Euclidean Algorithm to find the greatest common divisor (GCD) of 83 and 17:\n\n$$\n\\begin{align*}\n83 &= 17 \\cdot 4 + 15 \\\\\n17 &= 15 \\cdot 1 + 2 \\\\\n15 &= 2 \\cdot 7 + 1 \\\\\n2 &= 1 \\cdot 2 + 0\n\\end{align*}\n$$\n\nThe last non-zero remainder is 1, so the GCD of 83 and 17 is 1, which confirms that the inverse exists.\n\n---\n\n### Step 2: Use the Extended Euclidean Algorithm\n\nNow, we work backwards to express 1 as a linear combination of 83 and 17:\n\n$$\n\\begin{align*}\n1 &= 15 - 2 \\cdot 7 \\\\\n&= 15 - (17 - 15 \\cdot 1) \\cdot 7 \\\\\n&= 15 - 17 \\cdot 7 + 15 \\cdot 7 \\\\\n&= 15 \\cdot 8 - 17 \\cdot 7 \\\\\n&= (83 - 17 \\cdot 4) \\cdot 8 - 17 \\cdot 7 \\\\\n&= 83 \\cdot 8 - 17 \\cdot 32 - 17 \\cdot 7 \\\\\n&= 83 \\cdot 8 - 17 \\cdot 39\n\\end{align*}\n$$\n\nSo we have:\n\n$$\n1 = 83 \\cdot 8 - 17 \\cdot 39\n$$\n\nThis implies:\n\n$$\n-39 \\cdot 17 \\equiv 1 \\pmod{83}\n$$\n\nThus, the inverse of 17 modulo 83 is $ -39 \\mod 83 $.\n\n---\n\n### Step 3: Convert to a Positive Residue\n\nTo express $ -39 $ as a positive residue modulo 83, we add 83:\n\n$$\n-39 + 83 = 44\n$$\n\nSo, the modular inverse of 17 modulo 83 is:\n\n$$\n\\boxed{44}\n$$\n\n---\n\n### Final Verification\n\nLet’s verify:\n\n$$\n17 \\cdot 44 = 748\n$$\n\nNow divide 748 by 83:\n\n$$\n748 \\div 83 = 9 \\text{ remainder } 1\n$$\n\nSo:\n\n$$\n17 \\cdot 44 \\equiv 1 \\pmod{83}\n$$\n\n✅ The result is correct.\n\n---\n\n### Final Answer:\n\n$$\n\\boxed{44}\n$$",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 719,
+    "readout_prompt_tokens": 1017,
+    "readout_latency_seconds": 20.51420496503124,
+    "at_candidate_id": 1,
+    "retry_count": 0
+  }
+}

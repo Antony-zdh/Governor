@@ -1,0 +1,71 @@
+{
+  "schema_version": "related-work-tje-trigger-1",
+  "method": "tje_frozen",
+  "reproduction_class": "frozen-trajectory TJE reproduction (confidence re-issued on frozen prefix)",
+  "problem_id": 448,
+  "dataset": "math500",
+  "model": "Qwen/Qwen3-8B",
+  "base_seed": 47,
+  "main_token_count_recorded": 3943,
+  "main_token_count_reencoded": 3942,
+  "token_alignment": {
+    "recorded": 3943,
+    "reencoded": 3942,
+    "delta": -1,
+    "absolute_delta": 1,
+    "tolerance": 20,
+    "material_mismatch": false
+  },
+  "chat_template_sha256": "ec5e4102b975294ef48d20dab9fc25cb9db6a8f8c5ee8650a3a0a568f4b83200",
+  "include_think_close": true,
+  "threshold_label": "Almost certain",
+  "triggers": [
+    {
+      "trigger_id": 1,
+      "trigger_type": "wait",
+      "trigger_char_position": 2318,
+      "token_position": 952,
+      "confidence_response": "Highly likely",
+      "confidence_label": "Highly likely",
+      "meets_threshold": false,
+      "confidence_out_tokens": 4,
+      "confidence_prompt_tokens": 1372,
+      "confidence_finish_reason": "stop",
+      "confidence_latency_seconds": 5.247546198021155,
+      "retry_count": 0
+    },
+    {
+      "trigger_id": 2,
+      "trigger_type": "think_close",
+      "trigger_char_position": 7527,
+      "token_position": 3358,
+      "confidence_response": "Almost certain",
+      "confidence_label": "Almost certain",
+      "meets_threshold": true,
+      "confidence_out_tokens": 3,
+      "confidence_prompt_tokens": 3778,
+      "confidence_finish_reason": "stop",
+      "confidence_latency_seconds": 7.532080792996567,
+      "retry_count": 0
+    }
+  ],
+  "readout": {
+    "readout_answer": "44",
+    "readout_text": "To compute the modular inverse of $ 17 \\mod 83 $, we are looking for an integer $ x $ such that:\n\n$$\n17x \\equiv 1 \\pmod{83}\n$$\n\nThis means that $ x $ is the number that, when multiplied by 17 and reduced modulo 83, yields 1. One reliable method to find such an $ x $ is the **Extended Euclidean Algorithm**, which allows us to express the greatest common divisor (GCD) of two integers as a linear combination of those integers.\n\n---\n\n### Step 1: Apply the Euclidean Algorithm\n\nWe begin by computing the GCD of 83 and 17 using the Euclidean Algorithm:\n\n$$\n\\begin{align*}\n83 &= 17 \\cdot 4 + 15 \\\\\n17 &= 15 \\cdot 1 + 2 \\\\\n15 &= 2 \\cdot 7 + 1 \\\\\n2 &= 1 \\cdot 2 + 0\n\\end{align*}\n$$\n\nThe GCD is 1, which confirms that the inverse exists.\n\n---\n\n### Step 2: Work Backwards to Express 1 as a Linear Combination\n\nWe now work backwards to express 1 as a linear combination of 83 and 17:\n\n$$\n\\begin{align*}\n1 &= 15 - 2 \\cdot 7 \\\\\n&= 15 - (17 - 15) \\cdot 7 \\\\\n&= 15 - 17 \\cdot 7 + 15 \\cdot 7 \\\\\n&= 15 \\cdot 8 - 17 \\cdot 7 \\\\\n&= (83 - 17 \\cdot 4) \\cdot 8 - 17 \\cdot 7 \\\\\n&= 83 \\cdot 8 - 17 \\cdot 32 - 17 \\cdot 7 \\\\\n&= 83 \\cdot 8 - 17 \\cdot 39\n\\end{align*}\n$$\n\nThis gives us:\n\n$$\n-17 \\cdot 39 \\equiv 1 \\pmod{83}\n$$\n\nSo the modular inverse of 17 modulo 83 is $ -39 \\mod 83 $. To express this as a positive residue between 0 and 82:\n\n$$\n-39 \\equiv 83 - 39 = 44 \\pmod{83}\n$$\n\n---\n\n### Step 3: Verification\n\nWe verify by computing:\n\n$$\n17 \\cdot 44 = 748\n$$\n\nNow compute $ 748 \\mod 83 $:\n\n$$\n83 \\cdot 9 = 747 \\Rightarrow 748 - 747 = 1\n$$\n\nThus,\n\n$$\n17 \\cdot 44 \\equiv 1 \\pmod{83}\n$$\n\nThis confirms that $ 44 $ is the correct inverse.\n\n---\n\n### Alternative Method Using the Given Hint\n\nWe are also told that $ 17 \\cdot 5 = 85 \\equiv 2 \\pmod{83} $. So:\n\n$$\n17 \\cdot 5 \\equiv 2 \\pmod{83}\n$$\n\nWe can now find the inverse of 2 modulo 83. Since $ 2 \\cdot 42 = 84 \\equiv 1 \\pmod{83} $, the inverse of 2 is 42. Then:\n\n$$\n17^{-1} \\equiv 5 \\cdot 42 \\equiv 210 \\equiv 44 \\pmod{83}\n$$\n\nThis again confirms the result.\n\n---\n\n### Final Answer\n\n$$\n\\boxed{44}\n$$\n\n\\confidence{Almost certain}",
+    "readout_valid": true,
+    "readout_truncated": false,
+    "readout_completed_boxed": true,
+    "readout_finish_reason": "stop",
+    "readout_out_tokens": 814,
+    "readout_prompt_tokens": 3783,
+    "readout_allowance": 8192,
+    "readout_prompt_tokens_estimate": 3783,
+    "readout_context_overflow": false,
+    "readout_triggering_label": "Almost certain",
+    "readout_confidence_event": "\\confidence{Almost certain}",
+    "readout_prompt_sha256": "d57975b5088185a9eeb9df02b07823043d348fa6cfd8c5a8fcd8e0a7dc695dcf",
+    "readout_latency_seconds": 310.37959117098944,
+    "at_trigger_id": 2,
+    "retry_count": 0
+  }
+}
