@@ -742,3 +742,51 @@ raw_output 上做），而不是偷懒复用 parse_ok——两者衡量的不是
 - Stage 6 Governor++：先在现有 probes.csv 上离线回放 stop 规则
   （答案形态过滤 / 共识时间上限 / 更大窗口 / 轨迹稳定性），画 accuracy–token Pareto；
 - 多模型（Qwen / Llama distill）+ 多数据集（GSM8K / AIME24 / AMC23），脚本已参数化。
+
+## 2026-08-02 — v2 Pareto sweep 重做（统一 (W,s) 信号 + DEER 联合 + robust grader 修复）
+
+按 CORE_PAPER_FLOW 重做 Pareto sweep 与论文第二版核心。
+
+**规则空间重设计（与用户逐维确认）**：consensus 信号塌缩为两个超参数
+window_size W∈{1,3,5,8,12,16,24,30} × share_threshold s∈{0.6,0.8,1.0}，
+加操作维度 probe interval{64,128,256,512}、validity{nonempty,schema}、
+maturity min_tokens{0,512,1024,2048,4096}、certainty{F,T}，两家族（fixed/adaptive）
+= **3,520 条**（去掉 W=1 且 s≠1.0 的行为冗余）。删 entropy 家族与 persistence 维度
+（被 (W,s) 覆盖）、删 history。protocol_v2.json / make_protocol_v2.py / candidate_rules_v2.jsonl。
+evidence_candidate 语义修正：window_share 的 share 分母改为窗口大小 W 且需窗口填满。
+
+**新 gates**（total macro drop → total macro saving → psf，三档）：
+conservative 1.0pp/10%/0.8、balanced 2.0pp/20%/0.8、token_efficient 3.5pp/30%/0.7。
+select_v2.py 实现，consensus 与 DEER 走同一套。
+
+**DEER 联合 sweep**（deer_threshold_sweep.py，trial-answer-submit，扫 14 阈值）：
+复用 deer_confidence_bank_cap30，同 token accounting。
+
+**Grader bug（已修，重要）**：replay_rules.answers_equal 的 `from grading import`
+只在 grading.py 在 path 时用 robust grader；consensus sweep 以 `python -m` 从仓库根跑
+退回弱 grader（math500 baseline 78% vs 真实 92%），DEER 从 governor_v2 跑用 robust。
+修为兼容两种运行方式后重跑 consensus dev+test。full-gen baseline 现 82.5%，与 DEER 一致。
+
+**核心结果（dev，macro over 18 env，robust grader）**：
+- consensus **0/3,520 通过任何 gate**；drop≤1.0 内 max saving 仅 0.2%，save≥10% 需 drop 2.66pp、
+  save≥20% 需 6.17pp、save≥30% 需 11.8pp；大 window 只把 drop 换成 ~0 saving。
+- DEER **三档全过**：conservative drop 0.33pp@28.2%、balanced 1.03pp@29.6%、
+  token_efficient 2.75pp@31.9%；近中性 -0.06pp@20.8%。
+- 泛化：test（dev 模型）drop dev↔test r=0.98，联合 gate consensus 0/dev 0/both（444 test-only 幸运儿），
+  DEER 联合过（conservative 3、balanced 5）；32B r=0.95、Llama r=0.87（单 seed，作前沿复现证据）。
+  DEER heldout 因无 confidence bank 延后（GPU 待补）。
+
+**论文第二版更新**：新 Figure 1（governor_v2_pareto_dev.pdf，make_v2_pareto.py）；
+Abstract/Intro/Method/Results/Mechanism/Conclusion/Limitations/Appendix 全部按新数据与
+(W,s)+DEER-passes 故事线改写；17,712→3,520、per-model/per-bench gates→total gates、
+附录家族表→window-size 前沿表 + DEER threshold 表。编译干净（13 页，0 未定义引用，无 overfull>20pt）。
+
+数据在 scratchpad（v2_sweep_r / v2_sweep_test / deer_sweep.jsonl）——需迁入 results/ 正式库并提交。
+
+### 2026-08-02（续）结果落库 + 旧 sweep 归档
+- 新 bank：`results/governor_v2_ws_sweep/`（dev+train 126720 行、test 253440 行、
+  deer 756 行，均 gz；manifest.json 含 sha256 与关键结果；report.md）。
+- 旧 v1 sweep 归档到 `governor_v2/generated/backup_v1_sweep_20260802/`
+  （sweep_0..7、sweep_scale_32b/llama、candidate_rules.jsonl、candidate_rules_extended、
+  protocol_extended、README）。candidate_rules_v2.jsonl 加入 .gitignore（可再生）。
+- 尚未 commit（等用户确认）。

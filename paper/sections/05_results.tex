@@ -3,9 +3,13 @@
 
 We first confirm the phenomenon the paper turns on---intermediate consensus is
 non-terminal (\S\ref{sec:exp-fc})---then report the preregistered sweep and its
-central negative result (\S\ref{sec:exp-sweep}), reproduce three prior
-early-stoppers on identical trajectories (\S\ref{sec:exp-prior}), and confirm the
-frontier out of distribution (\S\ref{sec:exp-heldout}).
+central negative result: \emph{no} consensus rule is both safe and saving
+(\S\ref{sec:exp-sweep}). We then show the failure is specific to the
+\emph{signal}, not to early exit, by sweeping a non-consensus method (DEER)
+through the identical pipeline and gates and finding that it \emph{does} clear
+them (\S\ref{sec:exp-deer}); a faithful Certaindex reproduction on the same
+trajectories collapses (\S\ref{sec:exp-prior}). Finally we confirm the frontier
+out of distribution (\S\ref{sec:exp-heldout}).
 
 \subsection{False consensus is real}
 \label{sec:exp-fc}
@@ -40,85 +44,79 @@ A good stopping rule must therefore be much more than ``agreement.'' The rest of
 this section asks whether the \emph{best possible} such rule, drawn from a large
 preregistered space, can be both safe and economical.
 
-\subsection{The safe-and-saving corner is empty}
+\subsection{The safe-and-saving corner is empty for consensus}
 \label{sec:exp-sweep}
-We aggregate the sweep into per-environment metrics---$637{,}632$ rows
-$=17{,}712$ rules $\times$ $18$ environments $\times$ $2$ splits (train, dev)---
-and compute, per rule, its worst per-model and per-benchmark accuracy drop and its
-net token savings (accounting of Section~\ref{sec:accounting}). Applying
-commitment~C2 to the preregistered conservative gate yields the paper's central
-result, and it does not rest on any single fragile estimate.
+We replay all $3{,}520$ consensus rules on the frozen trajectories and aggregate
+to per-environment metrics---$126{,}720$ rows $=3{,}520$ rules $\times$ $18$
+environments $\times$ $2$ splits (train, dev)---then, per rule, its total (macro)
+accuracy drop and net token saving (accounting of Section~\ref{sec:accounting}).
+Applying the preregistered gates yields the paper's central negative result.
 
-The headline is distribution-free: \emph{every} one of the $17{,}712$ candidate
-rules incurs a positive worst-case per-model accuracy drop, and \emph{zero} reach
-break-even. Across all $637{,}632$ rule--environment evaluations, accuracy
-strictly \emph{falls} in $67.7\%$ and strictly \emph{rises} in only $6.7\%$
-(unchanged in $25.5\%$), for a mean drop of $10.9\pp$; over rules the worst-case
-per-model drop has percentiles $p_1{=}3.37$, $p_5{=}4.26$, $p_{25}{=}10.7$, median
-$20.1\pp$. The Pareto frontier over (worst-case drop, net savings) contains $93$
-rules and \textbf{none clears the conservative gate} (per-model drop $\le1.5\pp$,
-per-benchmark $\le2.0\pp$, psf $\ge0.8$). Figure~\ref{fig:pareto} shows the shape:
-the boundary only climbs as the accuracy drop grows, and the small-drop /
-large-saving corner is empty. Two claims should be kept separate: the safety claim
-(no rule reaches even $1.5\pp$; all lose) is about accuracy and, as
-Section~\ref{sec:mechanism} argues, is probe-independent; the savings claim
-(positive net savings costs $\ge4.87\pp$, whether the psf floor is $0.8/0.7/0.6/0.5$)
-additionally depends on the dense-probe accounting.
+The outcome is distribution-free: across all $126{,}720$ rule--environment
+evaluations accuracy strictly \emph{falls} in $64.9\%$ and strictly \emph{rises}
+in only $10.5\%$ (unchanged in $24.6\%$), for a mean drop of $13.0\pp$; over rules
+the total dev drop has median $13.2\pp$ and a minimum of $0.81\pp$.
+\textbf{Not one of the $3{,}520$ rules clears any gate.} The reason is the shape
+of the frontier (Figure~\ref{fig:pareto}): staying accurate and saving tokens are
+in direct tension. Only $40$ rules keep the total drop at or below the
+conservative $1.0\pp$ cap, and the most any of them saves is
+$0.2\%$---far under the $10\%$ floor; conversely, the first rule to save $10\%$
+already costs $2.66\pp$, saving $20\%$ costs $6.17\pp$, and saving $30\%$ costs
+$11.8\pp$. Crucially, the sweep now includes \emph{large} windows (up to
+$W{=}30$): these do buy low accuracy drop, but only by stopping so late that net
+saving collapses to zero. No setting of the consensus signal escapes the
+trade-off; the safe-and-saving corner is empty.
 
-\paragraph{On the least-bad rule (and why we do not lean on it).}
-\label{sec:floor}
-The smallest per-model drop anywhere is $1.85\pp$---already above the gate---from
-an \texttt{entropy\_budget\_fraction} rule that stops so rarely its net savings are
-negative ($q_{20}\approx-11\%$). We report it as a diagnostic, not a load-bearing
-number: a bootstrap over the nine benchmark$\times$seed environments puts it at
-$1.85\pp$ with a $95\%$ CI of $[0.0,5.6]\pp$, touching break-even. We rest the
-result instead on the two facts that do not depend on this point estimate---all
-$17{,}712$ rules lose accuracy, and even this least-bad rule spends \emph{extra}
-tokens (net $-8$ to $-9\%$)---and on the held-out reproduction of
-\S\ref{sec:exp-heldout}. The per-model gate is primary; the per-benchmark cap is a
-diagnostic a single competition-set problem cannot resolve
-(Section~\ref{sec:resolution}).
-
-\paragraph{Sophistication does not help.}
-The ordering across families is one-directional: the simplest evidence signal
-(\texttt{window\_share}) gives the best safe-with-positive-savings point
-($4.87\pp$); \texttt{entropy\_budget\_fraction} reaches $1.85\pp$ only by stopping
-so rarely savings go negative; and \texttt{adaptive\_event\_probe}---the most
-sophisticated family---is \emph{dominated}, needing $9.70\pp$ for a
-positive-savings point (frontiers in Appendix~\ref{sec:appendix-tables}).
-Table~\ref{tab:main} places our best swept points against full generation; none
-passes the gate, and even the accuracy-neutral point spends $\sim\!4\%$ extra
-tokens (probe tax, Section~\ref{sec:mechanism}).
+\subsection{Early exit \emph{is} possible---with a different signal}
+\label{sec:exp-deer}
+The same gates are cleared, comfortably, by a rule that does \emph{not} read probe
+agreement. Sweeping DEER's confidence threshold through the identical pipeline and
+token accounting (Section~\ref{sec:schema}), its trial-answer-submit variant
+passes all three operating points on dev: the conservative point loses only
+$0.33\pp$ while saving $28.2\%$, the balanced point $1.03\pp$ at $29.6\%$, and the
+token-efficient point $2.75\pp$ at $31.9\%$; at a stricter threshold it is
+accuracy-neutral ($-0.06\pp$) while still saving $20.8\%$. In
+Figure~\ref{fig:pareto} the DEER frontier sits \emph{above} the consensus frontier
+everywhere in the safe region and enters every gate box that no consensus rule
+reaches. Early exit is therefore not impossible; the consensus \emph{signal} is
+what cannot make it safe (Table~\ref{tab:main}).
 
 \begin{table}[t]
   \centering\small
+  \setlength{\tabcolsep}{4pt}
   \begin{tabular}{lccc}
     \toprule
-    Method & Accuracy & $\Delta$acc & Net token \\
-           &          & (macro)     & saving \\
+    Method & Acc. & $\Delta$acc & Net \\
+           &      & (macro)     & saving \\
     \midrule
-    Full generation & $82.7\%$ & --- & $0\%$ \\
+    Full generation & $82.5\%$ & --- & $0\%$ \\
     \midrule
-    Ours (target conservative) & $81.8\%$ & $-0.9\pp$ & $-4.0\%$ \\
-    Ours (target balanced)     & $79.1\%$ & $-3.6\pp$ & $+7.8\%$ \\
-    Ours (target token\_efficient) & $77.1\%$ & $-5.6\pp$ & $+19.6\%$ \\
+    Consensus (drop$\le1.0$)  & $81.6\%$ & $-0.9\pp$  & $+0.2\%$ \\
+    Consensus (save$\ge10\%$) & $79.9\%$ & $-2.7\pp$  & $+10.7\%$ \\
+    \midrule
+    DEER (conservative)      & $82.5\%$ & $-0.33\pp$ & $+28.2\%$ \\
+    DEER (balanced)          & $81.9\%$ & $-1.03\pp$ & $+29.6\%$ \\
+    DEER (token\_eff.)       & $80.1\%$ & $-2.75\pp$ & $+31.9\%$ \\
     \bottomrule
   \end{tabular}
-  \caption{Best swept operating points on dev (macro over $18$ environments): the
-  min-drop, mid-frontier, and high-saving representatives of the dev Pareto
-  frontier. The target-conservative rule is roughly accuracy-neutral in macro but
-  spends $\sim\!4\%$ extra tokens (probe tax) and fails the per-model gate.}
+  \caption{Dev operating points (macro over $18$ environments). No consensus rule
+  is simultaneously safe ($\le1.0\pp$) and saving ($\ge10\%$): capping the drop
+  forces saving to near zero, and demanding saving forces a large drop. DEER,
+  reading a non-consensus signal, clears all three gates on the same trajectories
+  under the same accounting.}
   \label{tab:main}
 \end{table}
 
-\subsection{Prior stoppers on the same trajectories}
+\subsection{Consensus in the wild: a faithful Certaindex reproduction collapses}
 \label{sec:exp-prior}
-To place published methods on the same footing, we reproduce three in a common
-harness---the same frozen trajectories, the same \simplek{} probe bank, the same
-token accounting. \textbf{CertaIndex} \citep{dynasor_certaindex} is the faithful
-share-threshold stop (the direct descendant of the swept family); \textbf{DEER}
-\citep{deer} stops on the model's own confidence in a trial answer at reasoning
-boundaries---a \emph{different} signal; \textbf{TJE} \citep{tje} is a token-level
+The sweep shows no \emph{tuned} consensus rule is safe; a published consensus
+method shows the same failure at its shipped operating point. We reproduce three
+prior stoppers in a common harness---the same frozen trajectories, the same
+\simplek{} probe bank, the same token accounting. \textbf{CertaIndex}
+\citep{dynasor_certaindex} is the faithful share-threshold stop (the direct
+descendant of the consensus family); \textbf{DEER} \citep{deer} here is the
+\emph{faithful} readout reproduction (the stronger trial-answer-submit variant is
+what we swept in \S\ref{sec:exp-deer}); \textbf{TJE} \citep{tje} is a token-level
 stop. Table~\ref{tab:baselines} reports the reproductions (not the original
 papers' end-to-end runs).
 
@@ -152,37 +150,39 @@ papers' end-to-end runs).
 \end{table*}
 
 CertaIndex, at $99.8\%$ stop rate and $70\pp$ lost, is the accuracy tax paid in
-full; in Figure~\ref{fig:pareto} it sits at the far right of the collapse, while
-DEER---outside the swept space---occupies the low-drop corner. TJE is unsafe on
-the weaker model. That only the non-consensus method survives is the crux we
+full---the shipped consensus method landing exactly where the swept consensus
+frontier says it must. TJE is unsafe on the weaker model. Even the \emph{faithful}
+DEER readout, a non-consensus signal, already avoids collapse; the stronger
+trial-answer-submit variant we swept turns that into a gate-clearing frontier
+(\S\ref{sec:exp-deer}). That only the non-consensus signal survives is the crux we
 analyze in Section~\ref{sec:mechanism}.
 
 \subsection{The frontier reproduces out of distribution}
 \label{sec:exp-heldout}
 We read the test split once (commitment~C3). Because the development result is that
-\emph{no} rule clears the gate, there is nothing to confirm by re-selection; we ask
-whether the \emph{frontier} reproduces, ranking rules on dev and only measuring on
-test.
+\emph{no} consensus rule clears any gate, there is nothing to confirm by
+re-selection; we ask whether the \emph{frontier} reproduces, ranking rules on dev
+and measuring on test.
 
 \paragraph{Held-out test split.}
-Across all $17{,}712$ rules, each rule's worst-case per-model drop on test tracks
-its dev value ($r=0.96$), and every rule still loses. Toward the decision boundary
-the correlation is noise-limited on both sides ($r\approx0$ for dev drop
-$\le5\pp$; the $144$ rules with dev drop $\le3\pp$ collapse to a single test value,
-$+0.11\pp$). The split-invariant claim is the empty joint gate: \textbf{no rule
-clears the conservative gate on both splits}---$0$ on dev, and of the $272$ rules
-admissible on \emph{test alone}, not one is admissible on dev (there they cost
-$4.98$--$5.65\pp$, median $5.09$). These $272$ are exactly the in-sample winners
-the held-out split exists to reject.
+Each consensus rule's total drop on test tracks its dev value closely
+($r=0.98$). The split-invariant claim is the empty \emph{joint} gate:
+\textbf{no consensus rule clears the conservative gate on both splits}---$0$ on
+dev, and the $444$ rules admissible on \emph{test alone} are exactly the
+in-sample winners the held-out split exists to reject (all fail on dev). DEER, by
+contrast, remains admissible across splits: $3$ of its thresholds clear the
+conservative gate on \emph{both} dev and test (and $5$ clear balanced on both),
+so the cross-signal contrast is not a dev artifact.
 
 \paragraph{Unseen scale ($4\times$) and architecture.}
-On \mbox{Distill-Qwen-32B}, never used in development, the frontier reproduces
-($r=0.903$) and the dev-selected ``safe'' rules do not transfer: rules with dev
-drop $\le1.5\pp$ cost a mean $+2.58\pp$ and up to $+8.33\pp$ on test, and the dev
-floor rule drops $+8.33\pp$ there. Scaling $4\times$ opens no safe corner. The
-held-out architecture (\mbox{DeepSeek-R1-Distill-Llama-8B}) reproduces the same
-qualitative pattern.\footnote{The Llama-8B trajectories were re-collected after
-correcting a chat-template defect (a missing model-specific beginning-of-sequence
-token that degraded its generations); the corrected model scores $\sim\!88\%$ on
-\textsc{MATH}500. Full corrected numbers are in the released sweep.} Across the
-held-out split and both unseen models, no rule is jointly safe-and-saving.
+On \mbox{Distill-Qwen-32B}, never used in development, the consensus frontier
+reproduces ($r=0.95$ against dev drop); on the held-out architecture
+\mbox{DeepSeek-R1-Distill-Llama-8B} it reproduces at $r=0.87$.\footnote{The
+Llama-8B trajectories were re-collected after correcting a chat-template defect
+(a missing model-specific beginning-of-sequence token that degraded its
+generations); the corrected model scores $\sim\!88\%$ on \textsc{MATH}500.} These
+unseen models contribute a single seed each, so their per-environment cells are
+too coarse to resolve the gate on their own (this is exactly why development uses
+three seeds); we therefore read them as frontier-reproduction evidence---the rule
+ranking transfers---rather than as an independent gate test. DEER on these unseen
+models is left to future work, as its confidence bank was not collected there.

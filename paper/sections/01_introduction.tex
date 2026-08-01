@@ -29,33 +29,38 @@ a property of the reasoning trajectory, not of how one probes it, so no threshol
 on the agreement signal can escape it. We make the claim hard to dismiss as
 ``you did not tune it well'' by searching the space exhaustively under
 commitment: on frozen trajectories from two models and three benchmarks we run a
-\emph{preregistered} sweep of a seven-dimensional consensus-rule schema
-($17{,}712$ rules) with problem-grouped splits and acceptance gates fixed in
-advance (Sections~\ref{sec:method}--\ref{sec:results}). The outcome does not
-depend on any single fragile estimate: \textbf{every one of the $17{,}712$ rules
-loses accuracy in the worst case; none reaches break-even.} The frontier
-reproduces on a held-out test split ($r{=}0.96$) and on unseen models at
-$4\times$ the scale and a different architecture (Section~\ref{sec:results}),
-and a faithful Certaindex reproduction on the same trajectories collapses by
+\emph{preregistered} sweep of the consensus signal---a window size $\times$ share
+threshold family plus operational knobs, $3{,}520$ rules---with problem-grouped
+splits and acceptance gates fixed in advance
+(Sections~\ref{sec:method}--\ref{sec:results}). The outcome does not depend on
+any single fragile estimate: \textbf{not one of the $3{,}520$ rules is both safe
+and saving---none clears any gate}, and even large windows only trade the drop
+away for zero saving. To show this is the \emph{signal} and not early exit, we
+sweep one non-consensus method---DEER, which reads the model's confidence at a
+reasoning boundary---through the identical pipeline and gates: it clears all
+three, losing as little as $0.3\pp$ while saving $28\%$. The consensus frontier
+reproduces on a held-out test split ($r{=}0.98$) and on unseen models at
+$4\times$ the scale and a different architecture (Section~\ref{sec:results}), and
+a faithful Certaindex reproduction on the same trajectories collapses by
 $56$--$70\pp$. Figure~\ref{fig:pareto} is the whole paper in one picture: the
-safe-and-saving corner is empty for every consensus rule, the published
-consensus method sits at the far edge of the collapse, and the one method that
-stays near full accuracy is the one that does \emph{not} read probe agreement.
+safe-and-saving corner is empty for every consensus rule, while the one method
+that clears the gates is the one that does \emph{not} read probe agreement.
 
 \begin{figure*}[t]
   \centering
-  \includegraphics[width=\textwidth]{figures/governor_related_work_pareto_dev.pdf}
-  \caption{\textbf{The safe-and-saving corner is empty.} Each grey point is one
-  of the $17{,}712$ preregistered consensus rules on the development set; blue
-  are the $3{,}704$ surviving a near-Pareto train filter, and the red step is the
-  dev Pareto boundary. The top-left corner (small accuracy drop \emph{and} large
-  token saving) contains no rule---the boundary only climbs as the drop grows.
-  \textbf{CertaIndex} \citep{dynasor_certaindex}, the published consensus method,
-  sits at the far right ($63\pp$ drop), the consensus family's collapse.
-  \textbf{DEER} \citep{deer}, which reads a boundary-confidence signal
-  \emph{outside} the swept space, occupies the low-drop corner
-  ($2.0\pp$, $18\%$), above the consensus boundary at the same accuracy drop.
-  The failure is a property of the consensus signal, not of early exit.}
+  \includegraphics[width=\textwidth]{figures/governor_v2_pareto_dev.pdf}
+  \caption{\textbf{The safe-and-saving corner is empty for consensus; a
+  different signal fills it.} Each grey point is one of the $3{,}520$
+  preregistered consensus rules on the development set (a two-parameter window
+  size $\times$ share threshold family plus operational knobs); the red step is
+  their dev Pareto boundary. The top-left corner---small accuracy drop
+  \emph{and} large token saving---contains no consensus rule: the boundary only
+  climbs as the drop grows, and \emph{none} of the three shaded gate regions is
+  entered. \textbf{DEER} \citep{deer}, swept over its confidence threshold
+  through the same pipeline and accounting but reading a non-consensus signal,
+  traces the green frontier that sits above the consensus boundary throughout the
+  safe region and clears every gate. The failure is a property of the consensus
+  signal, not of early exit.}
   \label{fig:pareto}
 \end{figure*}
 
@@ -66,18 +71,19 @@ LLMs}, established so that it cannot be waved away as an untuned heuristic. Thre
 components support this one claim:
 \begin{itemize}
   \item \textbf{A preregistered, probe-independent test} (frozen trajectories,
-  offline re-probing, a seven-dimensional $17{,}712$-rule schema, and selection
-  gates fixed in advance) under which \emph{no} rule is both safe and
-  token-saving---and which we release in full
+  offline re-probing, a two-parameter consensus family enumerated to $3{,}520$
+  rules, and selection gates fixed in advance) under which \emph{no} consensus
+  rule is both safe and token-saving---and which we release in full
   (Sections~\ref{sec:method}--\ref{sec:results}).
   \item \textbf{A mechanism} that explains \emph{why}: a directional
   ``continued-reasoning-corrects'' effect ($\approx\!35{:}1$) makes the accuracy
   cost of stopping intrinsic to the trajectory and independent of probe density,
   so the negative result generalizes beyond the searched schema
   (Section~\ref{sec:mechanism}).
-  \item \textbf{Out-of-distribution and real-method confirmation}: the frontier
-  reproduces on a held-out split and two unseen models, a published Certaindex
-  reproduction collapses, and a non-consensus signal stays near full accuracy on
-  the same trajectories---localizing the failure to consensus and indicating
-  where a safe signal must come from (Sections~\ref{sec:results}--\ref{sec:mechanism}).
+  \item \textbf{Out-of-distribution and cross-signal confirmation}: the consensus
+  frontier reproduces on a held-out split and two unseen models, a published
+  Certaindex reproduction collapses, and a non-consensus signal (DEER) swept
+  under the identical protocol \emph{clears the same gates} on the same
+  trajectories---localizing the failure to consensus and indicating where a safe
+  signal must come from (Sections~\ref{sec:results}--\ref{sec:mechanism}).
 \end{itemize}

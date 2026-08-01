@@ -2,22 +2,23 @@
 \label{sec:limitations}
 
 \paragraph{Scope of the negative result.}
-The central result---every rule loses and none clears the conservative
-gate---is established on $18$ development environments (two models, three
-benchmarks, seeds $42/43/44$) and confirmed on the held-out test split and two
-unseen models (Section~\ref{sec:results}). It is a statement about the space
-searched: one boxed-answer probe suffix (\simplek{}) and one preregistered
-schema ($17{,}712$ rules, four families, seven dimensions). Other probe wordings
-and rule dimensions outside this schema are not searched; the mechanism
-(Section~\ref{sec:mechanism}) is our argument that they would not help, but it is
-an argument, not an exhaustive proof.
+The central result---no consensus rule clears any gate---is established on $18$
+development environments (two models, three benchmarks, seeds $42/43/44$) and
+confirmed on the held-out test split and two unseen models
+(Section~\ref{sec:results}). It is a statement about the space searched: one
+boxed-answer probe suffix (\simplek{}) and one preregistered consensus schema
+($3{,}520$ rules over a window-size $\times$ share-threshold family plus
+operational knobs). Other probe wordings and signals outside this schema are not
+searched; the mechanism (Section~\ref{sec:mechanism}) is our argument that
+consensus variants would not help, but it is an argument, not an exhaustive
+proof.
 
-\paragraph{The exact floor is a development quantity.}
-The $1.85\pp$ least-bad-rule value has a bootstrap $95\%$ CI of $[0.0,5.6]\pp$ and
-measures $0.11\pp$ on test; we therefore do not rest any claim on it
-(Section~\ref{sec:floor}). The load-bearing findings are the distribution-free
-ones---all $17{,}712$ rules lose, the empty joint gate---which do not depend on
-the floor's point estimate.
+\paragraph{DEER as the positive control, not a benchmarked SOTA.}
+We sweep DEER's trial-answer-submit variant to establish that \emph{some} signal
+clears the gates the consensus family fails; we do not claim it is the best
+possible early-exit method, and its confidence bank was collected only on the two
+development models (its unseen-model behavior is future work). Its role is a
+controlled positive control for the signal, not a leaderboard entry.
 
 \paragraph{Held-out architecture was re-collected.}
 The held-out architecture model (Llama-8B) was re-collected after we found and
@@ -27,10 +28,12 @@ $\sim\!88\%$ on \textsc{MATH}500, and the confirmation uses the corrected
 trajectories.
 
 \paragraph{Small held-out sets on hard benchmarks.}
-AIME24 and AMC23 are small (dev splits of $6$ and $8$ problems per seed), so a
-single problem is a large fraction and per-benchmark cells are noisy. We
-aggregate over seeds and treat the per-model gate as primary and the
-per-benchmark gate as a diagnostic (Section~\ref{sec:resolution}).
+AIME24 and AMC23 are small (dev splits of $6$ and $8$ problems per seed), and the
+unseen models contribute a single seed, so those per-environment cells are noisy.
+The total drop macro-averages over the $18$ development environments (three seeds
+per benchmark$\times$model), and we read the single-seed unseen models as
+frontier-reproduction evidence rather than as independent gate tests
+(Section~\ref{sec:resolution}).
 
 \paragraph{Probe-tax dependence of the savings axis.}
 Net-savings numbers charge dense re-probing (every $64$ tokens, $32$-token

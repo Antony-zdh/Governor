@@ -1,0 +1,835 @@
+{
+ "protocol_version": "governor-v2-preregistered-2026-07-27.10+unified-ws-v2",
+ "status": "v2 revision: unified (window_size, share_threshold) consensus signal; fixed + adaptive probe families; total-drop/total-saving/psf gates; DEER swept jointly (trial-answer-submit)",
+ "data_split": {
+  "ratios": {
+   "train": 0.6,
+   "dev": 0.2,
+   "test": 0.2
+  },
+  "seed": 20260726,
+  "group_unit": "benchmark problem; every model/seed/probe variant follows the problem",
+  "minimum_ratio_benchmark_size": 250,
+  "minimum_desired_dev_problems": 50,
+  "minimum_desired_test_problems": 50,
+  "small_benchmark_policy": "external_stress"
+ },
+ "capture_cap_policy": {
+  "target_truncation_rate_max": 0.05,
+  "criterion": "design target used to choose a cap from prior or pilot evidence; it is not a post-run acceptance requirement",
+  "selection_rule": "choose the smallest candidate reasonably expected to keep truncation near or below 0.05, then freeze it before the main run; never increase it post hoc merely because the realized rate exceeds 0.05",
+  "candidate_caps": [
+   4096,
+   8192,
+   12288,
+   16384,
+   24576,
+   32768
+  ],
+  "test_is_never_used_to_choose_cap": true,
+  "report_binomial_confidence_interval": true
+ },
+ "environments": {
+  "development_seeds": [
+   42,
+   43,
+   44
+  ],
+  "confirmation_seeds": [
+   45,
+   46,
+   47
+  ],
+  "models": [
+   {
+    "id": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+    "family": "qwen-distill",
+    "role": "development",
+    "development_seeds": [
+     42,
+     43,
+     44
+    ],
+    "confirmation_seeds": [
+     45,
+     46,
+     47
+    ],
+    "maximum_model_length": 49152,
+    "minimum_bf16_gpus_32gb": 1,
+    "enabled": true
+   },
+   {
+    "id": "Qwen/Qwen3-8B",
+    "family": "qwen",
+    "role": "development",
+    "development_seeds": [
+     42,
+     43,
+     44
+    ],
+    "confirmation_seeds": [
+     45,
+     46,
+     47
+    ],
+    "maximum_model_length": 40960,
+    "minimum_bf16_gpus_32gb": 1,
+    "enabled": true
+   },
+   {
+    "id": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+    "family": "llama-distill",
+    "role": "heldout_architecture",
+    "development_seeds": [],
+    "confirmation_seeds": [
+     45
+    ],
+    "maximum_model_length": 49152,
+    "minimum_bf16_gpus_32gb": 1,
+    "enabled": true
+   },
+   {
+    "id": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+    "family": "qwen-distill",
+    "role": "heldout_scale",
+    "development_seeds": [],
+    "confirmation_seeds": [
+     45
+    ],
+    "maximum_model_length": 49152,
+    "minimum_bf16_gpus_32gb": 4,
+    "target_a100_80gb_gpus": 2,
+    "enabled": true
+   }
+  ],
+  "benchmarks": [
+   {
+    "name": "math500",
+    "enabled": true,
+    "enabled_for_collection": true,
+    "split_policy": "ratio",
+    "capture_cap": 16384,
+    "evaluation_budgets": [
+     3072,
+     8192,
+     16384
+    ],
+    "selection_budget": 16384,
+    "capture_cap_status": "fixed design choice: prior DeepSeek long rollouts observed 15/400 = 3.75% at 16384; new runs report realized rates without post-hoc cap changes",
+    "source": {
+     "format": "jsonl",
+     "path": "benchmark/TokenDeprivation/data/math500/test.jsonl"
+    },
+    "id_field": "unique_id",
+    "text_field": "problem",
+    "stratify_fields": [
+     "level",
+     "subject"
+    ]
+   },
+   {
+    "name": "gsm8k",
+    "enabled": false,
+    "enabled_for_collection": false,
+    "split_policy": "ratio",
+    "capture_cap": 16384,
+    "evaluation_budgets": [
+     3072,
+     8192,
+     16384
+    ],
+    "selection_budget": 16384,
+    "capture_cap_status": "fixed conservative design choice: no local long-horizon GSM8K trajectories yet, so use 16384 rather than rely on an uncertain 8192 estimate",
+    "source": {
+     "format": "jsonl",
+     "path": "benchmark/FalseConsensus/governor_v2/generated/datasets/gsm8k_test.jsonl"
+    },
+    "id_field": "unique_id",
+    "text_field": "problem",
+    "stratify_fields": [
+     "subject"
+    ],
+    "note": "Archived and explicitly excluded from Governor v2 development and confirmation."
+   },
+   {
+    "name": "amc23",
+    "enabled": true,
+    "enabled_for_collection": true,
+    "split_policy": "ratio",
+    "force_ratio_split": true,
+    "capture_cap": 16384,
+    "evaluation_budgets": [
+     3072,
+     8192,
+     16384
+    ],
+    "selection_budget": 16384,
+    "capture_cap_status": "fixed conservative design choice: the 3072 pilot is heavily right-censored, so use 16384 and report the realized rate",
+    "source": {
+     "format": "jsonl",
+     "path": "benchmark/TokenDeprivation/data/amc23/test.jsonl"
+    },
+    "id_field": "id",
+    "text_field": "problem",
+    "stratify_fields": []
+   },
+   {
+    "name": "aime24",
+    "enabled": true,
+    "enabled_for_collection": true,
+    "split_policy": "ratio",
+    "force_ratio_split": true,
+    "capture_cap": 32768,
+    "evaluation_budgets": [
+     8192,
+     16384,
+     32768
+    ],
+    "selection_budget": 32768,
+    "capture_cap_status": "fixed design choice: prior 16K data are heavily censored, so use the largest cap within the models' common native-context regime; the realized truncation rate may exceed 5% and will be reported without post-hoc cap changes",
+    "source": {
+     "format": "jsonl",
+     "path": "benchmark/TokenDeprivation/data/aime24/test.jsonl"
+    },
+    "id_field": "id",
+    "text_field": "problem",
+    "stratify_fields": []
+   }
+  ]
+ },
+ "collection": {
+  "architecture": "single-request frozen main trajectory followed by dense and event-adaptive prefix re-probing",
+  "probe_style": "simple",
+  "probe_output_cap": 32,
+  "dense_probe_interval": 64,
+  "dense_probe_start_token": 64,
+  "adaptive_probe": {
+   "start_token": 256,
+   "trigger_types": [
+    "conclusion_marker",
+    "entropy_drop",
+    "reflection_transition",
+    "answer_candidate"
+   ],
+   "marker_profiles": [
+    "conclusion_strict"
+   ],
+   "alignment": "next_step_boundary",
+   "alignment_lookahead_tokens": 32,
+   "entropy_metric": "teacher_forced_topk_entropy",
+   "entropy_top_k": 20,
+   "entropy_smooth_window_tokens": 16,
+   "entropy_reference_window_tokens": 64,
+   "entropy_candidate_min_drop": 0.1,
+   "candidate_min_gap_tokens": 32,
+   "max_candidate_probes": 128,
+   "periodic_fallback_source": "dense_simple32"
+  },
+  "temperature": 0.6,
+  "top_p": 0.95,
+  "workers": 12,
+  "url": "http://localhost:18000/v1",
+  "output_root": "benchmark/FalseConsensus/results/governor_v2"
+ },
+ "offline_probe_schedules": [
+  {
+   "kind": "fixed",
+   "start_token": 64,
+   "interval_tokens": 64,
+   "phases": []
+  },
+  {
+   "kind": "fixed",
+   "start_token": 128,
+   "interval_tokens": 128,
+   "phases": []
+  },
+  {
+   "kind": "fixed",
+   "start_token": 256,
+   "interval_tokens": 256,
+   "phases": []
+  },
+  {
+   "kind": "agreement_adaptive",
+   "start_token": 256,
+   "interval_tokens": 256,
+   "phases": [
+    [
+     512,
+     256
+    ],
+    [
+     1536,
+     128
+    ]
+   ],
+   "agreement_trigger_count": 2,
+   "agreement_interval_tokens": 64
+  },
+  {
+   "kind": "event_adaptive",
+   "start_token": 256,
+   "interval_tokens": 256,
+   "phases": [],
+   "agreement_trigger_count": null,
+   "agreement_interval_tokens": null,
+   "event": {
+    "trigger_types": [
+     "reflection_transition",
+     "answer_candidate"
+    ],
+    "marker_profile": "none",
+    "entropy": {
+     "metric": "teacher_forced_topk_entropy",
+     "top_k": 20,
+     "smooth_window_tokens": 16,
+     "reference_window_tokens": 64,
+     "minimum_drop": 0.2,
+     "minimum_z": 1.0
+    },
+    "alignment": "next_step_boundary",
+    "alignment_lookahead_tokens": 32,
+    "minimum_gap_tokens": 128,
+    "fallback_interval_tokens": 512
+   }
+  },
+  {
+   "kind": "event_adaptive",
+   "start_token": 256,
+   "interval_tokens": 256,
+   "phases": [],
+   "agreement_trigger_count": null,
+   "agreement_interval_tokens": null,
+   "event": {
+    "trigger_types": [
+     "conclusion_marker"
+    ],
+    "marker_profile": "conclusion_strict",
+    "entropy": {
+     "metric": "teacher_forced_topk_entropy",
+     "top_k": 20,
+     "smooth_window_tokens": 16,
+     "reference_window_tokens": 64,
+     "minimum_drop": 0.2,
+     "minimum_z": 1.0
+    },
+    "alignment": "next_step_boundary",
+    "alignment_lookahead_tokens": 32,
+    "minimum_gap_tokens": 128,
+    "fallback_interval_tokens": 512
+   }
+  },
+  {
+   "kind": "event_adaptive",
+   "start_token": 256,
+   "interval_tokens": 256,
+   "phases": [],
+   "agreement_trigger_count": null,
+   "agreement_interval_tokens": null,
+   "event": {
+    "trigger_types": [
+     "entropy_drop"
+    ],
+    "marker_profile": "none",
+    "entropy": {
+     "metric": "teacher_forced_topk_entropy",
+     "top_k": 20,
+     "smooth_window_tokens": 16,
+     "reference_window_tokens": 64,
+     "minimum_drop": 0.2,
+     "minimum_z": 1.0
+    },
+    "alignment": "next_step_boundary",
+    "alignment_lookahead_tokens": 32,
+    "minimum_gap_tokens": 128,
+    "fallback_interval_tokens": 512
+   }
+  },
+  {
+   "kind": "event_adaptive",
+   "start_token": 256,
+   "interval_tokens": 256,
+   "phases": [],
+   "agreement_trigger_count": null,
+   "agreement_interval_tokens": null,
+   "event": {
+    "trigger_types": [
+     "conclusion_marker",
+     "entropy_drop",
+     "reflection_transition",
+     "answer_candidate"
+    ],
+    "marker_profile": "conclusion_strict",
+    "entropy": {
+     "metric": "teacher_forced_topk_entropy",
+     "top_k": 20,
+     "smooth_window_tokens": 16,
+     "reference_window_tokens": 64,
+     "minimum_drop": 0.2,
+     "minimum_z": 1.0
+    },
+    "alignment": "next_step_boundary",
+    "alignment_lookahead_tokens": 32,
+    "minimum_gap_tokens": 64,
+    "fallback_interval_tokens": 1024
+   }
+  }
+ ],
+ "rule_search": {
+  "uniform_dimensions": [
+   "probe",
+   "validity",
+   "maturity",
+   "evidence",
+   "persistence",
+   "certainty",
+   "history"
+  ],
+  "templates": [
+   {
+    "name": "consensus_fixed",
+    "base": {
+     "probe": {
+      "style": "simple",
+      "output_cap": 32,
+      "schedule": {
+       "kind": "fixed",
+       "start_token": 128,
+       "interval_tokens": 128,
+       "phases": [],
+       "agreement_trigger_count": null,
+       "agreement_interval_tokens": null
+      }
+     },
+     "validity": {
+      "mode": "schema"
+     },
+     "maturity": {
+      "kind": "fixed_tokens",
+      "minimum_tokens": 0,
+      "minimum_budget_fraction": 0.0,
+      "online_instability_floor_tokens": 0
+     },
+     "evidence": {
+      "family": "window_share",
+      "window_probes": 5,
+      "minimum_valid_probes": 1,
+      "dominant_share_threshold": 1.0,
+      "entropy_threshold": null,
+      "entropy_scope": "window"
+     },
+     "persistence": {
+      "minimum_consistent_accepts": 1,
+      "minimum_consensus_span_tokens": 0
+     },
+     "certainty": {
+      "enabled": false,
+      "minimum_certain_fraction": 1.0
+     },
+     "history": {
+      "maximum_switches": null,
+      "switch_window": {
+       "kind": "tokens",
+       "size": 2048
+      },
+      "minimum_stable_span_tokens": 0
+     }
+    },
+    "axes": {
+     "probe.schedule.interval_tokens": [
+      64,
+      128,
+      256,
+      512
+     ],
+     "validity.mode": [
+      "nonempty",
+      "schema"
+     ],
+     "maturity.minimum_tokens": [
+      0,
+      512,
+      1024,
+      2048,
+      4096
+     ],
+     "evidence.window_probes": [
+      1,
+      3,
+      5,
+      8,
+      12,
+      16,
+      24,
+      30
+     ],
+     "evidence.dominant_share_threshold": [
+      0.6,
+      0.8,
+      1.0
+     ],
+     "certainty.enabled": [
+      false,
+      true
+     ]
+    }
+   },
+   {
+    "name": "consensus_adaptive",
+    "base": {
+     "probe": {
+      "style": "simple",
+      "output_cap": 32,
+      "schedule": {
+       "kind": "event_adaptive",
+       "start_token": 256,
+       "interval_tokens": 256,
+       "phases": [],
+       "agreement_trigger_count": null,
+       "agreement_interval_tokens": null,
+       "event": {
+        "trigger_types": [
+         "conclusion_marker"
+        ],
+        "marker_profile": "conclusion_strict",
+        "entropy": {
+         "metric": "teacher_forced_topk_entropy",
+         "top_k": 20,
+         "smooth_window_tokens": 16,
+         "reference_window_tokens": 64,
+         "minimum_drop": 0.2,
+         "minimum_z": 1.0
+        },
+        "alignment": "next_step_boundary",
+        "alignment_lookahead_tokens": 32,
+        "minimum_gap_tokens": 128,
+        "fallback_interval_tokens": 512
+       }
+      }
+     },
+     "validity": {
+      "mode": "schema"
+     },
+     "maturity": {
+      "kind": "fixed_tokens",
+      "minimum_tokens": 0,
+      "minimum_budget_fraction": 0.0,
+      "online_instability_floor_tokens": 0
+     },
+     "evidence": {
+      "family": "window_share",
+      "window_probes": 5,
+      "minimum_valid_probes": 1,
+      "dominant_share_threshold": 1.0,
+      "entropy_threshold": null,
+      "entropy_scope": "window"
+     },
+     "persistence": {
+      "minimum_consistent_accepts": 1,
+      "minimum_consensus_span_tokens": 0
+     },
+     "certainty": {
+      "enabled": false,
+      "minimum_certain_fraction": 1.0
+     },
+     "history": {
+      "maximum_switches": null,
+      "switch_window": {
+       "kind": "tokens",
+       "size": 2048
+      },
+      "minimum_stable_span_tokens": 0
+     }
+    },
+    "axes": {
+     "probe.schedule": [
+      {
+       "kind": "event_adaptive",
+       "start_token": 256,
+       "interval_tokens": 256,
+       "phases": [],
+       "agreement_trigger_count": null,
+       "agreement_interval_tokens": null,
+       "event": {
+        "trigger_types": [
+         "conclusion_marker"
+        ],
+        "marker_profile": "conclusion_strict",
+        "entropy": {
+         "metric": "teacher_forced_topk_entropy",
+         "top_k": 20,
+         "smooth_window_tokens": 16,
+         "reference_window_tokens": 64,
+         "minimum_drop": 0.2,
+         "minimum_z": 1.0
+        },
+        "alignment": "next_step_boundary",
+        "alignment_lookahead_tokens": 32,
+        "minimum_gap_tokens": 128,
+        "fallback_interval_tokens": 512
+       }
+      },
+      {
+       "kind": "event_adaptive",
+       "start_token": 256,
+       "interval_tokens": 256,
+       "phases": [],
+       "agreement_trigger_count": null,
+       "agreement_interval_tokens": null,
+       "event": {
+        "trigger_types": [
+         "entropy_drop"
+        ],
+        "marker_profile": "none",
+        "entropy": {
+         "metric": "teacher_forced_topk_entropy",
+         "top_k": 20,
+         "smooth_window_tokens": 16,
+         "reference_window_tokens": 64,
+         "minimum_drop": 0.2,
+         "minimum_z": 1.0
+        },
+        "alignment": "next_step_boundary",
+        "alignment_lookahead_tokens": 32,
+        "minimum_gap_tokens": 128,
+        "fallback_interval_tokens": 512
+       }
+      },
+      {
+       "kind": "event_adaptive",
+       "start_token": 256,
+       "interval_tokens": 256,
+       "phases": [],
+       "agreement_trigger_count": null,
+       "agreement_interval_tokens": null,
+       "event": {
+        "trigger_types": [
+         "reflection_transition",
+         "answer_candidate"
+        ],
+        "marker_profile": "none",
+        "entropy": {
+         "metric": "teacher_forced_topk_entropy",
+         "top_k": 20,
+         "smooth_window_tokens": 16,
+         "reference_window_tokens": 64,
+         "minimum_drop": 0.2,
+         "minimum_z": 1.0
+        },
+        "alignment": "next_step_boundary",
+        "alignment_lookahead_tokens": 32,
+        "minimum_gap_tokens": 128,
+        "fallback_interval_tokens": 512
+       }
+      },
+      {
+       "kind": "event_adaptive",
+       "start_token": 256,
+       "interval_tokens": 256,
+       "phases": [],
+       "agreement_trigger_count": null,
+       "agreement_interval_tokens": null,
+       "event": {
+        "trigger_types": [
+         "conclusion_marker",
+         "entropy_drop",
+         "reflection_transition",
+         "answer_candidate"
+        ],
+        "marker_profile": "conclusion_strict",
+        "entropy": {
+         "metric": "teacher_forced_topk_entropy",
+         "top_k": 20,
+         "smooth_window_tokens": 16,
+         "reference_window_tokens": 64,
+         "minimum_drop": 0.2,
+         "minimum_z": 1.0
+        },
+        "alignment": "next_step_boundary",
+        "alignment_lookahead_tokens": 32,
+        "minimum_gap_tokens": 64,
+        "fallback_interval_tokens": 1024
+       }
+      }
+     ],
+     "validity.mode": [
+      "nonempty",
+      "schema"
+     ],
+     "maturity.minimum_tokens": [
+      0,
+      512,
+      1024,
+      2048,
+      4096
+     ],
+     "evidence.window_probes": [
+      1,
+      3,
+      5,
+      8,
+      12,
+      16,
+      24,
+      30
+     ],
+     "evidence.dominant_share_threshold": [
+      0.6,
+      0.8,
+      1.0
+     ],
+     "certainty.enabled": [
+      false,
+      true
+     ]
+    }
+   }
+  ]
+ },
+ "selection": {
+  "environment_unit": "benchmark x model x seed",
+  "pooling": "macro-average environments; never raw-problem micro-average",
+  "development_model_roles": [
+   "development"
+  ],
+  "confirmation_model_roles": [
+   "development",
+   "heldout_architecture",
+   "heldout_scale"
+  ],
+  "operating_points": [
+   {
+    "name": "conservative",
+    "total_accuracy_drop_pp_max": 1.0,
+    "minimum_total_saving_fraction": 0.1,
+    "minimum_fraction_environments_with_positive_saving": 0.8
+   },
+   {
+    "name": "balanced",
+    "total_accuracy_drop_pp_max": 2.0,
+    "minimum_total_saving_fraction": 0.2,
+    "minimum_fraction_environments_with_positive_saving": 0.8
+   },
+   {
+    "name": "token_efficient",
+    "total_accuracy_drop_pp_max": 3.5,
+    "minimum_total_saving_fraction": 0.3,
+    "minimum_fraction_environments_with_positive_saving": 0.7
+   }
+  ],
+  "minimum_distinct_selected_rules": 3,
+  "pareto_objectives": {
+   "maximize": "macro-mean net total-token saving",
+   "minimize": [
+    "macro-mean accuracy drop"
+   ],
+   "equivalent_metric_tie_breaker": "lower complexity, then lexical rule_id"
+  },
+  "ranking_metric": "macro-mean net total-token saving",
+  "tie_breaker": "lower rule complexity",
+  "test_use": "one pass after rule IDs and operating-point gates are frozen",
+  "heldout_policy": "heldout_architecture and heldout_scale models are never visible to sweep or select; they are evaluated only from a frozen-rule manifest",
+  "phase_policy": {
+   "development": {
+    "model_roles": [
+     "development"
+    ],
+    "splits": [
+     "train",
+     "dev"
+    ],
+    "include_external_stress": false
+   },
+   "confirmation": {
+    "model_roles": [
+     "development",
+     "heldout_architecture",
+     "heldout_scale"
+    ],
+    "splits": [
+     "test"
+    ],
+    "include_external_stress": false
+   }
+  },
+  "gate_semantics": "v2: eligible iff total_accuracy_drop_pp (macro-mean over dev environments) <= total_accuracy_drop_pp_max AND total_saving_fraction (macro-mean net) >= minimum_total_saving_fraction AND positive_saving_fraction >= floor; ranked by total_saving_fraction desc"
+ },
+ "ablation": {
+  "one_at_a_time": true,
+  "full_factorial": true,
+  "factorial_dimensions": [
+   "probe",
+   "validity",
+   "maturity",
+   "evidence",
+   "persistence",
+   "certainty",
+   "history"
+  ],
+  "reference_dimensions": {
+   "probe": {
+    "style": "simple",
+    "output_cap": 32,
+    "schedule": {
+     "kind": "fixed",
+     "start_token": 128,
+     "interval_tokens": 128,
+     "phases": [],
+     "agreement_trigger_count": null,
+     "agreement_interval_tokens": null,
+     "event": {
+      "trigger_types": [],
+      "marker_profile": "none",
+      "entropy": {
+       "metric": "teacher_forced_topk_entropy",
+       "top_k": 20,
+       "smooth_window_tokens": 16,
+       "reference_window_tokens": 64,
+       "minimum_drop": 0.2,
+       "minimum_z": 1.0
+      },
+      "alignment": "next_step_boundary",
+      "alignment_lookahead_tokens": 32,
+      "minimum_gap_tokens": 64,
+      "fallback_interval_tokens": null
+     }
+    }
+   },
+   "validity": {
+    "mode": "nonempty"
+   },
+   "maturity": {
+    "kind": "none",
+    "minimum_tokens": 0,
+    "minimum_budget_fraction": 0.0,
+    "online_instability_floor_tokens": 0
+   },
+   "evidence": {
+    "family": "latest",
+    "window_probes": 1,
+    "minimum_valid_probes": 1,
+    "dominant_share_threshold": 1.0,
+    "entropy_threshold": null,
+    "entropy_scope": "window"
+   },
+   "persistence": {
+    "minimum_consistent_accepts": 1,
+    "minimum_consensus_span_tokens": 0
+   },
+   "certainty": {
+    "enabled": false,
+    "minimum_certain_fraction": 0.0
+   },
+   "history": {
+    "maximum_switches": null,
+    "switch_window": {
+     "kind": "tokens",
+     "size": 2048
+    },
+    "minimum_stable_span_tokens": 0
+   }
+  }
+ }
+}

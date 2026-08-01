@@ -1456,3 +1456,23 @@ teammate 给出的下一步五步，及讨论后的排期/细化：
   保留其 token 节省的 ≥Y%"（见 §8.7），否则 Pareto 扫完不知道选哪个点。
 - **多 seed**：至今全单 seed；最终 Governor++ 配置需多 seed 出方差，1–2pp 改善才
   说得清是否噪声。
+
+## 2026-08-02 更新：v2 sweep 完成，论文第二版核心已改
+
+**已完成**：
+- 统一 (W,s) 规则空间（3,520）+ 新三档 gate（total drop/saving/psf），protocol_v2/select_v2。
+- DEER 联合 sweep（trial-answer-submit）。核心结论：consensus 0/3520 过 gate，DEER 三档全过。
+- 修复 answers_equal 的 grader import bug（弱 grader → robust），重跑 dev+test。
+- 泛化：test r=0.98（联合 gate 空 for consensus，DEER 联合过）、32B r=0.95、Llama r=0.87。
+- 论文全节按 CORE_PAPER_FLOW 改写并干净编译。
+
+**待办**：
+1. 把 scratchpad 的 v2 结果（v2_sweep_r/v2_sweep_test/deer_sweep）迁入 results/ 正式库、加 report.md、提交。
+2. DEER 在 32B/Llama 的 confidence bank 需 GPU 补采，才能补全 DEER 侧四轴泛化。
+3. tab:baselines（faithful CertaIndex/TJE/DEER 复现）沿用旧 related_work 数字，如需与 robust grader 一致可复核。
+4. 视觉验收：本机无 poppler，未逐页渲染 PDF；需装 poppler 或在别处渲染核对版面。
+5. 03_false_consensus 附录与 08_boundary_confidence（探索性）未深改，可后续对齐 (W,s) 术语。
+
+### 2026-08-02（续）
+- v2 结果已落库 `results/governor_v2_ws_sweep/`，旧 sweep 已归档 backup_v1_sweep_20260802/。
+- 待用户确认后做一次集中 commit（含 paper/ 修改、新脚本、新 bank、归档）。

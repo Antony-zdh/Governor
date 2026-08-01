@@ -1,0 +1,49 @@
+{
+ "schema_version": "governor-v2-ws-sweep-1",
+ "created": "2026-08-02",
+ "description": "Unified (window_size x share_threshold) consensus sweep + jointly-swept DEER, robust grader.",
+ "protocol": "governor_v2/protocol_v2.json",
+ "protocol_sha256": "4a152a16186c2b7d738fd8e864b5e087d6617e404323a5c5a26ea25804b01f2d",
+ "candidate_rules": "governor_v2/generated/candidate_rules_v2.jsonl (gz copy in bank)",
+ "candidate_rules_sha256": "4ae172e833feaf6a67ac5584d63bed97f7e4c3b88bc18240fd57b26e3b6be9f9",
+ "n_consensus_rules": 3520,
+ "grader": "grading.robust_answers_equal (import fixed 2026-08-02 to work under module run)",
+ "files": {
+  "dev/consensus_dev_train.jsonl.gz": "126720 rows = 3520 rules x 18 env x 2 splits (train,dev)",
+  "test/consensus_test.jsonl.gz": "253440 rows: dev-models(seeds45-47)+heldout 32B/Llama(seed45), budgets {3072,8192,16384/32768}",
+  "deer/deer_threshold_sweep.jsonl.gz": "756 rows = 14 thresholds x (train+dev+test) envs (trial-answer-submit DEER)",
+  "select_v2_robust.json": "gate selection summary (dev)"
+ },
+ "gates": {
+  "conservative": "drop<=1.0pp & save>=10% & psf>=0.8",
+  "balanced": "drop<=2.0pp & save>=20% & psf>=0.8",
+  "token_efficient": "drop<=3.5pp & save>=30% & psf>=0.7"
+ },
+ "headline_results_dev_macro18": {
+  "consensus_pass_any_gate": 0,
+  "consensus_rules": 3520,
+  "full_gen_baseline_acc_pct": 82.5,
+  "consensus_max_saving_at_drop_le_1.0pp_pct": 0.2,
+  "consensus_min_drop_for_save_ge_10pct_pp": 2.66,
+  "DEER_conservative": "drop 0.33pp, save 28.2%",
+  "DEER_balanced": "drop 1.03pp, save 29.6%",
+  "DEER_token_efficient": "drop 2.75pp, save 31.9%"
+ },
+ "generalization": {
+  "test_dev_models_drop_r": 0.98,
+  "consensus_joint_gate_conservative": "0 on dev, 444 on test-only, 0 on both",
+  "DEER_joint_conservative_both": 3,
+  "DEER_joint_balanced_both": 5,
+  "heldout_32B_drop_r": 0.95,
+  "heldout_Llama_drop_r": 0.87,
+  "DEER_heldout": "confidence bank not collected on 32B/Llama -> future work"
+ },
+ "scripts": {
+  "protocol_gen": "governor_v2/make_protocol_v2.py",
+  "consensus_sweep": "governor_v2/replay_rules.py (sweep)",
+  "deer_sweep": "governor_v2/deer_threshold_sweep.py",
+  "select": "governor_v2/select_v2.py",
+  "confirm": "governor_v2/confirm_v2.py",
+  "figure": "report/make_v2_pareto.py, report/make_v2_pareto_panels.py"
+ }
+}

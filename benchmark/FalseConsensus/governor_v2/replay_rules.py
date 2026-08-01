@@ -102,8 +102,12 @@ def answers_equal(left: Any, right: Any) -> bool:
     as `\\left( ... \\right)` do not read as wrong answers.
     """
     try:
-        from grading import robust_answers_equal
-
+        try:
+            from grading import robust_answers_equal
+        except ModuleNotFoundError:
+            from benchmark.FalseConsensus.governor_v2.grading import (
+                robust_answers_equal,
+            )
         return robust_answers_equal(left, right)
     except ModuleNotFoundError:
         left_text = normalize_answer(left).replace(",", "")
@@ -247,7 +251,14 @@ def evidence_candidate(
     counts = Counter(normalize_answer(probe["probe_answer"]) for probe in scope)
     candidate, count = counts.most_common(1)[0]
     if spec.family == "window_share":
-        if count / len(scope) < spec.dominant_share_threshold:
+        # (window_size W, share_threshold s) semantics: the share is measured
+        # over the *full* window of the last W probes -- an empty or dissenting
+        # probe counts against consensus. The window must first be full (W
+        # probes have occurred), so s=1.0 means "the last W probes are all the
+        # same valid answer" and W=1 recovers the latest-probe rule.
+        if len(window) < spec.window_probes:
+            return None, scope
+        if count / len(window) < spec.dominant_share_threshold:
             return None, scope
     else:
         probabilities = [value / len(scope) for value in counts.values()]

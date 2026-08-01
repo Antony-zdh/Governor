@@ -1,7 +1,7 @@
 \section{Analysis}
 \label{sec:mechanism}
 
-Section~\ref{sec:results} is an existence proof over $17{,}712$ rules, two seen
+Section~\ref{sec:results} is an existence proof over $3{,}520$ rules, two seen
 and two unseen models, and both splits. This section explains \emph{why} it holds
 and why it generalizes beyond the exact rules we searched: the accuracy cost of
 stopping on consensus is a directional property of the reasoning trajectory
@@ -27,7 +27,7 @@ Why is the ratio structural? For a rule stopping at token position $s$, the
 accuracy drop depends only on $s$: committing at $s$ forgoes whatever correction
 the trajectory would have made after it. It is a property of the reasoning, not of
 the probe, so it survives \emph{any} probing scheme. This is what never reaches
-zero in the sweep. The probe grid (intervals $64/128/256$ tokens) makes
+zero in the sweep. The probe grid (intervals $64/128/256/512$ tokens) makes
 essentially every stop position reachable and the observed floor is the minimum
 over these schedules; a sparser schedule can only stop later or at a subset of
 positions, never at a safer one the grid missed. Hence no threshold on the
@@ -38,45 +38,46 @@ searched space is a lower bound on the cost, not a lucky miss.
 The natural rebuttal is that the negative result is an artifact of charging dense
 re-probing. It is not, and separating two costs shows why. Besides the accuracy
 tax, a rule pays a \emph{probe tax}: the probe output $p$ (Section~\ref{sec:accounting}).
-Under dense re-probing a late-stopping rule pays $p$ over a long prefix, which
-turns the \emph{net} savings of the safe (entropy) family negative even though its
-\emph{gross} savings is positive (Table~\ref{tab:grossnet}). Unlike the accuracy
-tax, the probe tax scales with probe density and is reducible (sparser or shorter
-probes, KV-cache reuse). The two are separable: the \emph{savings} collapse is
-partly a probe-tax artifact and is addressable, but the \emph{accuracy} floor is
-probe-independent and is what makes the corner empty.
+Under dense re-probing a late-stopping large-window rule pays $p$ over a long
+prefix, opening a gap between its \emph{gross} savings and its (smaller)
+\emph{net} savings (Table~\ref{tab:grossnet}). Unlike the accuracy tax, the probe
+tax scales with probe density and is reducible (sparser or shorter probes,
+KV-cache reuse). The two are separable: the \emph{savings} axis is partly a
+probe-tax artifact and is addressable, but the \emph{accuracy} floor is
+probe-independent and is what makes the corner empty---and it is the accuracy
+floor, not the probe tax, that DEER escapes.
 
 \begin{table}[t]
   \centering\small
   \begin{tabular}{lcc}
     \toprule
-    Operating point & Gross saving & Net saving \\
+    Consensus point & Gross saving & Net saving \\
                     & $(B-s)/B$    & $(B-s-p)/B$ \\
     \midrule
-    Ours (target conservative)  & $+0.6\%$  & $-4.0\%$ \\
-    Ours (target balanced)      & $+10.0\%$ & $+7.8\%$ \\
-    Ours (target token\_efficient) & $+21.5\%$ & $+19.6\%$ \\
+    save$\ge10\%$ (drop $2.7\pp$) & $+14.7\%$ & $+10.7\%$ \\
+    save$\ge20\%$ (drop $6.2\pp$) & $+27.0\%$ & $+20.2\%$ \\
     \bottomrule
   \end{tabular}
-  \caption{Gross vs.\ net savings; the gap is the probe tax. The
-  target-conservative point's negative net saving is a probing-density artifact,
-  not evidence that stopping wastes tokens---whereas the accuracy tax above it is
-  intrinsic.}
+  \caption{Gross vs.\ net savings for two consensus frontier points; the gap
+  ($\sim\!4$--$7\pp$) is the probe tax. It shifts the \emph{savings} axis but
+  never rescues the accuracy drop---which is the intrinsic tax that keeps the
+  corner empty.}
   \label{tab:grossnet}
 \end{table}
 
 \subsection{It is the signal, not early exit}
-The reproductions of \S\ref{sec:exp-prior} localize the cause. Every method that
-stops on \emph{probe agreement}---the swept schema and CertaIndex alike---either
-fails the safety bar or collapses outright; CertaIndex's $70\pp$ loss at $99.8\%$
-stop rate is the accuracy tax paid in full. The lone method that stays near full
-accuracy, DEER, does not read probe agreement at all: it stops on the model's own
+The joint sweep of \S\ref{sec:exp-deer} localizes the cause. Every method that
+stops on \emph{probe agreement}---the swept consensus family and CertaIndex
+alike---either fails a gate or collapses outright; CertaIndex's $70\pp$ loss at
+$99.8\%$ stop rate is the accuracy tax paid in full. The method that clears the
+gates, DEER, does not read probe agreement at all: it stops on the model's own
 confidence in a trial answer at a reasoning boundary, and in
-Figure~\ref{fig:pareto} it sits \emph{above} the consensus Pareto boundary at the
-same accuracy drop. This is direct evidence that the failure is a property of the
-\emph{consensus signal}, not of early exit. (DEER's edge is model-dependent,
-$+0.8\pp$ on \qweneight{} vs.\ $-4.8\pp$ on \dsseven{}, and these are
-frozen-trajectory reproductions.)
+Figure~\ref{fig:pareto} its threshold frontier sits \emph{above} the consensus
+Pareto boundary throughout the safe region. Because DEER is swept through the
+identical pipeline, gates, and token accounting, the contrast is a controlled
+test: the same early-exit machinery succeeds on a forward-looking signal and
+fails on the consensus signal. The failure is a property of the \emph{signal},
+not of early exit.
 
 \subsection{Implication: change the signal, not the threshold}
 Much prior effort tunes consensus-based stops
@@ -84,13 +85,12 @@ Much prior effort tunes consensus-based stops
 ceiling of that approach is low, and the mechanism above says no amount of tuning
 raises it. The constructive implication is that a safe signal should be about
 whether the \emph{trajectory itself} will still change, not about the agreement of
-backward-looking probes. As a first step, we sketch in Appendix~\ref{sec:boundary}
-an online controller built on DEER's boundary-confidence signal (fast-commit on
-high confidence, else a verification branch) that recovers substantial savings at
-near-neutral accuracy on dev; we stress it is exploratory (three seeds,
-seed-sensitive, outside the preregistration) and report it only to show that
-stepping outside the consensus-signal space escapes the accuracy tax we proved
-unavoidable inside it. Verifier- and process-reward-based termination
+backward-looking probes. Our joint sweep already demonstrates this: the
+boundary-confidence signal (DEER) clears the same gates the whole consensus family
+fails (\S\ref{sec:exp-deer}). As a further step toward an online controller, we
+sketch in Appendix~\ref{sec:boundary} a fast-commit/verify variant built on the
+same signal; we stress it is exploratory (three seeds, seed-sensitive, outside the
+preregistration) and report it only as a design direction, not a finished method. Verifier- and process-reward-based termination
 \citep{lightman2024verify,wang2024mathshepherd} and learned halting
 \citep{graves2016act,schuster2022confident} point the same way. Turning any of
 these into a \emph{confirmed} method---with its own train/dev$\rightarrow$test
