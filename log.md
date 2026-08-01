@@ -4,6 +4,37 @@
 
 ---
 
+## 2026-08-01 · ✅ Confirmation 补种子 46/47（Llama-8B + Qwen-32B，test split）采集完成 + 健康核对
+
+**动机**：held-out confirmation 之前只有 seed 45（外加 dev-scale 的 42/43/44）。把两个 confirmation
+模型（Llama-8B heldout_architecture、Qwen-32B heldout_scale）在 **test split** 上补到 seed 46/47，
+凑齐预注册的 confirmation 种子集 45/46/47，给 §4.4 held-out 的 seed 稳健性加两组独立复现。
+
+- **范围**：2 模型 × 3 benchmark（math500/amc23/aime24）× seed 46/47 = **12 个 env**，test split 独立采
+  （problem-ids 用 `<bench>__test.txt`：math500=100 / amc23=8 / aime24=6 题）。phase=`confirmation`，
+  输出落在 `results/governor_v2/confirmation__<model>__<bench>__seed_{46,47}/`。三个 stage 全跑：
+  main（traj）→ dense_simple32（64-token 网格 probe）→ adaptive_simple32。
+
+- **执行**：本次是 driver 脚本（`~/confirm_4647.log`）今早 07:48 起 4 台 vLLM（32B×2 tp=2、Llama×2，
+  端口 18000/18010/18030/18040，每模型每 seed 一台），07:50 起 4 个采集 tmux（c32b_46/47、cll_46/47）
+  各绑一台服务器并行跑。到我接手时采集 tmux 已全部正常退出、12 个 env 计数齐全（traj=probe=adaptive
+  =题数），**无需重跑**。
+
+- **健康核对（final_correct，0 空答案）**：
+
+  | | math500 | amc23 | aime24 |
+  |---|---|---|---|
+  | **Llama-8B** s46/s47 | 95% / 92% | 87.5% / 87.5% | 66.7% / 66.7% |
+  | **Qwen-32B** s46/s47 | 97% / 98% | 100% / 87.5% | 66.7% / 83.3% |
+
+  数字全部合理，**Llama 轨迹是连贯英文推理、0 空答案** → BOS 修复在 confirmation 采集里同样生效
+  （不是坏模板下的乱码）。avg token 也正常（Llama aime24 ~13k 在 32k budget 内，math500 ~3.5k）。
+
+- **收尾**：12 env 采完后 4 台服务器闲置（0 req、GPU 0–5 各占 ~78G），按共享机礼仪全部关掉、释放 8 卡。
+  **待办**：这批 test/46/47 数据可并入 §4.4 held-out 的 seed 复现（聚合是纯 offline、同事在跑，不占 GPU）。
+
+---
+
 ## 2026-07-31 · ✅ ③ Probe-robustness 全部跑完（4 种 probe 后缀，floor + CertaIndex/DoE）
 
 **动机**：审稿人会质疑「false consensus 是不是你那一个 probe 后缀的伪影？换个提问方式就没了？」
