@@ -940,3 +940,15 @@ Abstract/Intro/Method/Results/Mechanism/Conclusion/Limitations/Appendix 全部�
 - 论文更新：§4.1 setup+facts(1)–(4)、附录 B setup+四子节、§5 L26 引用(65.5/76.3→84.2/89.1)；
   **删 3072 illustration 脚注**，改为 simplified-heuristic/placeholder 注解。错误分类小节注明为旧探索样本。
 - 落库 `results/governor_v2_ws_sweep/false_consensus_16k_report.txt`。编译干净 14 页。
+
+### 2026-08-03（续）移除已抛弃的 DEER-改进(inspired controller)+ 清 limitation
+- 用户决定：DEER-改进(boundary-confidence fast-commit/verify inspired controller)效果有限、
+  有效部分与 DEER 基本重合，已**完全抛弃**，论文任何地方不再提及（避免混淆核心故事线 CORE_PAPER_FLOW）。
+  → 删除 Appendix C(`08_boundary_confidence.tex`)+ acl_latex.tex 的 \input；
+    删 §5 mechanism 结尾对该 sketch 的引用、删 Limitations「constructive signal is exploratory」段。
+  → **保留** DEER 作为 positive control 的全部表述(abstract/intro/conclusion/method/§5/§4.4)——那是核心 beat 4。
+  → 孤立未编译文件 07_baselines.tex / 08_discussion.tex 仍含旧引用，但不入编译、不影响论文（未删，待定）。
+- 删 Limitations「Held-out architecture was re-collected」段（用户认为放 limitation 无必要）；
+  §4.5 里 Llama 重采的数据 provenance 脚注保留。
+- CORE_PAPER_FLOW.md（论文核心写作逻辑）纳入版本管理并推送。
+- 编译干净 **13 页**（Appendix C 移除），0 undefined ref。

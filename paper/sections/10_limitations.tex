@@ -20,13 +20,6 @@ held-out test split, and both unseen models); we do not claim it is the best
 possible early-exit method. Its role is a controlled positive control for the
 signal, not a leaderboard entry.
 
-\paragraph{Held-out architecture was re-collected.}
-The held-out architecture model (Llama-8B) was re-collected after we found and
-fixed a chat-template defect (a missing model-specific beginning-of-sequence
-token) that had degraded its earlier generations; the corrected model scores
-$\sim\!88\%$ on \textsc{MATH}500, and the confirmation uses the corrected
-trajectories.
-
 \paragraph{Small held-out sets on hard benchmarks.}
 AIME24 and AMC23 are small (dev splits of $6$ and $8$ problems per seed), and the
 unseen models contribute a single seed, so those per-environment cells are noisy.
@@ -41,13 +34,6 @@ probes); a sparser or KV-cache-reusing schedule would change the \emph{savings}
 axis and could move some rules to positive net savings. We separate gross from
 net savings (Section~\ref{sec:mechanism}) precisely so the probe-tax-dependent
 part is distinguishable; the accuracy-tax result does not depend on the schedule.
-
-\paragraph{The constructive signal is exploratory.}
-The boundary-confidence controller of Appendix~\ref{sec:boundary} spans three dev
-seeds but is seed-sensitive (macro $\Delta$acc per-seed range $[-6.1,+4.2]\pp$;
-mean $-0.75\pp$), model-dependent, not part of the preregistered sweep, and has no
-test-split confirmation. It should be read as evidence that a non-consensus
-signal escapes the accuracy tax, not as a finished method.
 
 \paragraph{Domain.}
 All benchmarks are competition mathematics with checkable final answers. Whether
