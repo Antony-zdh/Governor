@@ -57,7 +57,7 @@ evaluations accuracy strictly \emph{falls} in $64.9\%$ and strictly \emph{rises}
 in only $10.5\%$ (unchanged in $24.6\%$), for a mean drop of $13.0\pp$; over rules
 the total dev drop has median $13.2\pp$ and a minimum of $0.81\pp$.
 \textbf{Not one of the $3{,}520$ rules clears any gate.} The reason is the shape
-of the frontier (Figure~\ref{fig:pareto}): staying accurate and saving tokens are
+of the frontier (dev panel of Figure~\ref{fig:pareto}): staying accurate and saving tokens are
 in direct tension. Only $40$ rules keep the total drop at or below the
 conservative $1.0\pp$ cap, and the most any of them saves is
 $0.2\%$---far under the $10\%$ floor; conversely, the first rule to save $10\%$
@@ -76,7 +76,7 @@ passes all three operating points on dev: the conservative point loses only
 $0.33\pp$ while saving $28.2\%$, the balanced point $1.03\pp$ at $29.6\%$, and the
 token-efficient point $2.75\pp$ at $31.9\%$; at a stricter threshold it is
 accuracy-neutral ($-0.06\pp$) while still saving $20.8\%$. In
-Figure~\ref{fig:pareto} the DEER frontier sits \emph{above} the consensus frontier
+the dev panel of Figure~\ref{fig:pareto} the DEER frontier sits \emph{above} the consensus frontier
 everywhere in the safe region and enters every gate box that no consensus rule
 reaches. Early exit is therefore not impossible; the consensus \emph{signal} is
 what cannot make it safe (Table~\ref{tab:main}).
@@ -198,13 +198,39 @@ the conservative point ($-0.24\pp$ while saving $32.4\%$, $\tau{=}0.97$) and on
 gates. Consensus is unsafe, and DEER safe-and-saving, across all four axes we
 vary---benchmark, seed, $4\times$ scale, and architecture/family.
 
-Figures~\ref{fig:gen-splits}--\ref{fig:gen-bench} (Appendix~\ref{sec:appendix-gen})
-show this on one set of axes for splits, models, and benchmarks. The
-selection view (Figure~\ref{fig:gen-splits}) makes the held-out logic concrete:
-the consensus rules that clear the conservative gate on \emph{train}
-(in-sample winners) fall out of the gate on dev and test, whereas DEER stays in
-the safe-and-saving corner throughout. Each panel also plots an \emph{oracle}
-upper bound---a perfect probe-based stop that commits the earliest correct
-probe---which sits far in that corner (a negative drop of $2$--$10\pp$ at
-$40$--$60\%$ saving) and that neither consensus nor DEER reaches: headroom that a
-better \emph{realizable} signal might still recover.
+Figures~\ref{fig:gen-models} and~\ref{fig:gen-bench} show this out of sample,
+per model and per benchmark, by tracking the \emph{same} strategies onto each
+test panel: the consensus rules selected as gate-clearing on train (orange) and
+the three DEER operating points selected on dev (labelled stars). Across scale
+(Qwen-32B), architecture (Llama-8B), and every benchmark, the orange consensus
+candidates scatter to low saving or higher drop---they do not transfer---while
+the dev-selected DEER points land back inside the gate on the test data. Each
+panel also plots an \emph{oracle} upper bound---a perfect probe-based stop that
+commits the earliest correct probe---which sits far in the safe-and-saving corner
+(a negative drop of $2$--$10\pp$ at $40$--$60\%$ saving) that neither consensus
+nor DEER reaches: headroom that a better \emph{realizable} signal might still
+recover. (On the small AIME24 set the frontiers are noisier and intertwine.)
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/gen/fig_models.pdf}
+  \caption{\textbf{Out-of-sample generalization across scale and architecture}
+  (all panels test split). Grey: consensus rules; \textbf{orange}: consensus
+  train candidates; \textbf{green}: DEER frontier with the three dev-selected
+  operating points (C/B/T); \textbf{purple}: oracle upper bound. The two
+  development models (top) are shown on their held-out test seeds; the two
+  held-out models (bottom) are entirely unseen. The dev-selected DEER points stay
+  inside the conservative gate on every model; no consensus rule does.}
+  \label{fig:gen-models}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/gen/fig_bench.pdf}
+  \caption{\textbf{Out-of-sample generalization across benchmarks} (test split,
+  development models). The consensus trade-off and the DEER advantage hold on
+  \textsc{MATH}500 and AMC23; on the small AIME24 set (few problems per
+  environment) the two frontiers are noisier and intertwine. Markers as in
+  Figure~\ref{fig:gen-models}.}
+  \label{fig:gen-bench}
+\end{figure*}

@@ -40,24 +40,25 @@ reproduces on a held-out test split ($r{=}0.98$) and on unseen models at
 $4\times$ the scale and a different architecture (Section~\ref{sec:results}), and
 a faithful Certaindex reproduction on the same trajectories collapses by
 $56$--$70\pp$. Figure~\ref{fig:pareto} is the whole paper in one picture: the
-safe-and-saving corner is empty for every consensus rule, while the one method
-that clears the gates is the one that does \emph{not} read probe agreement.
+consensus rules that clear the gates in-sample on train leave the safe-and-saving
+corner on dev and test, while the three DEER operating points selected on dev
+stay in it out of sample.
 
 \begin{figure*}[t]
   \centering
-  \includegraphics[width=\textwidth]{figures/governor_v2_pareto_dev.pdf}
-  \caption{\textbf{The safe-and-saving corner is empty for consensus; a
-  different signal fills it.} Each grey point is one of the $3{,}520$
-  preregistered consensus rules on the development set (a two-parameter window
-  size $\times$ share threshold family plus operational knobs); the red step is
-  their dev Pareto boundary. The top-left corner---small accuracy drop
-  \emph{and} large token saving---contains no consensus rule: the boundary only
-  climbs as the drop grows, and \emph{none} of the three shaded gate regions is
-  entered. \textbf{DEER} \citep{deer}, swept over its confidence threshold
-  through the same pipeline and accounting but reading a non-consensus signal,
-  traces the green frontier that sits above the consensus boundary throughout the
-  safe region and clears every gate. The failure is a property of the consensus
-  signal, not of early exit.}
+  \includegraphics[width=\textwidth]{figures/gen/fig_splits.pdf}
+  \caption{\textbf{Selection $\rightarrow$ generalization, in one picture}
+  (two development models, pooled; net token saving vs.\ accuracy drop). Grey:
+  all $3{,}520$ consensus rules. \textbf{Orange}: the $478$ consensus rules that
+  clear the conservative gate \emph{in-sample on train}---on \emph{dev} and
+  \emph{test} the same rules leave the shaded gate boxes (higher drop, lower
+  saving), so the preregistered gate admits none out of sample. \textbf{Green}:
+  the DEER threshold frontier (swept through the identical pipeline and
+  accounting); the labelled stars are the three operating points selected on dev
+  (\textbf{C}onservative/\textbf{B}alanced/\textbf{T}oken-efficient), which stay
+  inside the gate on dev and test. \textbf{Purple star}: an oracle upper bound
+  (earliest correct probe), far in the corner that neither method reaches. The
+  failure is a property of the consensus \emph{signal}, not of early exit.}
   \label{fig:pareto}
 \end{figure*}
 
