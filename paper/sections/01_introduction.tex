@@ -11,19 +11,18 @@ is probed for its current answer (e.g., by appending a short
 \emph{agree} \citep{dynasor_certaindex}. The underlying assumption is simple: if
 the model repeatedly says $x$, it has probably finished reasoning about $x$. This
 paper asks whether that assumption is warranted: \textbf{is intermediate
-agreement a safe signal on which to stop?}\footnote{We use ``false consensus'' for the phenomenon that
-intermediate probe agreement is non-terminal; the term is unrelated to the
-social-psychology ``false consensus effect'' \citep{ross1977false}. We study
-answer-level early exit (stopping a chain of thought), not token- or layer-level
-early exit \citep{graves2016act,schuster2022confident}.}
+agreement a safe signal on which to stop?}
 
 Our answer is \textbf{no}, and the reason is not a badly tuned threshold---it is
-the signal itself. Intermediate consensus forms \emph{while the answer is still
-moving}: on a frozen replay, stopping on consensus destroys a
+the signal itself. Intermediate consensus\footnote{``False consensus'' here
+denotes non-terminal intermediate probe agreement, unrelated to the
+social-psychology term \citep{ross1977false}; we study answer-level, not
+token/layer-level, early exit \citep{graves2016act,schuster2022confident}.} forms
+\emph{while the answer is still moving}: on a frozen replay, stopping on consensus destroys a
 correct-in-the-end answer roughly $\mathbf{35}$ times more often than it rescues
 a wrong one (Section~\ref{sec:mechanism}). This is an \emph{accuracy tax} that is
-a property of the reasoning trajectory, not of how one probes it, so no threshold
-on the agreement signal can escape it. We make the claim hard to dismiss as
+a property of the reasoning trajectory, not of how one probes it, so no rule in
+the searched space escapes it. We make the claim hard to dismiss as
 ``you did not tune it well'' by searching the space exhaustively under
 commitment: on frozen trajectories from two models and three benchmarks we run a
 \emph{preregistered} sweep of the consensus signal---a window size $\times$ share
@@ -37,9 +36,11 @@ sweep one non-consensus method---DEER, which reads the model's confidence at a
 reasoning boundary---through the identical pipeline and gates: it clears all
 three, losing as little as $0.3\pp$ while saving $28\%$. The consensus frontier
 reproduces on a held-out test split ($r{=}0.98$) and on unseen models at
-$4\times$ the scale and a different architecture (Section~\ref{sec:results}), and
-a faithful Certaindex reproduction on the same trajectories collapses by
-$56$--$70\pp$. Figure~\ref{fig:pareto} is the whole paper in one picture: the
+$4\times$ the scale and a different architecture (Section~\ref{sec:results}). Two
+published-signal checks bracket the contrast: a faithful Certaindex reproduction
+on the same trajectories collapses by $56$--$70\pp$, while DEER clears the gates
+on the unseen models too. Figure~\ref{fig:pareto} is the whole paper in one
+picture: the
 consensus rules that clear the gates in-sample on train leave the safe-and-saving
 corner on dev and test, while the three DEER operating points selected on dev
 stay in it out of sample.
@@ -48,7 +49,8 @@ stay in it out of sample.
   \centering
   \includegraphics[width=\textwidth]{figures/gen/fig_splits.pdf}
   \caption{\textbf{Selection $\rightarrow$ generalization, in one picture}
-  (two development models, pooled; net token saving vs.\ accuracy drop). Grey:
+  (two development models; macro-averaged over the environments; net token saving
+  vs.\ accuracy drop). Grey:
   all $3{,}520$ consensus rules. \textbf{Orange}: the $478$ consensus rules that
   clear the conservative gate \emph{in-sample on train}---on \emph{dev} and
   \emph{test} the same rules leave the shaded gate boxes (higher drop, lower
@@ -76,8 +78,8 @@ components support this one claim:
   \item \textbf{A mechanism} that explains \emph{why}: a directional
   ``continued-reasoning-corrects'' effect ($\approx\!35{:}1$) makes the accuracy
   cost of stopping intrinsic to the trajectory and independent of probe density,
-  so the negative result generalizes beyond the searched schema
-  (Section~\ref{sec:mechanism}).
+  so the failure reflects the reasoning trajectory rather than the particular
+  rules we searched (Section~\ref{sec:mechanism}).
   \item \textbf{Out-of-distribution and cross-signal confirmation}: the consensus
   frontier reproduces on a held-out split and two unseen models, a published
   Certaindex reproduction collapses, and a non-consensus signal (DEER) swept

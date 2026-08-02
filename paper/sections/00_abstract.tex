@@ -1,29 +1,16 @@
 \begin{abstract}
-Reasoning language models spend most of their tokens \emph{after} the answer is
-effectively decided, so a popular way to cut inference cost is to periodically
-probe the partial trajectory for its current answer and stop once probes
-\emph{agree}. We show this bet is unsafe, and that the failure is a property of
-the \emph{signal}, not of the stopping threshold. On frozen reasoning
-trajectories from two models and three math benchmarks we run a
-\emph{preregistered} sweep of the consensus signal---a window size $\times$
-share threshold family plus operational knobs, $3{,}520$ rules---with
-problem-grouped splits and acceptance gates (a total accuracy-drop cap, a total
-token-saving floor, and a positive-saving fraction) fixed in advance. The result
-is distribution-free: \textbf{not one of the $3{,}520$ rules clears any gate};
-capping the accuracy drop at $1\pp$ forces net saving to near zero, while
-demanding a $10\%$ saving forces a multi-point drop, and even large windows only
-trade the drop for zero saving. The reason is directional, not statistical:
-intermediate consensus forms \emph{while the answer is still moving}, so a stop
-destroys a correct-in-the-end answer roughly $\mathbf{35}$~\textbf{times more
-often} than it rescues a wrong one---an \emph{accuracy tax} intrinsic to the
-trajectory. The failure is specific to \emph{consensus}: swept through the
-identical pipeline, gates, and token accounting, a method reading a different
-signal---the model's own confidence at reasoning-boundary tokens (DEER)---
-\textbf{clears all three gates}, losing as little as $0.3\pp$ while saving $28\%$.
-The consensus frontier reproduces on a held-out test split ($r{=}0.98$) and on
-unseen models at $4\times$ the scale and a different architecture, with no
-consensus rule safe on both splits, while DEER stays admissible; a faithful
-Certaindex reproduction on identical trajectories collapses by $56$--$70\pp$.
-Early exit is possible---just not on the consensus signal. We release the
-protocol, the frozen trajectories, and the full sweep.
+A popular way to cut reasoning-model inference cost is to probe the partial
+trajectory for its current answer and stop once probes \emph{agree}. We show this
+bet is unsafe, and that the failure is in the \emph{signal}, not the threshold.
+On frozen trajectories from two models and three math benchmarks, a
+\emph{preregistered} sweep of the consensus signal ($3{,}520$ rules, acceptance
+gates fixed in advance) clears \textbf{no gate}: staying accurate forces
+near-zero saving, and real saving forces a multi-point accuracy drop. The reason
+is directional---consensus forms \emph{while the answer is still moving}, so a
+stop destroys a correct-in-the-end answer about $\mathbf{35\times}$ more often
+than it rescues a wrong one. The failure is specific to consensus: swept
+identically, a boundary-confidence method (DEER) \textbf{clears all three gates}
+and holds on a held-out split and two unseen models. Early exit is
+possible---just not on the consensus signal. We release the protocol, the frozen
+trajectories, and the full sweep.
 \end{abstract}
