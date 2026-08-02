@@ -50,8 +50,15 @@ Applied in order on dev (macro over 18 model×benchmark×seed environments):
   dev at **r=0.98**; the joint conservative gate is empty for consensus (0 on dev,
   444 on test-alone in-sample winners, 0 on both), while DEER clears both splits
   (3 thresholds conservative, 5 balanced).
-- Unseen **scale** (Qwen-32B) r=0.95 and **architecture/family** (Llama-8B) r=0.87
-  against dev drop; single-seed, read as frontier-reproduction evidence.
+- Unseen **scale** (Qwen-32B) and **architecture/family** (Llama-8B), now at
+  **three test seeds (45/46/47), 9 env each** (`heldout_test/`): frontier
+  reproduces r=**0.97** (32B) and r=**0.94** (Llama). The **conservative gate is
+  empty on every model** (dev, 32B, Llama all admit 0; best rule under 1.0pp drop
+  saves 0.6% on 32B, 9.3% on Llama). Scale effect at looser gates: on 32B a few
+  consensus rules become admissible in-sample (4 balanced, 6 token_efficient) —
+  a larger model's answers stabilize a bit earlier — but these are not dev-selected
+  (dev admits none) and Llama stays 0/0/0. (Earlier single-seed heldout numbers
+  r=0.95/0.87 with spurious in-sample passers were seed-45-only noise; superseded.)
 - **Heterogeneity (honest):** DEER's advantage over consensus is largest on
   Qwen3-8B and MATH500 and weak/noisy on DeepSeek-7B and AIME24 (see
   `report/figures/panels/`). DEER is a positive control for the signal, not a

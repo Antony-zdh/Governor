@@ -1474,5 +1474,5 @@ teammate 给出的下一步五步，及讨论后的排期/细化：
 5. 03_false_consensus 附录与 08_boundary_confidence（探索性）未深改，可后续对齐 (W,s) 术语。
 
 ### 2026-08-02（续）
-- v2 结果已落库 `results/governor_v2_ws_sweep/`，旧 sweep 已归档 backup_v1_sweep_20260802/。
+- v2 结果已落库；heldout 32B/Llama 已补 seed 46/47（3-seed），consensus 泛化完成（r=0.97/0.94，conservative 全空）。
 - 待用户确认后做一次集中 commit（含 paper/ 修改、新脚本、新 bank、归档）。

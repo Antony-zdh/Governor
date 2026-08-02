@@ -12,7 +12,8 @@
   "dev/consensus_dev_train.jsonl.gz": "126720 rows = 3520 rules x 18 env x 2 splits (train,dev)",
   "test/consensus_test.jsonl.gz": "253440 rows: dev-models(seeds45-47)+heldout 32B/Llama(seed45), budgets {3072,8192,16384/32768}",
   "deer/deer_threshold_sweep.jsonl.gz": "756 rows = 14 thresholds x (train+dev+test) envs (trial-answer-submit DEER)",
-  "select_v2_robust.json": "gate selection summary (dev)"
+  "select_v2_robust.json": "gate selection summary (dev)",
+  "heldout_test/consensus_heldout_32b_llama_3seed.jsonl.gz": "190080 rows: 32B+Llama x 3 benchmarks x seeds{45,46,47} x 3 budgets (test split); consensus only"
  },
  "gates": {
   "conservative": "drop<=1.0pp & save>=10% & psf>=0.8",
@@ -34,9 +35,13 @@
   "consensus_joint_gate_conservative": "0 on dev, 444 on test-only, 0 on both",
   "DEER_joint_conservative_both": 3,
   "DEER_joint_balanced_both": 5,
-  "heldout_32B_drop_r": 0.95,
-  "heldout_Llama_drop_r": 0.87,
-  "DEER_heldout": "confidence bank not collected on 32B/Llama -> future work"
+  "heldout_3seed_note": "32B and Llama now at test seeds 45/46/47 (9 env each)",
+  "heldout_32B_drop_r": 0.97,
+  "heldout_Llama_drop_r": 0.94,
+  "conservative_gate_empty_on_all_models": true,
+  "heldout_32B_gate_pass": "conservative 0, balanced 4, token_efficient 6 (in-sample; scale effect at loose gates)",
+  "heldout_Llama_gate_pass": "0/0/0 (all gates empty)",
+  "DEER_heldout": "confidence bank not collected on 32B/Llama -> future GPU work"
  },
  "scripts": {
   "protocol_gen": "governor_v2/make_protocol_v2.py",
@@ -44,6 +49,7 @@
   "deer_sweep": "governor_v2/deer_threshold_sweep.py",
   "select": "governor_v2/select_v2.py",
   "confirm": "governor_v2/confirm_v2.py",
-  "figure": "report/make_v2_pareto.py, report/make_v2_pareto_panels.py"
+  "figure": "report/make_v2_pareto.py, report/make_v2_pareto_panels.py",
+  "heldout_confirm": "governor_v2/heldout_confirm.py"
  }
 }

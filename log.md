@@ -790,3 +790,14 @@ Abstract/Intro/Method/Results/Mechanism/Conclusion/Limitations/Appendix 全部�
   （sweep_0..7、sweep_scale_32b/llama、candidate_rules.jsonl、candidate_rules_extended、
   protocol_extended、README）。candidate_rules_v2.jsonl 加入 .gitignore（可再生）。
 - 尚未 commit（等用户确认）。
+
+### 2026-08-02（续2）heldout 32B/Llama 补齐 seed 46/47（3-seed 泛化）
+- 从 origin/main 取回 32B/Llama 在 seed 46/47 的 confirmation 主轨迹+probe banks（consensus）。
+  origin/main 另含论文 commit（"focus consensus early-exit story" 改 01/05/06）——未合并，待与本分支论文改写reconcile。
+- 对 32B/Llama × 3 seeds(45/46/47) 跑全量 3520 consensus sweep（robust grader，heldout_confirm.py）：
+  32B 前沿复现 r=0.97、Llama r=0.94（较单 seed 0.95/0.87 更稳）；
+  **conservative gate 在 dev/32B/Llama 全空**（32B drop≤1.0 内 max saving 0.6%，Llama 9.3%）；
+  32B 宽松档有 in-sample 通过（balanced 4、token_efficient 6，scale 效应），但非 dev 选中；Llama 0/0/0。
+  （之前单 seed 的"32B conservative 通过 92"确认为噪声，已废弃。）
+- DEER 在 32B/Llama 仍无 confidence bank（本次更新未含）→ GPU 待办。
+- 新数据入 bank：results/governor_v2_ws_sweep/heldout_test/（190080 行）；report/manifest 更新；§4.5 改为 3-seed 版。论文干净编译。

@@ -175,14 +175,21 @@ conservative gate on \emph{both} dev and test (and $5$ clear balanced on both),
 so the cross-signal contrast is not a dev artifact.
 
 \paragraph{Unseen scale ($4\times$) and architecture.}
-On \mbox{Distill-Qwen-32B}, never used in development, the consensus frontier
-reproduces ($r=0.95$ against dev drop); on the held-out architecture
-\mbox{DeepSeek-R1-Distill-Llama-8B} it reproduces at $r=0.87$.\footnote{The
+Both unseen models are evaluated on the test split at three seeds ($45/46/47$;
+nine environments each), so their gates are as well resolved as development's. On
+\mbox{Distill-Qwen-32B}, never used in development, the consensus frontier
+reproduces ($r=0.97$ against dev drop); on the held-out architecture and family
+\mbox{DeepSeek-R1-Distill-Llama-8B} it reproduces at $r=0.94$.\footnote{The
 Llama-8B trajectories were re-collected after correcting a chat-template defect
 (a missing model-specific beginning-of-sequence token that degraded its
-generations); the corrected model scores $\sim\!88\%$ on \textsc{MATH}500.} These
-unseen models contribute a single seed each, so their per-environment cells are
-too coarse to resolve the gate on their own (this is exactly why development uses
-three seeds); we therefore read them as frontier-reproduction evidence---the rule
-ranking transfers---rather than as an independent gate test. DEER on these unseen
-models is left to future work, as its confidence bank was not collected there.
+generations); the corrected model scores $\sim\!88\%$ on \textsc{MATH}500.} The
+\emph{conservative} gate stays empty on every model---dev, $32$B, and Llama all
+admit $0$ rules (the best rule under a $1.0\pp$ drop saves $0.6\%$ on $32$B and
+$9.3\%$ on Llama). At the looser gates a scale effect appears: on the $4\times$
+larger $32$B a few consensus rules become admissible in-sample ($4$ at balanced,
+$6$ at token-efficient), reflecting that a bigger model's intermediate answers
+stabilize somewhat earlier---but these are not the dev-selected rules (dev admits
+none), and on the same-scale Llama architecture the gates stay empty
+($0/0/0$). Consensus thus yields no rule that is safe-and-saving where it is
+selected, on any model. DEER on these unseen models is left to future work, as
+its confidence bank was not collected there.
