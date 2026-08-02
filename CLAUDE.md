@@ -91,8 +91,11 @@ The min-saving floor rejects "safe only because it never stops" rules.
   model; **DEER clears the gates on both unseen models** (32B −0.24pp @ 32.4%,
   τ0.97; Llama 0.67pp @ 26.7%, τ0.99). Scale effect: on 32B a few consensus rules
   pass looser gates in-sample, but they are not dev-selected.
-- **Oracle** upper bound (earliest correct probe): −2 to −10 pp drop @ 40–60%
-  saving — far in the safe corner neither method reaches (headroom).
+- **Oracle** upper bound (earliest correct probe): on the **test panels shown**
+  (fig_models/fig_bench) −2 to −5 pp drop @ 40–80% saving — far in the safe corner
+  neither method reaches (headroom). (The old "−10 pp @ 40–60%" was a **dev-only**
+  value / understated saving; corrected 2026-08-02, verified in
+  `results/governor_v2_ws_sweep/report.md` "Paper-number verification".)
 - Faithful CertaIndex reproduction collapses by 56–70pp (consensus in the wild).
 
 ### Figures (main body, `paper/figures/gen/`)
@@ -113,9 +116,13 @@ expression accuracy; each substantive claim confirmed with the user before editi
   gates+schema, Appendix window/DEER tables. Compiles clean (14 pp, 0 undefined refs).
 - **Pending**: Related Work §2; Method fine details; Results §4.1–4.4
   (false-consensus stats, sweep, DEER subsection, baselines); Discussion; Appendix
-  reproducibility text. `tab:baselines` still holds v1 faithful-reproduction
-  numbers (CertaIndex/TJE/DEER), not re-run with the robust grader — verify if
-  leaned on.
+  reproducibility text. `tab:baselines` (CertaIndex/TJE/DEER faithful repro) was
+  **verified 2026-08-02** to match `results/related_work/aggregate/report.md`,
+  which uses the robust grader (`related_work/replay.py` →
+  `common.real_answers_equal` → `grading.robust_answers_equal`) and whose two-model
+  full-gen macro (85.4/79.8 → 82.6%) is consistent with the 82.5% main baseline.
+  The earlier "v1 weak-grader" worry was the *consensus sweep* module
+  (`governor_v2/replay_rules.py`), a different path; baselines are fine.
 
 ---
 

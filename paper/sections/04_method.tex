@@ -1,7 +1,7 @@
 \section{Method}
 \label{sec:method}
 
-Section~\ref{sec:related} refuted one heuristic. To ask whether \emph{any}
+To ask whether \emph{any}
 probe-based rule can succeed, we need (i) an evaluation that a rule cannot game
 by changing the reasoning it observes, and (ii) a selection procedure that
 cannot silently overfit to a lucky operating point. We preregister both.
@@ -37,10 +37,10 @@ The consensus signal any probe-based rule can read reduces to two
 hyperparameters: a \textbf{window size} $W$ (how many of the most recent probes
 to inspect) and a \textbf{share threshold} $s$ (what fraction of that window
 must agree on a single answer before a stop is allowed). This pair spans the
-family exactly: $W{=}1$ is the ``latest-probe'' rule, $s{=}1.0$ is strict
-unanimity over the last $W$ probes (the Certaindex-style stop), and an
-entropy-over-the-window criterion is monotone in the same agreement and adds no
-reachable operating point. We sweep $W\in\{1,3,5,8,12,16,24,30\}$ and
+family to a close approximation: $W{=}1$ is the ``latest-probe'' rule, $s{=}1.0$
+is strict unanimity over the last $W$ probes (the Certaindex-style stop), and an
+entropy-over-the-window criterion closely tracks the same agreement and adds no
+materially new operating point on our grid. We sweep $W\in\{1,3,5,8,12,16,24,30\}$ and
 $s\in\{0.6,0.8,1.0\}$, deliberately including \emph{large} windows so a rule can
 demand a long, stable agreement before committing.
 
@@ -109,23 +109,30 @@ useful early exit from a rule that stays accurate only by almost never stopping.
 
 \subsection{Metric resolution}
 \label{sec:resolution}
-The total accuracy drop is a macro-average over $18$ environments, three of them
-per benchmark$\times$model, so the small competition sets do not dominate: one
-AIME24 problem is $16.7\pp$ of a $6$-problem dev split but contributes only its
-share of one of the $18$ cells. The gates are read on the dev split (the
-selection target) with train reported alongside; because the central finding is
-distribution-free (\emph{no} consensus rule clears any gate, by a wide margin,
-Section~\ref{sec:results}), it does not rest on a single fragile cell. Held-out
-confirmation on the test split and two unseen models provides the complementary
-out-of-distribution check.
+The total accuracy drop is a macro-average over the $18$ environments (each
+model$\times$benchmark$\times$seed weighted equally). We span two models, three
+benchmarks, and three seeds and weight them equally so that selection rewards a
+rule that is robust across benchmarks, models, and randomness, not one that
+overfits a single setting. Pooling problems instead would let MATH500 ($100$ dev
+problems per seed vs.\ $8$ for AMC23 and $6$ for AIME24) dominate the headline,
+so a rule that wins only on MATH500 could pass; equal per-environment weight
+forces a selected rule to hold on the harder competition sets too. Macro also
+keeps any single problem from swinging the result---one AIME24 problem is
+$16.7\pp$ of a $6$-problem split but only ${\sim}1/108$ of the macro drop---while
+the three seeds damp the extra per-cell noise of the small sets. The gates are
+read on the dev split (the selection target) with train reported alongside;
+because \emph{no} consensus rule clears any gate by a wide margin
+(Section~\ref{sec:results}), the finding does not rest on a single fragile cell.
+Held-out confirmation on the test split and two unseen models provides the
+complementary out-of-distribution check.
 
 \subsection{Preregistration commitments}
 Three commitments make the result interpretable. \textbf{(C1)} The test split
 and both confirmation models are never read during rule selection.
-\textbf{(C2)} The conservative gate in Table~\ref{tab:gates} is not relaxed
-after seeing results; if no rule passes, that is reported as the finding rather
-than engineered away. The balanced and token\_efficient points are reported only
-as clearly-labeled post-hoc analysis, never as a selected operating point.
+\textbf{(C2)} All three operating points and their gates in
+Table~\ref{tab:gates} are fixed before seeing held-out data and are not relaxed
+afterwards; if no rule passes a gate, that is reported as the finding rather than
+engineered away, and all three points are reported regardless of outcome.
 \textbf{(C3)} The frozen rule set is fixed on train+dev and its hash recorded
 before any test/confirmation evaluation. Section~\ref{sec:results} reports what
 happened when we applied C2.

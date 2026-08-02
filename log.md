@@ -885,3 +885,58 @@ Abstract/Intro/Method/Results/Mechanism/Conclusion/Limitations/Appendix 全部�
 - DEER recovery:overthinking（robust,dev）：conservative 3.0:1 / balanced 2.4:1 / token_eff 3.5:1，vs consensus 35:1。
 - CLAUDE.md 全面重写为下一个 agent 的交接文档（story/规则空间/gates/结果/关键实验细节/叙事/review 进度/路径）。
 - 论文编译干净（14 页，0 未定义引用）。commit 199ba546 起为本轮 review。
+
+### 2026-08-02（续4）§2 Related Work + §3/附录B False Consensus 逐节 review
+- §2 Related Work：删 forward/backward-looking 二分与「must take」（我们未系统研究两大类信号孰优），
+  DEER 改定位为纯 positive control（同管线过 gate → 失败在信号非早停）；删预注册「among the first」首创宣称，
+  保留功能性表述。Claim A(不可交换性)、Huang 对比句保持原样。
+- §3/附录B False Consensus：修正附录开头错误交叉引用（sec:related→sec:exp-fc）。
+  发现 fact(1) 方向性问题——原用「末五窗一致 93.5%」论证 agreement 不可靠，但末窗≈终局，
+  其高准确率恰恰印证「终局 agreement≈correctness」，与论点相反。拟把 fact(1) 对比轴从
+  cumulative-vs-window 改为「终局 vs 早停时刻」（**措辞待用户确认后落地 §4.1+附录B**）。
+- 删 miscalibration 小节（share=0.8 处 n=36 太小）+ takeaway 去「confidence miscalibrated」。
+- 实验 TODO 见 plan.md 续4：3072→16K/32K 重跑（必做）、CCE 触发时刻 share 重做（可选）。
+
+### 2026-08-02（续5）§4 Experiments 逐条数字核对 + oracle 校准
+- 从 committed banks 实算核对论文 §4 全部数字，结果落库到
+  `results/governor_v2_ws_sweep/report.md`「Paper-number verification (2026-08-02)」小节：
+  - §4.2 分布（126,720 行）：falls 64.9% / rises 10.5% / same 24.6%、mean 13.0pp、
+    median 13.2pp、min 0.81pp、40 rules ≤1.0pp —— 全部精确吻合。
+  - §4.5 heldout consensus（按 protocol budget 过滤到 9 env/rule）：32B 0/4/6（best-under-1.0 0.6%）、
+    Llama 0/0/0（9.3%）—— 吻合。注意 heldout bank 每 (rule,bench,seed) 有 3 个 budget 行，
+    必须按 MATH500/AMC23=16384、AIME24=32768 过滤，否则计数全错。
+  - §4.5 heldout DEER（跑 deer_heldout_sweep.py，需 PYTHONPATH 含 related_work）：
+    32B τ0.97 −0.24@32.4、Llama τ0.99 0.67@26.7，均过三档 —— 吻合。
+  - §4.4 tab:baselines 早前已核（robust grader，82.6%≈82.5%）。
+- **oracle 校准**：旧「−2 to −10pp @ 40–60%」两端都偏——−10pp 是 dev-only（图画的是 test），
+  test 面板 saving 实际到 67–82%。§4.5 改为 **−2 to −5pp @ 40–80%**（AIME24 已单独 hedge）；
+  CLAUDE.md oracle 行同步更正。
+- 结论：§4 除 §4.1（3072 探索预算，已 TODO 重跑）外，所有数字均已对上 committed banks。
+
+### 2026-08-02（续6）附录 A + 附录 C 修改与核对
+- 附录 A：entropy 断言同步 §3 Method 的软化措辞（closely tracks / no materially new operating
+  point on our grid）。tab:frontier(W=1..30, min drop 22.25→0.81, saving 98.1→38.8) 与
+  tab:deer 已核与 report.md 一致。
+- 附录 C（exploratory boundary-confidence）数字核对：
+  - **3-seed 聚合精确复现**（`deer_inspired/multiseed_aggregate.py`，seed42=online_dev，
+    43/44=online_dev_nonformal）：macro −0.75pp/34.2%、per-seed range[−6.06,+4.17]、
+    Qwen −1.50/41.0、DeepSeek +0.00/27.4、DEER-ref −2.71/22.1、bootstrap dAcc +1.96pp[−5.04,+8.97]、
+    saving +12.11%[+0.68,+22.85] —— 逐项吻合。**坑**：committed 的 online_dev/aggregate/report.md 是
+    seed-42-only（红鲱鱼），真正 3-seed 聚合脚本产出但未落库 → 已存
+    `results/deer_inspired/multiseed_dev_aggregate.txt`。
+  - DEER-flaw 数字（`appendix_evidence_upgrade/summary.json` trial_readout.dev）：论文两处小误已改正——
+    disagreement 14.6→**14.8%**（72/486）、trial acc 88.9→**88.7%**（0.8868）；readout 470/88.5% 本就对。
+
+### 2026-08-03 §4.1 false-consensus 从 3072 重跑到主 16K/32K 预算
+- 写 `benchmark/FalseConsensus/false_consensus_16k.py`：在**冻结主轨迹**上复刻 analyze.py 的
+  fact 定义（window=5, certain_bar=3, consensus_share=0.8, min_probes=3），robust grader。
+  数据 = dev seeds42/43/44（train+dev id 各400）+ confirmation seeds45/46/47（test id 各100），
+  并集覆盖全部 500 个 MATH500 id，共 **1500 条轨迹**。**纯描述性统计，不做任何选择/调参 → 不违反
+  test-once 承诺、不影响 sweep**（已向用户确认此点）。性能优化：eq 加 lru_cache、cumulative 改早退一致性判断。
+- 新数字（旧 3072→新 16K）：fact1 cum 98.9→**97.8%**(87→186)、win 93.5→**90.4%**(338→1205)；
+  fact2 首错翻正 76.3→**89.1%**(375→1148)、3-consensus≠final 65.5→**84.2%**(145→736)；
+  fact3 87.4→**91.0%** / 58.1→**71.6%**(>2048 n=74)；**fact4 naive stop 416/500→1477/1500，
+  69.2/85.6/16.4pp → 50.5/90.7/40.2pp**（损失大得多，方向一致、更有力，符合 §5 harm:rescue≤45:1）。
+- 论文更新：§4.1 setup+facts(1)–(4)、附录 B setup+四子节、§5 L26 引用(65.5/76.3→84.2/89.1)；
+  **删 3072 illustration 脚注**，改为 simplified-heuristic/placeholder 注解。错误分类小节注明为旧探索样本。
+- 落库 `results/governor_v2_ws_sweep/false_consensus_16k_report.txt`。编译干净 14 页。

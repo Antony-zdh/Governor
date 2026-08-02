@@ -1476,3 +1476,17 @@ teammate 给出的下一步五步，及讨论后的排期/细化：
 ### 2026-08-02（续）
 - v2 结果已落库；heldout 32B/Llama 已补 seed 46/47（3-seed），consensus 泛化完成（r=0.97/0.94，conservative 全空）。
 - 待用户确认后做一次集中 commit（含 paper/ 修改、新脚本、新 bank、归档）。
+
+### 2026-08-02（续4）§3 False Consensus（附录 B）逐 claim review 中，暴露的实验 TODO
+- **[已完成 2026-08-03] 3072→16K/32K 重跑**：`false_consensus_16k.py` 在冻结主轨迹上复算
+  §4.1 fact(1)–(4)，覆盖全部 500 个 MATH500 id（dev seeds42/43/44 的 train+dev id +
+  confirmation seeds45/46/47 的 test id，共 1500 条轨迹，robust grader）。**纯描述性、不碰 sweep**。
+  新数字已写入 §4.1、附录 B、§5 引用；旧 3072 脚注删除。结果落库
+  `results/governor_v2_ws_sweep/false_consensus_16k_report.txt`。
+  - fact1 cumulative 97.8%(186)、window 90.4%(1205)；fact2 首错→翻正 89.1%(1148)、
+    3-consensus≠final 84.2%(736)；fact3 <512 91.0%→>2048 71.6%；
+    **fact4 naive stop 1477/1500，停时 50.5% vs 完成 90.7% = 40.2pp loss（3072 时仅 16.4pp）**。
+  - 错误分类小节(28 例人工标注)是旧探索样本、无法自动重算 → 已在文中注明为独立 preliminary 样本。
+- **[可选] miscalibration/CCE 分析重做**：附录 miscalibration 小节因样本过小（share=0.8 处 n=36）已删。
+  若日后重做，应在 16K/32K 下、且改用**触发时刻 share**（而非末窗 window_share）重算 CCE，
+  样本量足够再决定是否放回论文。

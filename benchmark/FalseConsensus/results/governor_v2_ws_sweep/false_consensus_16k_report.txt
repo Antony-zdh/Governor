@@ -1,0 +1,25 @@
+<string>:1: SyntaxWarning: list indices must be integers or slices, not tuple; perhaps you missed a comma?
+<string>:1: SyntaxWarning: list indices must be integers or slices, not tuple; perhaps you missed a comma?
+coverage: dev-instances=1200 test-instances=300 total=1500 distinct_problem_ids=500
+
+===== FULL train+dev+test (all 500 MATH500 ids, DeepSeek-7B, 16K/32K, 6 seeds)  (n=1500 problems) =====
+overall final accuracy: 90.7%
+
+[fact1] Final agreement is reliable
+  cumulative share=1: 186 problems, final acc 97.8%
+  window share=1 (last 5): 1205 problems, window-answer acc 90.4%
+
+[fact2] Recovery is common
+  first probe wrong: 1148 problems, 89.1% flip to correct
+  3-probe consensus != final answer: 736 problems, 84.2% ended correct
+
+[fact3] Later consensus is worse (acc by consensus time)
+        <512: n=726  acc=91.0%
+    512-1024: n=416  acc=92.5%
+   1024-2048: n=256  acc=92.2%
+       >2048: n= 74  acc=71.6%
+
+[fact4] The cost lands at the stop (naive 3-consecutive-certain stop)
+  fires on 1477/1500 problems
+  stopped-answer acc 50.5%  vs  run-to-completion acc 90.7%  => 40.2pp loss
+  avg tokens saved on stopped: 3301;  stops on WRONG answer: 731

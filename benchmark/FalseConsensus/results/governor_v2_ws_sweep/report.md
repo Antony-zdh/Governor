@@ -90,3 +90,41 @@ python deer_threshold_sweep.py --output deer_sweep.jsonl   # from governor_v2/ (
 python select_v2.py --consensus shard_*.jsonl --deer deer_sweep.jsonl --output select.json
 python confirm_v2.py "test_shard_*.jsonl" deer_sweep.jsonl # test + heldout
 ```
+
+## Paper-number verification (2026-08-02)
+
+Cross-check of §4 Experiments claims against committed banks (all recomputed here).
+
+**§4.2 sweep distribution** (over all 126,720 = 3,520×18×2 dev+train rows;
+`dev/consensus_dev_train.jsonl.gz`):
+- accuracy strictly falls **64.9%**, strictly rises **10.5%**, unchanged **24.6%**;
+  mean drop **13.0pp**. Per-rule dev total (macro-18) drop: median **13.2pp**,
+  min **0.81pp**. Rules with dev total drop ≤1.0pp: **40**. ✓ all match paper.
+
+**§4.5 held-out consensus** (`heldout_test/consensus_heldout_32b_llama_3seed.jsonl.gz`,
+budget filter MATH500/AMC23=16384, AIME24=32768 → 9 env/rule):
+- Qwen-32B gate-clearing counts: conservative **0**, balanced **4**,
+  token_efficient **6**; best saving under drop≤1.0pp = **0.6%**.
+- Llama-8B: **0/0/0**; best saving under drop≤1.0pp = **9.3%**. ✓ match paper.
+
+**§4.5 held-out DEER** (`deer_heldout_sweep.py` on
+`related_work/deer_confidence_bank_cap30_heldout/`, macro over 9 env):
+- Qwen-32B conservative τ=0.97: drop **−0.24pp** @ **32.4%** (passes all three gates).
+- Llama-8B conservative τ=0.99: drop **0.67pp** @ **26.7%** (passes all three gates).
+  ✓ match paper.
+
+**Oracle (test-split panels, `report/figures/gen/oracle_cache.json`)** — earliest
+correct probe, per-model aggregate and per-benchmark:
+- per-model aggregate (fig_models, test): DeepSeek −4.35pp@53.1%, Qwen −2.06pp@67.1%,
+  32B −1.96pp@58.3%, Llama −3.96pp@40.8%.
+- per-benchmark (fig_bench, test): MATH500 −3.33/−2.00pp @ 64.8%/81.8%,
+  AMC23 −4.17/−4.17pp @ 72.4%/74.4%, AIME24 −5.56/0.0pp @ 22.2%/45.1% (noisy).
+- NOTE: the old paper phrase "−2 to −10pp @ 40–60%" was wrong for the test figures
+  (−10pp is a **dev-only** value; test saving reaches 67–82%). Calibrated range for
+  the test panels shown: **−2 to −5pp drop at 40–80% saving** (AIME24 excluded/hedged).
+
+**§4.4 tab:baselines** verified earlier against `results/related_work/aggregate/report.md`
+(robust grader; two-model full-gen macro 85.4/79.8 → 82.6% ≈ 82.5% main baseline).
+
+**§4.1 caveat**: facts (1)–(4) numbers are the 3072-token exploratory budget
+(illustration; TODO to re-run at 16K/32K — see plan.md 2026-08-02 续4).

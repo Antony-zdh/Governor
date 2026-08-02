@@ -13,32 +13,36 @@ out of distribution (\S\ref{sec:exp-heldout}).
 
 \subsection{False consensus is real}
 \label{sec:exp-fc}
-We log a dense probe stream for every \textsc{MATH}500 problem under \dsseven{},
-never intervening---the probe is a separate forward pass that only observes the
-main trajectory (full setup in Appendix~\ref{sec:appendix-fc})---and read off four
-facts.
+We log a dense probe stream for every \textsc{MATH}500 problem under \dsseven{}
+at the main $16$K/$32$K budgets (all $500$ problems, three seeds; $1{,}500$
+trajectories), never intervening---the probe is a separate forward pass that only
+observes the main trajectory (full setup in Appendix~\ref{sec:appendix-fc})---and
+read off four facts.
 
-\textbf{(1) Agreement is not correctness.} \emph{Cumulative} agreement (all
-non-empty probes so far concur) is nearly trustworthy ($98.9\%$ correct on the
-$87$ problems reaching it), but that is not what an online rule sees. The
-operative signal, \emph{window} agreement (the last five probes concurring), is
-markedly less reliable: of the $338$ problems reaching a unanimous last-five
-window, only $93.5\%$ are correct---a $6.5\%$ false-consensus rate.
-\textbf{(2) Recovery is common.} Of the $375$ problems whose \emph{first} probe is
-wrong, $76.3\%$ eventually flip to correct; of the $145$ that formed a three-probe
-consensus \emph{different} from their final answer, $65.5\%$ ended up correct.
+\textbf{(1) Final agreement is reliable; early agreement is not.} By the time a
+trajectory finishes, agreement does track correctness: \emph{cumulative}
+agreement across all probes is $97.8\%$ correct ($186$ trajectories reach it), and
+even the final five-probe \emph{window} is $90.4\%$ correct ($1{,}205$). But an
+online rule cannot wait for the end---it fires the \emph{first} time probes
+agree, mid-trajectory, where the answer is far from settled (facts 2--4). The
+operative question is not whether \emph{final} consensus is trustworthy, but
+whether \emph{early} consensus is---and it is not.
+\textbf{(2) Recovery is common.} Of the $1{,}148$ trajectories whose \emph{first}
+probe is wrong, $89.1\%$ eventually flip to correct; of the $736$ that formed a
+three-probe consensus \emph{different} from their final answer, $84.2\%$ ended up
+correct.
 \textbf{(3) Later consensus is worse.} Consensus formed before $512$ tokens is
-$87.4\%$ correct, but consensus forming only after $2048$ tokens is $58.1\%$
+$91.0\%$ correct, but consensus forming only after $2048$ tokens is $71.6\%$
 correct---hard problems converge slowly \emph{and} to worse answers.
 \textbf{(4) The cost lands at the stop.} A naive stop (first three consecutive
-agreeing, certain, non-empty probes) fires on $416/500$ problems and commits to
-answers correct only $69.2\%$ of the time, whereas letting those same problems run
-to completion reaches $85.6\%$: a $16.4\pp$ loss.\footnote{This illustration uses a
-tight $3072$-token budget so truncation is visible on a single A100 and a
-simplified heuristic, \emph{not} the Certaindex algorithm (\S\ref{sec:exp-prior}).
-The main study below runs at the $16$K/$32$K budgets used throughout, where the
-same effect appears as the directional accuracy tax of
-Section~\ref{sec:mechanism}.}
+agreeing, certain, non-empty probes) fires on $1{,}477/1{,}500$ trajectories and
+commits to answers correct only $50.5\%$ of the time, whereas letting those same
+problems run to completion reaches $90.7\%$: a $40.2\pp$ loss.\footnote{A
+simplified heuristic, \emph{not} the Certaindex algorithm (\S\ref{sec:exp-prior});
+it fires early because the first stable, certain agreement is typically a
+mid-trajectory placeholder. The swept rules below and the mechanism of
+Section~\ref{sec:mechanism} quantify the same directional accuracy tax across the
+full rule space.}
 
 A good stopping rule must therefore be much more than ``agreement.'' The rest of
 this section asks whether the \emph{best possible} such rule, drawn from a large
@@ -52,7 +56,7 @@ environments $\times$ $2$ splits (train, dev)---then, per rule, its total (macro
 accuracy drop and net token saving (accounting of Section~\ref{sec:accounting}).
 Applying the preregistered gates yields the paper's central negative result.
 
-The outcome is distribution-free: across all $126{,}720$ rule--environment
+The outcome holds across environments: across all $126{,}720$ rule--environment
 evaluations accuracy strictly \emph{falls} in $64.9\%$ and strictly \emph{rises}
 in only $10.5\%$ (unchanged in $24.6\%$), for a mean drop of $13.0\pp$; over rules
 the total dev drop has median $13.2\pp$ and a minimum of $0.81\pp$.
@@ -207,7 +211,7 @@ candidates scatter to low saving or higher drop---they do not transfer---while
 the dev-selected DEER points land back inside the gate on the test data. Each
 panel also plots an \emph{oracle} upper bound---a perfect probe-based stop that
 commits the earliest correct probe---which sits far in the safe-and-saving corner
-(a negative drop of $2$--$10\pp$ at $40$--$60\%$ saving) that neither consensus
+(a negative drop of $2$--$5\pp$ at $40$--$80\%$ saving) that neither consensus
 nor DEER reaches: headroom that a better \emph{realizable} signal might still
 recover. (On the small AIME24 set the frontiers are noisier and intertwine.)
 

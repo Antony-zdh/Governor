@@ -1,0 +1,19 @@
+seed 42: 456 problem-rows from online_dev
+seed 43: 456 problem-rows from online_dev_nonformal
+seed 44: 456 problem-rows from online_dev_nonformal
+
+=== PER-SEED macro (inspired) ===
+  seed 42: macro dAcc=-0.36pp save=43.7%  | Qwen3 dAcc=+2.78 save=45.6  DeepSeek dAcc=-3.50 save=41.8
+  seed 43: macro dAcc=+4.17pp save=33.8%  | Qwen3 dAcc=-1.72 save=36.1  DeepSeek dAcc=+10.06 save=31.5
+  seed 44: macro dAcc=-6.06pp save=25.1%  | Qwen3 dAcc=-5.56 save=41.2  DeepSeek dAcc=-6.56 save=8.9
+
+=== ACROSS 3 SEEDS (42/43/44 pooled as env replicates) ===
+  Inspired : macro dAcc=-0.75pp save=34.2% (n_env=6)  | Qwen3 dAcc=-1.50 save=41.0  DeepSeek dAcc=+0.00 save=27.4
+  DEER-ref : macro dAcc=-2.71pp save=22.1% (n_env=6)  | Qwen3 dAcc=-1.54 save=18.0  DeepSeek dAcc=-3.89 save=26.1
+
+  inspired macro dAcc across seeds: ['-0.36', '+4.17', '-6.06']  (mean -0.75, range [-6.06,+4.17])
+  inspired macro save across seeds: ['43.7', '33.8', '25.1']  (mean 34.2)
+
+=== paired Inspired - DEER-ref (18 envs, 10k env-bootstrap) ===
+  dAcc advantage = +1.96pp  95% CI [-5.04, +8.97]
+  token-saving advantage = +12.11%  95% CI [+0.68, +22.85]

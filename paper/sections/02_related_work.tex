@@ -25,15 +25,17 @@ trajectory, and find (Section~\ref{sec:results}) that a model's mid-trajectory
 answer is far from final.
 
 \paragraph{Alternative termination signals.}
-Rather than probe agreement, a stop can read the model's own forward-looking
-state: verifier- and process-reward-guided decoding
-\citep{lightman2024verify,wang2024mathshepherd} score partial reasoning, and
-adaptive-computation methods learn a halting signal at the token or layer level
-\citep{graves2016act,schuster2022confident}. DEER \citep{deer} stops on the
-model's confidence in a trial answer at reasoning boundaries. Our results
-(Section~\ref{sec:mechanism}) indicate that this class---forward-looking signals
-about whether the trajectory will still change---is the direction a safe stop
-must take, in contrast to the backward-looking agreement signal we show fails.
+Rather than probe agreement, a stop can read other signals: verifier- and
+process-reward-guided decoding \citep{lightman2024verify,wang2024mathshepherd}
+score partial reasoning, and adaptive-computation methods learn a halting signal
+at the token or layer level \citep{graves2016act,schuster2022confident}. DEER
+\citep{deer} stops on the model's confidence in a trial answer at reasoning
+boundaries. We use DEER only as a \emph{positive control}
+(Section~\ref{sec:mechanism}): run through the identical pipeline and acceptance
+gates, it clears them where no consensus rule does, indicating that the failure
+is specific to the probe-agreement signal rather than to early exit itself. We do
+not claim this broader class of signals is categorically superior---our
+experiments isolate one signal, not a taxonomy of methods.
 Test-time scaling trades compute for accuracy via repeated sampling and search
 \citep{snell2024scaling,brown2024monkeys}; early exit is its dual, spending less
 without losing accuracy.
@@ -41,7 +43,5 @@ without losing accuracy.
 \paragraph{Preregistration.}
 To keep an exhaustive rule search from silently overfitting to a favorable
 operating point, we fix the rule schema, splits, and acceptance gates before
-looking at held-out data \citep{preregistration_ml}. To our knowledge this is
-among the first preregistered evaluations of early-exit rules for reasoning
-models; the protocol (Section~\ref{sec:method}) is what makes a \emph{negative}
-result interpretable.
+looking at held-out data \citep{preregistration_ml}. This preregistration
+(Section~\ref{sec:method}) is what makes a \emph{negative} result interpretable.
