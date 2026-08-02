@@ -197,3 +197,14 @@ the conservative point ($-0.24\pp$ while saving $32.4\%$, $\tau{=}0.97$) and on
 \mbox{Llama-8B} it loses $0.67\pp$ at $26.7\%$ ($\tau{=}0.99$), passing all three
 gates. Consensus is unsafe, and DEER safe-and-saving, across all four axes we
 vary---benchmark, seed, $4\times$ scale, and architecture/family.
+
+Figures~\ref{fig:gen-splits}--\ref{fig:gen-bench} (Appendix~\ref{sec:appendix-gen})
+show this on one set of axes for splits, models, and benchmarks. The
+selection view (Figure~\ref{fig:gen-splits}) makes the held-out logic concrete:
+the consensus rules that clear the conservative gate on \emph{train}
+(in-sample winners) fall out of the gate on dev and test, whereas DEER stays in
+the safe-and-saving corner throughout. Each panel also plots an \emph{oracle}
+upper bound---a perfect probe-based stop that commits the earliest correct
+probe---which sits far in that corner (a negative drop of $2$--$10\pp$ at
+$40$--$60\%$ saving) and that neither consensus nor DEER reaches: headroom that a
+better \emph{realizable} signal might still recover.

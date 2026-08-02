@@ -118,3 +118,51 @@ Table~\ref{tab:deer} gives the DEER threshold frontier that does reach it.
   cleared around $\tau\in[0.97,0.995]$.}
   \label{tab:deer}
 \end{table}
+
+\section{Generalization and Selection Figures}
+\label{sec:appendix-gen}
+
+Figures~\ref{fig:gen-splits}--\ref{fig:gen-bench} place, on one set of axes, every
+consensus rule (grey; red dev/subset Pareto step), the DEER threshold frontier
+(green), and an \emph{oracle} upper bound (purple star). The oracle is the
+best-case probe-based stop: for each problem it commits the earliest dense probe
+whose answer is already correct (else keeps the full trajectory), charging probe
+output through that point. It is unrealizable---it uses the gold answer to choose
+when to stop---so it bounds the headroom of \emph{any} probe-based rule; it sits
+far in the safe-and-saving corner (negative drop, large saving), which neither
+consensus nor DEER reaches. The three shaded boxes are the preregistered gates.
+(On the smallest set, AIME24, the oracle falls off the plotted range because a
+single rescued problem is a large accuracy swing; it is omitted there.)
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/gen/fig_splits.pdf}
+  \caption{\textbf{Selection across splits.} On \emph{train}, the orange points
+  are the $478$ consensus rules that clear the conservative gate in-sample; on
+  \emph{dev} and \emph{test} those \emph{same} rules scatter out of the gate box
+  (higher drop, lower saving)---they do not generalize, which is why the
+  preregistered gate admits none out-of-sample. DEER (green) stays in the
+  safe-and-saving corner on all three splits.}
+  \label{fig:gen-splits}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/gen/fig_models.pdf}
+  \caption{\textbf{Generalization across scale and architecture.} Two development
+  models (dev split) and the two held-out models (test split, three seeds). No
+  consensus rule enters the conservative gate on any model; DEER clears it on
+  every model, including the $4\times$-larger Qwen-32B and the Llama-8B
+  architecture.}
+  \label{fig:gen-models}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/gen/fig_bench.pdf}
+  \caption{\textbf{Generalization across benchmarks} (dev). The consensus
+  trade-off and the DEER advantage hold on \textsc{MATH}500 and AMC23; on the
+  small AIME24 set the two frontiers are noisier and intertwine, consistent with
+  its few problems per environment.}
+  \label{fig:gen-bench}
+\end{figure*}
