@@ -4,6 +4,79 @@
 
 ---
 
+## 2026-08-01 · ✅ Confirmation 补种子 46/47（Llama-8B + Qwen-32B，test split）采集完成 + 健康核对
+
+**动机**：held-out confirmation 之前只有 seed 45（外加 dev-scale 的 42/43/44）。把两个 confirmation
+模型（Llama-8B heldout_architecture、Qwen-32B heldout_scale）在 **test split** 上补到 seed 46/47，
+凑齐预注册的 confirmation 种子集 45/46/47，给 §4.4 held-out 的 seed 稳健性加两组独立复现。
+
+- **范围**：2 模型 × 3 benchmark（math500/amc23/aime24）× seed 46/47 = **12 个 env**，test split 独立采
+  （problem-ids 用 `<bench>__test.txt`：math500=100 / amc23=8 / aime24=6 题）。phase=`confirmation`，
+  输出落在 `results/governor_v2/confirmation__<model>__<bench>__seed_{46,47}/`。三个 stage 全跑：
+  main（traj）→ dense_simple32（64-token 网格 probe）→ adaptive_simple32。
+
+- **执行**：本次是 driver 脚本（`~/confirm_4647.log`）今早 07:48 起 4 台 vLLM（32B×2 tp=2、Llama×2，
+  端口 18000/18010/18030/18040，每模型每 seed 一台），07:50 起 4 个采集 tmux（c32b_46/47、cll_46/47）
+  各绑一台服务器并行跑。到我接手时采集 tmux 已全部正常退出、12 个 env 计数齐全（traj=probe=adaptive
+  =题数），**无需重跑**。
+
+- **健康核对（final_correct，0 空答案）**：
+
+  | | math500 | amc23 | aime24 |
+  |---|---|---|---|
+  | **Llama-8B** s46/s47 | 95% / 92% | 87.5% / 87.5% | 66.7% / 66.7% |
+  | **Qwen-32B** s46/s47 | 97% / 98% | 100% / 87.5% | 66.7% / 83.3% |
+
+  数字全部合理，**Llama 轨迹是连贯英文推理、0 空答案** → BOS 修复在 confirmation 采集里同样生效
+  （不是坏模板下的乱码）。avg token 也正常（Llama aime24 ~13k 在 32k budget 内，math500 ~3.5k）。
+
+- **收尾**：12 env 采完后 4 台服务器闲置（0 req、GPU 0–5 各占 ~78G），按共享机礼仪全部关掉、释放 8 卡。
+  **待办**：这批 test/46/47 数据可并入 §4.4 held-out 的 seed 复现（聚合是纯 offline、同事在跑，不占 GPU）。
+
+---
+
+## 2026-07-31 · ✅ ③ Probe-robustness 全部跑完（4 种 probe 后缀，floor + CertaIndex/DoE）
+
+**动机**：审稿人会质疑「false consensus 是不是你那一个 probe 后缀的伪影？换个提问方式就没了？」
+③ 就是把整套 17,712-rule sweep + CertaIndex 复现 + direction-of-effect 在**4 种不同 probe 后缀**
+下各重跑一遍，看结论是否 probe-invariant。4 个 variant：`certaindex`（原版 boxed 后缀）、
+`chat_templated`（走 chat 模板）、`open_ended`（开放式提问）、`longer_trial`（更长 trial）。
+
+**Phase A — 准确率 floor（min over rules of max per-model drop）+ floor 处的省 token**：
+
+| variant | floor drop | floor 处 dev_q20 saving | psf@floor | frontier 上首个正省 token 点的 drop |
+|---|---|---|---|---|
+| certaindex     | 0.074 pp  | **−0.027**（负） | 0.056 | 3.130 pp |
+| chat_templated | 1.519 pp  | **−0.016**（负） | 0.778 | 3.481 pp |
+| open_ended     | −0.000 pp | **−0.059**（负） | 0.000 | 3.259 pp |
+| longer_trial   | 3.370 pp  | **−0.024**（负） | 0.139 | 4.870 pp |
+
+- **关键不变量（正是要的结论）**：**4 种后缀下，最小准确率下降的那条 rule 的净省 token 一律为负**
+  （dev_q20 saving < 0）。`certaindex`/`open_ended` 那两个 drop≈0 的点，是靠「几乎不停」换来的
+  （psf=0.056 / 0.000，也就是几乎没有 env 能正省），一旦 Pareto frontier 上进入正省 token 区间，
+  准确率下降立刻跳到 **≥3.1 pp**——远超 1.5pp 的 conservative gate。换任何 probe 后缀，
+  **safe-AND-saving 的角落都是空的**，结构和正文 floor（1.85pp / 净 −8~−9%）完全一致。
+  → 结论 probe-invariant，不是那一个后缀的伪影。
+
+**Phase B — CertaIndex 复现 + direction-of-effect（35:1 那个不对称）在替代后缀下**：
+
+- naive consensus stopper 的 destroy:bank 比（FC/SW 毁掉的 vs FW/SC 侥幸捞到的），pooled：
+  `certaindex` **24.13:1**（Qwen 27.6 / DS-7B 21.1）、`open_ended` **18.63:1**（19.3 / 17.8）、
+  `longer_trial` **21.65:1**（24.3 / 19.1）。正文 §5 的 35:1 在 3 种替代后缀下复现为 **18–24:1**，
+  方向完全一致、恒 ≫1。保守版 governor（conservative/balanced）如预期低一些（2.75–6.65），因为它停得少。
+- CertaIndex 复现：`certaindex`、`open_ended` 各 18 runs 跑完；`longer_trial` 按设计跳过（cap=64≠32）；
+  `chat_templated` 的 CertaIndex/DoE 段无输出（同样被 cap 跳过）。
+
+**产出**：`benchmark/FalseConsensus/governor_v2/generated/probe_robust_summary.txt`（完整 4-variant 汇总）；
+各 variant 的 `existing_methods_probe_<v>/`（governor_aggregate.json 等）。`~/DONE_probe` 已写。
+
+**收尾**：③ 是我这边最后一个吃 GPU 的任务。跑完后把两台闲置 vLLM（`vllm_7b`/`vllm_8b`，0% util、
+各占 76G、挂了 1.75 天）关掉，释放 GPU 2/3（共 152G）——聚合是纯 CPU offline（同事在跑），不需要 vLLM。
+**待办**：把 ③ 作为一个 robustness 附录/小节折进 paper（正文说「结论对 probe 后缀不敏感」+ 引 18–24:1 与空角落）——
+等作者本人决定要不要加、加哪。
+
+---
+
 ## 2026-07-30（续3）· ✅ Llama-8B 修复后重采完成（三 seed 验证健康）+ BOS 机制更正 + 聚合启动
 
 本条**正式作废并取代**上一条（续2）里已 push 的 Llama-8B 数据 —— 用修复模板重采的干净数据为准。
