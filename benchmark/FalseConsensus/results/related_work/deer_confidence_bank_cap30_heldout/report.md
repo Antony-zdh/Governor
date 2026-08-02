@@ -30,8 +30,8 @@ branch name):
 | Environments | 18 (2 models × 3 benchmarks × 3 seeds) |
 | Scope | `test` (confirmation seeds 45/46/47) |
 | Trajectories | 684 (342 per model: math500=100, amc23=8, aime24=6 per env) |
-| Cap-30 candidate trials | **5,324** (all generated; 0 reused) |
-| Invalid trial answers (empty `trial_answer`) | 161 |
+| Cap-30 candidate trials | **6,485** (all generated; 0 reused) |
+| Invalid trial answers (empty `trial_answer`) | 216 |
 | Recorded failures | 0 |
 
 Per-model / benchmark (trials):
@@ -39,21 +39,30 @@ Per-model / benchmark (trials):
 | Model | aime24 | amc23 | math500 | total |
 |---|---:|---:|---:|---:|
 | qwen32b (32B) | 374 | 249 | 2,131 | 2,754 |
-| llama8b (8B) | 300 | 186 | 2,084 | 2,570 |
-| **total** | 674 | 435 | 4,215 | **5,324** |
+| llama8b (8B) | 441 | 288 | 3,002 | 3,731 |
+| **total** | 815 | 537 | 5,133 | **6,485** |
 
-## Held-out finding: the `Wait` trigger is seed/architecture-dependent
+## BPE-piece `full_text` recovery (code change)
 
-The DEER trigger is the first 30 case-insensitive whole-word `Wait` positions.
-On the Llama-8B confirmation trajectories, **seed 45 has zero `Wait` tokens
-across all three benchmarks** (→ 0 candidates, 0 trials, envs still complete with
-empty per-problem payloads — the protocol is followed faithfully; the trigger
-simply never fires). Seeds 46/47 produce `Wait` normally. The 32B Qwen-distill
-produces `Wait` on all seeds. This is a genuine frozen-input characteristic, not a
-protocol deviation: the source trajectories are immutable inputs and were not
-altered. The realized trial count (5,324) therefore falls below the ≈6,485
-pre-collection estimate (which assumed both models emit `Wait` like the dev
-models); the shortfall is entirely the 0-trigger Llama seed-45 envs.
+The frozen Llama-8B **seed-45** confirmation trajectories store `full_text` as
+the concatenation of GPT2/Llama BPE **token pieces** (with `Ġ`/`Ċ` metacharacters
+instead of real spaces/newlines); seeds 46/47 and all 32B trajectories are
+stored correctly (decoded text). Because `Ġ` (U+0120) is a Unicode letter,
+`find_wait_positions`'s `(?i)\bWait\b` found no word boundary on the seed-45
+text → 0 candidates → 0 trials, even though the reasoning does contain `Wait`.
+
+Fix: `deer_confidence_bank.recover_bpe_decoded_text()` inverts the GPT2
+`bytes_to_unicode` mapping to recover the true decoded text (exactly what the
+tokenizer's own `decode` produces) before candidate search and re-encoding.
+It is **gated on the presence of `Ġ`** (which never occurs in decoded reasoning
+text), so it is a byte-identical no-op on already-decoded trajectories — the
+committed 32B and Llama seeds 46/47 results are unchanged. Only the 3 Llama
+seed-45 envs were re-collected: aime24 0→141, amc23 0→102, math500 0→918
+(+1,161 trials, bringing the total from 5,324 to 6,485, exactly the
+pre-collection estimate). `material_token_count_mismatches == 0` confirms the
+recovered prefixes are materially token-aligned. Frozen main trajectories were
+not modified. Covered by unit tests in
+`tests/test_deer_confidence_bank.py::BpeRecoveryTests`.
 
 ## Audit
 
@@ -61,7 +70,7 @@ models); the shortfall is entirely the 0-trigger Llama seed-45 envs.
 the resumable raw files (`--pack`) and on the committed archives
 (`--archives-only`): per-problem schema, method, cap-30, no formal readout,
 sequential candidate ids, non-empty logprob arrays, reuse/generated accounting
-(0 reused + 5,324 generated == 5,324), 0 recorded failures. Committed data:
+(0 reused + 6,485 generated == 6,485), 0 recorded failures. Committed data:
 deterministic `trials.jsonl.gz` archives + `bank_manifest.json` per env, and the
 global `summary.json`.
 

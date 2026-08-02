@@ -219,5 +219,31 @@ class AuditAndPackTests(unittest.TestCase):
             self.assertEqual(summary["valid_hit_30"]["hits"], 1)
 
 
+class BpeRecoveryTests(unittest.TestCase):
+    def test_recovers_wait_from_bpe_metacharacters(self):
+        # A trajectory whose full_text was stored as BPE token pieces (Ġ=space,
+        # Ċ=newline) instead of decoded text. "Wait" is present but \bWait\b
+        # finds no boundary because Ġ (U+0120) is a letter.
+        raw = "StepĠ1.ĠWait,Ġno.ĊĠStepĠ2.ĠwaitĠagain."
+        from benchmark.FalseConsensus.related_work import common
+
+        self.assertEqual(len(common.find_wait_positions(raw)), 0)
+        recovered = bank.recover_bpe_decoded_text(raw)
+        self.assertEqual(recovered, "Step 1. Wait, no.\n Step 2. wait again.")
+        self.assertEqual(
+            len(common.find_wait_positions(recovered)), 2
+        )
+
+    def test_noop_on_already_decoded_text(self):
+        clean = "Step 1. Wait, no.\nStep 2. wait again. θ π √ ×"
+        self.assertEqual(bank.recover_bpe_decoded_text(clean), clean)
+
+    def test_preserves_real_unicode_math_symbols(self):
+        # Real math symbols (>U+00FF) are passed through, not mangled.
+        raw = "xĠ=ĠπĠWaitĠ→Ġ2"  # Ġ=space; π/→ are real
+        recovered = bank.recover_bpe_decoded_text(raw)
+        self.assertEqual(recovered, "x = π Wait → 2")
+
+
 if __name__ == "__main__":
     unittest.main()

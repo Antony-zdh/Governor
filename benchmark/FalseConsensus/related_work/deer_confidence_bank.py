@@ -71,6 +71,59 @@ def _identity(payload: Mapping[str, Any]) -> tuple[str, str, int, int]:
     )
 
 
+# GPT2/Llama BPE bytes_to_unicode map and its inverse. When a frozen trajectory
+# stores ``full_text`` as the concatenation of token *pieces* (with ``Ġ``/``Ċ``
+# metacharacters) instead of the byte-decoded text, ``\bWait\b`` finds no word
+# boundary (``Ġ`` is U+0120, a letter) and the re-encoded token count diverges.
+# Applying the inverse map recovers the true decoded text -- exactly what the
+# tokenizer's own ``decode`` produces -- and is a strict no-op (byte-identical)
+# on already-decoded text that contains no metacharacters.
+def _bytes_to_unicode() -> dict[int, str]:
+    bs = (
+        list(range(ord("!"), ord("~") + 1))
+        + list(range(ord("¡"), ord("¬") + 1))
+        + list(range(ord("®"), ord("ÿ") + 1))
+    )
+    cs = bs[:]
+    n = 0
+    for b in range(2 ** 8):
+        if b not in bs:
+            bs.append(b)
+            cs.append(2 ** 8 + n)
+            n += 1
+    return dict(zip(bs, [chr(c) for c in cs]))
+
+
+_BPE_CHAR_TO_BYTE = {v: k for k, v in _bytes_to_unicode().items()}
+
+
+def recover_bpe_decoded_text(text: str) -> str:
+    """Recover the true decoded text from a BPE-piece ``full_text``.
+
+    Inverts the GPT2/Llama ``bytes_to_unicode`` mapping; characters not in the
+    map (normal ASCII, real Unicode math symbols) are passed through verbatim as
+    UTF-8. A no-op on already-decoded text.
+
+    The inverse map collides with Latin-1 supplement characters that appear
+    legitimately in decoded math text (e.g. ``×`` U+00D7, ``²`` U+00B2), so
+    recovery is gated on the presence of the BPE space marker ``Ġ`` (U+0120),
+    which never occurs in decoded reasoning text. Already-decoded trajectories
+    (no ``Ġ``) are returned byte-identical; only BPE-piece trajectories are
+    recovered.
+    """
+    if "Ġ" not in text:
+        return text
+    out = bytearray()
+    for ch in text:
+        byte = _BPE_CHAR_TO_BYTE.get(ch)
+        if byte is not None:
+            out.append(byte)
+        else:
+            out.extend(ch.encode("utf-8"))
+    return out.decode("utf-8", errors="replace")
+
+
+
 def reusable_trial(
     row: Mapping[str, Any],
     *,
@@ -294,7 +347,7 @@ class DEERConfidenceBankCollector(deer.DEERCollector):
             self.base_seed,
             problem_id,
         )
-        full_text = str(trajectory["full_text"])
+        full_text = recover_bpe_decoded_text(str(trajectory["full_text"]))
         candidates = deer.find_candidates(
             full_text, max_attempts=self.max_attempts
         )
