@@ -7,23 +7,24 @@ and why it generalizes beyond the exact rules we searched: the accuracy cost of
 stopping on consensus is a directional property of the reasoning trajectory
 itself, not of a threshold or of probe density.
 
-\subsection{Stopping destroys more than it saves: a $35{:}1$ effect}
+\subsection{Stopping destroys more than it saves}
 Consider only the stops where committing early \emph{changes} correctness relative
 to the trajectory's own final answer, and count two outcomes: (final-correct,
 stop-wrong)---a correct recovery destroyed---versus (final-wrong,
 stop-correct)---a wrong answer luckily banked. Pure sampling noise predicts a
 $\approx1{:}1$ ratio; a genuine ``continued reasoning corrects'' effect predicts
-$\gg1$. On the frozen replay this ratio is $\mathbf{35{:}1}$ for the naive
-consensus stopper ($1055$ destroyed vs.\ $30$ banked; $34.3{:}1$ and $35.9{:}1$ on
-\dsseven{} and \qweneight{} separately) and $15$--$18{:}1$ for the more
-conservative variants---all far above $1{:}1$. Stopping on consensus removes a
-correct-in-the-end answer about $35$ times more often than it rescues a wrong one.
-DEER's stops, by contrast, run at only $\approx\!2.4$--$3.5{:}1$ at its three
-operating points---an order of magnitude lower---because its boundary-confidence
-signal commits mainly once the trajectory has actually settled.
-This is the recovery phenomenon of \S\ref{sec:exp-fc} ($65.5\%$, $76.3\%$), now at
-the main $16$K/$32$K budgets and as a signed effect: the loss is real and
-directional, not sampling variance.
+$\gg1$. On the frozen replay this ratio depends strongly on the window: it falls
+from $\approx\!45{:}1$ for a latest-probe stop ($W{=}1$) to $\approx\!2{:}1$ at
+the largest window ($W{=}30$). But the low end is bought only by stopping so
+rarely that net saving vanishes ($W{=}30$ fires on $121$ dev problems vs.\ $668$
+at $W{=}1$); at any window that actually saves tokens the ratio stays well above
+$1{:}1$. DEER, by contrast, holds $\approx\!2.4$--$3.5{:}1$ at its three operating
+points \emph{while} saving $28$--$32\%$, because its boundary-confidence signal
+commits mainly once the trajectory has settled. Stopping on consensus therefore
+removes a correct-in-the-end answer many times more often than it rescues a wrong
+one---directional, not sampling noise. This is the recovery phenomenon of
+\S\ref{sec:exp-fc} ($65.5\%$, $76.3\%$), now at the main $16$K/$32$K budgets and
+as a signed effect.
 
 \subsection{The accuracy tax is intrinsic to the trajectory}
 Why is the ratio structural? For a rule stopping at token position $s$, the

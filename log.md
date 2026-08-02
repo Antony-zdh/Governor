@@ -874,3 +874,14 @@ Abstract/Intro/Method/Results/Mechanism/Conclusion/Limitations/Appendix 全部�
   （之前单 seed 的"32B conservative 通过 92"确认为噪声，已废弃。）
 - DEER 在 32B/Llama 仍无 confidence bank（本次更新未含）→ GPU 待办。
 - 新数据入 bank：results/governor_v2_ws_sweep/heldout_test/（190080 行）；report/manifest 更新；§4.5 改为 3-seed 版。论文干净编译。
+
+### 2026-08-02（续3）论文逐节 review + 泛化图 + 交接
+- 泛化图入正文：Fig1=fig_splits（选择→泛化，train-gate 候选掉出/DEER C/B/T 留在 gate+oracle），
+  fig_models(2×2, test)、fig_bench(test) 入 §4.5；旧单图 pareto 移除；report/make_generalization_figs.py（oracle 缓存）。
+- 逐节 claim×维度 review：Abstract 减半(~130词)、Intro（搜索空间内限定/贡献 bullet 措辞/DEER 泛化补句/
+  脚注移右栏并精简，验证不跨栏不泄漏）、Mechanism §5（harm:rescue 改为窗口区间 45:1→2:1 + saving caveat +
+  DEER 2.4-3.5:1；35× 全改为"up to ~35× aggressive stop"）。
+- 核实：gates/图/数字全为 macro-over-18-env（Fig1 caption "pooled"→macro）。
+- DEER recovery:overthinking（robust,dev）：conservative 3.0:1 / balanced 2.4:1 / token_eff 3.5:1，vs consensus 35:1。
+- CLAUDE.md 全面重写为下一个 agent 的交接文档（story/规则空间/gates/结果/关键实验细节/叙事/review 进度/路径）。
+- 论文编译干净（14 页，0 未定义引用）。commit 199ba546 起为本轮 review。
