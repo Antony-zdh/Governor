@@ -1490,3 +1490,19 @@ teammate 给出的下一步五步，及讨论后的排期/细化：
 - **[可选] miscalibration/CCE 分析重做**：附录 miscalibration 小节因样本过小（share=0.8 处 n=36）已删。
   若日后重做，应在 16K/32K 下、且改用**触发时刻 share**（而非末窗 window_share）重算 CCE，
   样本量足够再决定是否放回论文。
+
+### 2026-08-03（续3）图表 v3 交付 + pooled 稳健性 TODO
+- issues 7/8 完成：Figure 1 idea figure（3-panel，A/B 两版可选）+ 4 张数据图
+  （consensus position / W×s heatmap / split transfer / harm:rescue）+ taxonomy 图；
+  旧的 3 张 Pareto 图（fig_splits/fig_models/fig_bench）移入附录。论文编译干净、0 undefined。
+- 脚本：`report/make_v3_figures.py`、`report/compute_harm_rescue.py`、
+  `report/compute_consensus_position.py`；caption 备份在 `paper/revision_v3/CAPTIONS.tex`。
+- **TODO（未做，reviewer 风险点）**：dev/test 分布差异。同一批 478 条 train 候选
+  在 dev 上 median drop 4.5pp、在 test 上仅 0.62pp（364/478 在 test 过 gate）。
+  全部 3,520 条规则的 median drop：train 5.38 / dev 13.19 / test 6.47 pp。
+  溯源到 Qwen3-8B 的 AMC23(n=8)、AIME24(n=6) 两个极小环境在 macro 下与 n=100 的
+  MATH500 等权。**需用 pooled（problem-micro / 按题数加权）重算一次**确认：
+  (1) dev 上 consensus 仍 0 条过 conservative gate；(2) dev/test 差距是否收窄；
+  (3) DEER 三个点仍过三档 gate。protocol 规定 macro，故 pooled 只能作为
+  robustness check 汇报，不能替换主指标（否则像 metric shopping）。
+  数据现成：`dev/consensus_dev_train.jsonl.gz` 每行带 `n`，只需重新聚合。

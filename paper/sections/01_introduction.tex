@@ -13,76 +13,97 @@ the model repeatedly says $x$, it has probably finished reasoning about $x$. Thi
 paper asks whether that assumption is warranted: \textbf{is intermediate
 agreement a safe signal on which to stop?}
 
-Our answer is \textbf{no}, and the reason is not a badly tuned threshold---it is
-the signal itself. Intermediate consensus\footnote{``False consensus'' here
-denotes non-terminal intermediate probe agreement, unrelated to the
-social-psychology term \citep{ross1977false}; we study answer-level, not
-token/layer-level, early exit \citep{graves2016act,schuster2022confident}.} forms
-\emph{while the answer is still moving}: on a frozen replay, stopping on consensus destroys a
-correct-in-the-end answer up to $\mathbf{35}$ times more often at an aggressive stop (Section~\ref{sec:mechanism}). This is an \emph{accuracy tax} that is
-a property of the reasoning trajectory, not of how one probes it, so no rule in
-the searched space escapes it. We make the claim hard to dismiss as
-``you did not tune it well'' by searching the space exhaustively under
-commitment: on frozen trajectories from two models and three benchmarks we run a
-\emph{preregistered} sweep of the consensus signal---a window size $\times$ share
-threshold family plus operational knobs, $3{,}520$ rules---with problem-grouped
-splits and acceptance gates fixed in advance
+Our answer is \textbf{no}, and the reason is not a badly tuned threshold.
+Intermediate consensus\footnote{``False consensus'' here denotes non-terminal
+intermediate probe agreement, unrelated to the social-psychology term
+\citep{ross1977false}; we study answer-level, not token/layer-level, early exit
+\citep{graves2016act,schuster2022confident}.} forms \emph{while the answer is
+still moving}. On a frozen replay, a consensus stop destroys a correct-in-the-end
+answer up to ${\sim}\mathbf{45}\times$ more often than it rescues a wrong one at an
+aggressive latest-probe stop. Demanding more agreement helps only by stopping
+less often: at the largest windows the ratio falls to ${\sim}2\times$, but the
+rule fires on a fifth as many problems and saves almost nothing.
+
+We make this hard to dismiss as ``you did not tune it well'' by searching the
+space exhaustively under commitment: on frozen trajectories from two models and
+three benchmarks we run a \emph{preregistered} sweep of the consensus signal---a
+window size $\times$ share threshold family plus operational knobs, $3{,}520$
+rules---with problem-grouped splits and acceptance gates fixed in advance
 (Sections~\ref{sec:method}--\ref{sec:results}). The outcome does not depend on
 any single fragile estimate: \textbf{not one of the $3{,}520$ rules is both safe
 and saving---none clears any gate}, and even large windows only trade the drop
-away for zero saving. To show this is the \emph{signal} and not early exit, we
+away for zero saving.
+
+Why should agreement fail so consistently? Section~\ref{sec:mechanism} gives
+three pieces of evidence. Agreement is informative in self-consistency because
+the reasoning paths are sampled \emph{independently}; probes of one trajectory
+share a prefix, so they cannot outvote each other's errors. Probing the same
+frozen prefix with two different wordings returns different answers $57\%$ of the
+time in the first tenth of a trajectory, against $11\%$ at the end---early
+``answers'' are largely artifacts of being asked. And hand-labelling $134$ wrong
+stops finds that three in five commit to an answer the model had not converged
+on, against one in five that it had genuinely settled on.
+
+To show this is the \emph{signal} and not early exit, we
 sweep one non-consensus method---DEER, which reads the model's confidence at a
 reasoning boundary---through the identical pipeline and gates: it clears all
 three, losing as little as $0.3\pp$ while saving $28\%$. The consensus frontier
 reproduces on a held-out test split ($r{=}0.98$) and on unseen models at
 $4\times$ the scale and a different architecture (Section~\ref{sec:results}). Two
-published-signal checks bracket the contrast: a faithful Certaindex reproduction
-on the same trajectories collapses by $56$--$70\pp$, while DEER clears the gates
-on the unseen models too. Figure~\ref{fig:pareto} is the whole paper in one
-picture: the
-consensus rules that clear the gates in-sample on train leave the safe-and-saving
-corner on dev and test, while the three DEER operating points selected on dev
-stay in it out of sample.
+published-signal checks bracket the contrast: CertaIndex (CoT), reproduced from
+its released implementation, loses $56$--$70\pp$ on the same trajectories, while
+DEER clears the gates on the unseen models too. Figure~\ref{fig:idea} is the
+whole paper in one picture. Our claim is about agreement used \emph{alone} as a
+stopping criterion; combined with a signal that reflects the model's own estimate
+it may still be useful, and we return to this in Section~\ref{sec:mechanism}.
 
 \begin{figure*}[t]
   \centering
-  \includegraphics[width=\textwidth]{figures/gen/fig_splits.pdf}
-  \caption{\textbf{Selection $\rightarrow$ generalization, in one picture}
-  (two development models; macro-averaged over the environments; net token saving
-  vs.\ accuracy drop). Grey:
-  all $3{,}520$ consensus rules. \textbf{Orange}: the $478$ consensus rules that
-  clear the conservative gate \emph{in-sample on train}---on \emph{dev} and
-  \emph{test} the same rules leave the shaded gate boxes (higher drop, lower
-  saving), so the preregistered gate admits none out of sample. \textbf{Green}:
-  the DEER threshold frontier (swept through the identical pipeline and
-  accounting); the labelled stars are the three operating points selected on dev
-  (\textbf{C}onservative/\textbf{B}alanced/\textbf{T}oken-efficient), which stay
-  inside the gate on dev and test. \textbf{Purple star}: an oracle upper bound
-  (earliest correct probe), far in the corner that neither method reaches. The
-  failure is a property of the consensus \emph{signal}, not of early exit.}
-  \label{fig:pareto}
+  \includegraphics[width=\textwidth]{figures/gen/fig1_idea.pdf}
+  \caption{\textbf{The argument in one picture.}
+  \textbf{(a)} Intermediate probe agreement is not terminal. On a real
+  trajectory (\textsc{MATH}500 problem~68, \dsseven{}, dense $64$-token probes)
+  the model emits the same wrong answer, \texttt{37}, for ten consecutive
+  probes; a rule requiring three agreeing probes fires at generated token~$256$
+  and commits it. Left to run, the trajectory reaches the correct answer
+  \texttt{46} and holds it for its final $47$ probes. Ribbon colours: red the
+  dominant wrong answer, pink other wrong answers, green correct.
+  \textbf{(b)} We ask whether \emph{any} consensus rule escapes this. A
+  preregistered sweep of $3{,}520$ rules---window size $W$ $\times$ share
+  threshold $s$, crossed with probe schedule, maturity, validity and
+  certainty---is replayed on $18$ frozen environments against three acceptance
+  gates fixed before the sweep ran. None clears any gate, and the two ways to
+  fail are symmetric: capping the accuracy drop at $1\pp$ permits $0.2\%$ token
+  saving, while demanding $10\%$ saving costs $2.7\pp$.
+  \textbf{(c)} The failure is the \emph{signal}, not early exit. Swept through
+  the identical pipeline, gates and token accounting, a boundary-confidence
+  method (DEER) clears all three gates while consensus clears none---and it does
+  so on the held-out test split, at $4\times$ scale and on a different
+  architecture as well (\S\ref{sec:exp-heldout}).}
+  \label{fig:idea}
 \end{figure*}
 
 \paragraph{Contribution.}
-Our contribution is a rigorous, mechanism-backed demonstration that
-\emph{intermediate answer-consensus is an unsafe early-exit signal for reasoning
-LLMs}, established so that it cannot be waved away as an untuned heuristic. Three
-components support this one claim:
+Our contribution is an explanation of \emph{why} intermediate answer-consensus
+cannot serve as an early-exit signal on its own, together with the evidence that
+no tuning escapes it. Three components support the claim:
 \begin{itemize}
-  \item \textbf{A preregistered, probe-independent test} (frozen trajectories,
-  offline re-probing, a two-parameter consensus family enumerated to $3{,}520$
-  rules, and selection gates fixed in advance) under which \emph{no} consensus
-  rule is both safe and token-saving---and which we release in full
-  (Sections~\ref{sec:method}--\ref{sec:results}).
-  \item \textbf{A mechanism} that explains \emph{why}: a directional
-  ``continued-reasoning-corrects'' effect ($\gg\!1{:}1$) makes the accuracy
-  cost of stopping intrinsic to the trajectory and independent of probe density,
-  so the failure reflects the reasoning trajectory rather than the particular
-  rules we searched (Section~\ref{sec:mechanism}).
-  \item \textbf{Out-of-distribution and cross-signal confirmation}: the consensus
-  frontier reproduces on a held-out split and two unseen models, a published
-  Certaindex reproduction collapses, and a non-consensus signal (DEER) swept
-  under the identical protocol \emph{clears the same gates} on the same
-  trajectories---localizing the failure to consensus and indicating where a safe
-  signal must come from (Sections~\ref{sec:results}--\ref{sec:mechanism}).
+  \item \textbf{An account of what probe agreement can and cannot mean.}
+  Self-consistency's guarantee comes from independently sampled paths; probes of a
+  single trajectory share a prefix, so agreement supplies no vote that can outweigh
+  an error, and a stop has nothing to protect it (Section~\ref{sec:mechanism}).
+  \item \textbf{Direct evidence of what the probes agree on.} Two annotators
+  labelled all $134$ stopped-but-wrong cases ($\kappa{=}0.82$): three in five
+  commit to an answer the model had not converged on, and only one in five to a
+  settled one. Probing forces an output rather than reading a belief, which also
+  explains why a longer window reduces the damage without removing it---and why it
+  does so only by declining to stop (Section~\ref{sec:mechanism}).
+  \item \textbf{A preregistered search showing this is not a tuning failure}
+  (frozen trajectories, offline re-probing, a two-parameter consensus family
+  enumerated to $3{,}520$ rules, gates fixed in advance): \emph{no} consensus rule
+  is both safe and token-saving; the frontier reproduces on a held-out split and
+  two unseen models; and a non-consensus signal (DEER) swept under the identical
+  protocol \emph{clears the same gates} on the same trajectories, localizing the
+  failure to the signal (Sections~\ref{sec:method}--\ref{sec:results}). We release
+  the protocol, trajectories, and sweep in full.
 \end{itemize}

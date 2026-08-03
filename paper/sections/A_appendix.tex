@@ -57,46 +57,22 @@ consensus and DEER regardless of outcome.
 Frozen trajectories, offline probe banks, the sweep archive
 ($126{,}720$ dev metric rows plus the DEER threshold sweep), and the aggregation
 scripts are released.
-Tables~\ref{tab:frontier}--\ref{tab:deer} were reproduced to the reported
-precision directly from the released sweep archive. Grading uses a robust
+Table~\ref{tab:deer} and Figure~\ref{fig:ws-heatmap} were reproduced to the
+reported precision directly from the released sweep archive. Grading uses a robust
 answer-equivalence check that
 tries the raw and normalized reference forms and both string and
 math-expression equality; per-problem correctness for the frozen baseline is
 recomputed at replay time rather than trusted from collection.
 
-\section{Window-Size and DEER Frontiers}
+\section{DEER Threshold Frontier}
 \label{sec:appendix-tables}
 
-Table~\ref{tab:frontier} traces the consensus trade-off directly along the window
-axis: as the window $W$ grows, the minimum attainable accuracy drop falls
-monotonically (from $22\pp$ at $W{=}1$ to $0.8\pp$ at $W{=}30$), but the maximum
-net saving falls with it (from $98\%$ to $39\%$)---the low-drop region is
-reachable only at large windows, where saving has already collapsed. This is why
-no single $(W,s)$ setting lands in the safe-and-saving corner.
-Table~\ref{tab:deer} gives the DEER threshold frontier that does reach it.
-
-\begin{table}[t]
-  \centering\small
-  \begin{tabular}{ccc}
-    \toprule
-    Window $W$ & Min total drop (pp) & Max net saving \\
-    \midrule
-    $1$  & $22.25$ & $98.1\%$ \\
-    $3$  & $11.76$ & $93.8\%$ \\
-    $5$  & $8.01$  & $87.9\%$ \\
-    $8$  & $4.91$  & $72.9\%$ \\
-    $12$ & $1.85$  & $62.0\%$ \\
-    $16$ & $1.74$  & $55.1\%$ \\
-    $24$ & $1.69$  & $43.2\%$ \\
-    $30$ & $0.81$  & $38.8\%$ \\
-    \bottomrule
-  \end{tabular}
-  \caption{Consensus frontier along the window axis on dev (over all share
-  thresholds and operational knobs at each $W$). Larger windows buy a smaller
-  minimum accuracy drop but only by stopping later, so the maximum net saving
-  falls in lockstep; the two never meet in the gate region.}
-  \label{tab:frontier}
-\end{table}
+Figure~\ref{fig:ws-heatmap} traces the consensus trade-off along both sweep
+axes; read down the window axis, the minimum attainable accuracy drop falls
+monotonically (from $22\pp$ at $W{=}1$ to $0.8\pp$ at $W{=}30$) while the maximum
+net saving falls with it (from $98\%$ to $39\%$), so the low-drop region is
+reachable only where saving has already collapsed. Table~\ref{tab:deer} gives
+the DEER threshold frontier that does reach the gate region.
 
 \begin{table}[t]
   \centering\small
@@ -120,3 +96,112 @@ Table~\ref{tab:deer} gives the DEER threshold frontier that does reach it.
   \label{tab:deer}
 \end{table}
 
+
+\section{Per-Model and Per-Benchmark Frontiers}
+\label{sec:appendix-pareto}
+
+Figures~\ref{fig:app-splits}--\ref{fig:app-bench} give the saving-versus-drop
+view of the same selection and generalization results summarised in
+\S\ref{sec:exp-heldout}, resolved per split, per model and per benchmark, with
+the oracle upper bound on each panel. They add no claim beyond the main text;
+they show the distributions the summaries are drawn from.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/gen/fig_splits.pdf}
+  \caption{Selection $\rightarrow$ generalization across splits (two development
+  models; macro-averaged over environments). Grey: all $3{,}520$ consensus
+  rules. \textbf{Orange}: the $478$ rules that clear the conservative gate
+  \emph{in-sample on train}. \textbf{Green}: the DEER threshold frontier, with
+  the three dev-selected operating points
+  (\textbf{C}onservative/\textbf{B}alanced/\textbf{T}oken-efficient) as stars.
+  \textbf{Purple star}: the oracle upper bound (earliest correct probe).}
+  \label{fig:app-splits}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/gen/fig_models.pdf}
+  \caption{Out-of-sample generalization across scale and architecture (all panels
+  test split). The two development models (top) are shown on their held-out test
+  seeds; the two held-out models (bottom) are entirely unseen. Markers as in
+  Figure~\ref{fig:app-splits}. The dev-selected DEER points stay inside the
+  conservative gate on every model; no consensus rule does.}
+  \label{fig:app-models}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/gen/fig_bench.pdf}
+  \caption{Out-of-sample generalization across benchmarks (test split,
+  development models). The consensus trade-off and the DEER advantage hold on
+  \textsc{MATH}500 and AMC23; on the small AIME24 set (few problems per
+  environment) the two frontiers are noisier and intertwine. Markers as in
+  Figure~\ref{fig:app-splits}.}
+  \label{fig:app-bench}
+\end{figure*}
+
+\section{Case Studies}
+\label{sec:appendix-cases}
+
+The mechanism of Section~\ref{sec:mechanism} is easiest to see on individual
+trajectories. All three below are \dsseven{} on \textsc{MATH}500, seed $42$,
+probed every $64$ generated tokens; we write $a\times n$ for an answer
+repeated over $n$ consecutive probes. A rule requiring three agreeing probes
+fires at the third element of the first such run.
+
+\paragraph{Case 1: a placeholder that outlasts every window we searched.}
+Problem~$320$ asks for $\cos\angle RPS$ given $\sin\angle RPQ=\tfrac{7}{25}$
+(answer $-\tfrac{24}{25}$). The probe stream is
+\begin{center}\small
+\texttt{0}$\times$\texttt{27},\; \texttt{B}$\times$\texttt{8},\;
+\texttt{-24/25},\; \texttt{B}$\times$\texttt{7},\\
+\texttt{E},\; \texttt{B}$\times$\texttt{6},\;
+\texttt{-24/25}$\times$\texttt{7}
+\end{center}
+The model answers \texttt{0} at the very first probe and repeats it for $27$
+consecutive probes, covering tokens $64$--$1728$ of a $3{,}683$-token
+trajectory. It then passes through a stretch of bare option letters before
+reaching $-\tfrac{24}{25}$ and holding it to the end; the trajectory is correct.
+
+This single case makes three points. The stop is not a considered wrong answer
+but a value emitted before any real work has been done, and it is perfectly
+stable for nearly half the trajectory. Its stability therefore says nothing about
+whether reasoning has finished. And because the run is $27$ probes long, it
+defeats \emph{every} window in our sweep: even $W{=}24$, the second-largest we
+searched, fires here and commits \texttt{0}. Enlarging the window does not
+address a placeholder that persists longer than the window.
+
+\paragraph{Case 2: the probe's format, not the model's answer.}
+Problem~$253$ is ``What fraction of 2 feet is 3 inches?''---a free-response
+question with no answer options. The stream is
+\begin{center}\small
+\texttt{3},\; \texttt{B},\; \texttt{3},\; \texttt{24},\; \texttt{B},\;
+\texttt{D}$\times$\texttt{20},\; \texttt{1/8}
+\end{center}
+From token $384$ to token $1600$, more than two thirds of the trajectory, every
+probe returns the letter \texttt{D}. There is nothing for \texttt{D} to refer to.
+The model is not reporting a belief about the answer; it is completing the probe
+suffix in a plausible format while its reasoning continues underneath. The
+correct value $\tfrac{1}{8}$ appears only at the final probe. Agreement here is
+maximal and perfectly uninformative, which is why any deployed rule needs to
+check answer \emph{shape} before treating agreement as evidence
+(\S\ref{sec:mech-placeholder}).
+
+\paragraph{Case 3: when there is nothing to recover.}
+The minority case is equally worth stating. Problem~$240$ (gold $116$) gives
+\begin{center}\small
+\texttt{52}$\times$\texttt{2},\; \texttt{104},\; \texttt{52}$\times$\texttt{5},\;
+\ldots,\; \texttt{154}$\times$\texttt{8},\; \texttt{52},\;
+\texttt{154}$\times$\texttt{62}
+\end{center}
+A three-probe rule fires at token $192$ and commits \texttt{52}; the trajectory
+itself ends at \texttt{154}. Both are wrong. Here early stopping destroys
+nothing, because continued reasoning was not going to arrive at the right answer
+either---the model settles firmly on \texttt{154} and holds it for its final $62$
+probes. Cases like this are why the harm-to-rescue ratio of
+\S\ref{sec:mech-ratio} counts only stops where committing \emph{changes}
+correctness: on problems the model was never going to solve, a consensus stop
+costs accuracy nothing and saves tokens, which is the regime consensus early exit
+was designed for. The difficulty is that agreement does not distinguish this case
+from Case~1, and Case~1 is the more common one.

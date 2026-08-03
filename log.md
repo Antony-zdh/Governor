@@ -952,3 +952,52 @@ Abstract/Intro/Method/Results/Mechanism/Conclusion/Limitations/Appendix 全部�
   §4.5 里 Llama 重采的数据 provenance 脚注保留。
 - CORE_PAPER_FLOW.md（论文核心写作逻辑）纳入版本管理并推送。
 - 编译干净 **13 页**（Appendix C 移除），0 undefined ref。
+
+### 2026-08-03（续2）revision_v3 issues 1–6 解决（见 paper/revision_v3/issues.md）
+1. **harm:rescue 统一**：abstract/intro/conclusion 原为 35×、§5 为 45:1(W=1) 不一致。统一为
+   「~45× at an aggressive **latest-probe** stop, ~2× at the largest windows」（与 §5 区间一致，
+   并标注 W=1=latest-probe 以免被当作代表性 consensus 值）。intro 的 35→45 也改了。
+2. **Intro 第二段拆三段**：phenomenon → preregistered sweep → DEER+generalization（各起一段）。
+3. **train/dev/test 一句话总括**：加到 §3「Models, benchmarks, splits」末——train 仅 in-sample
+   生成/筛选候选、dev 是唯一 gate 选择目标、test(+两 unseen model) 冻结后只读一次确认、绝不调参；
+   并说明「train+dev」指"train 上 in-sample 过 gate、再在 dev 上测"。
+4. **§5.4+§5.5 合并**为单节「The failure is the signal, not early exit」，删与 §4.3/4.4 重复的
+   数字(70pp/frontier-above 等)，分工：§4.3=DEER 过 gate(数据)、§4.4=CertaIndex collapse(数据)、
+   §5 合并节=受控对比的因果解释+implication。
+5. **删 TJE**（legacy，核心逻辑未用）：从 tab:baselines 删两行 + 正文/「three→two prior stoppers」+
+   删「TJE is unsafe on the weaker model」。**TJE 数据本地留存**（源 `results/related_work/aggregate/report.md`）：
+   Qwen3-8B 85.0%/−0.4pp/2.0% saving/22.5% stop；DeepSeek-7B 60.7%/−19.1pp/65.0%/93.4%（token-level）。
+6. **子标题去 AI 味**：§4「No consensus rule clears a gate」/「A non-consensus signal (DEER) clears the
+   gates」/「A faithful CertaIndex reproduction collapses」/「Out-of-distribution generalization」；
+   §5「A directional harm-to-rescue ratio」/「Accuracy tax versus probe tax」/「The failure is the
+   signal, not early exit」；§3「The consensus rule space $(W,s)$」。
+- 顺带：conclusion 结尾 forward/backward 二分软化为「read whether the trajectory itself has settled」
+  （与 §2 已定口径一致）。编译干净 13 页、0 undefined ref。
+- **issues 7、8 提示词**（图表多样化 + Figure-1 idea figure，交另一 Agent）已写入
+  `paper/revision_v3/figure_prompts.md`。
+
+### 2026-08-03（续3）revision_v3 图表交付 + 论文机制重构
+- **issues 7/8（图）**：Figure 1 idea figure（3-panel `fig1_idea` + 5-stage `fig1_idea_b`，
+  均为可编辑 pptx + pdf，`paper/revision_v3/make_fig1_idea*.py`）；4 张新数据图
+  `fig_consensus_pos` / `fig_ws_heatmap` / `fig_split_transfer` / `fig_harm_rescue`
+  + `fig_taxonomy`（`report/make_v3_figures.py`）。旧 3 张 Pareto 图
+  （fig_splits/fig_models/fig_bench）移入附录 E。正文 Pareto panel 由 10 降到 0 张重复。
+- **论文机制重构**：§2 新增「Where agreement gets its meaning」（self-consistency 靠独立采样；
+  单轨迹探针记为 self-consensus）；§5 重排为 The Role of Independence → Probe Wording versus
+  Position → Error Taxonomy → Effect of Window Size → Case Studies → Probe-Independence of
+  the Accuracy Cost → Accuracy Tax versus Probe Tax → Locating the Failure；§4 定位下调为
+  「穷尽验证」；Abstract/Intro/Conclusion/Contribution 全部改为机制优先；小标题改 ACL 风格短名词短语。
+- **CertaIndex 口径**：全文改 `CertaIndex (CoT)`，删 collapse 等打脸语气，明确复现的是 Dynasor
+  已发布实现的默认 mid 设置，并声明其多路径设置是标准 self-consistency、与本文无关。
+- **附录 F Case Studies**：pid 320（placeholder `0`×27，连 W=24 都打穿）、pid 253（无选项题上
+  `D`×20）、pid 240（少数情形，早停无损失）。正文 §5.5 给 260 词摘要。
+- **新增分析脚本**（全 CPU，只读已提交 bank）：`compute_harm_rescue.py`（复现 §5 的 45:1→2:1、
+  668→121）、`compute_consensus_position.py`、`compute_diversity_contrast.py`、
+  `compute_probe_wording.py`、`compute_consensus_deer_{combo,disjunctive,tiered}.py`。
+- **未进正文的探索性实验**（记录于 `paper/revision_v3/CONSENSUS_ADDON_EXPERIMENTS.md`）：
+  consensus 作为 DEER add-on 的合取（负）、析取双阈值（前沿外扩 +1.5~4.6pp saving，但 dev-only
+  选点）、k-tier（k≥3 不优于 k=2；同一概率地板下更长一致串反而挑出更差停机点）。
+- **grader 顺序依赖**：`latex2sympy2` 模块级 `var` 被某些答案串污染后 `symbolic_equal` 静默返回
+  False。抽查 dev 684 条 baseline，仅 3 条判决受影响（0.44%，同一道题 3 seed），basline 89.33→89.77%。
+  新脚本已在每次调用前 `var={}` 保护；已提交 bank 无需重跑。
+- 论文编译干净 18 页、0 undefined ref。

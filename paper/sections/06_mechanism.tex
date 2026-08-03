@@ -1,14 +1,118 @@
 \section{Analysis}
 \label{sec:mechanism}
 
-Section~\ref{sec:results} is an existence proof over $3{,}520$ rules, two seen
-and two unseen models, and both splits. This section explains \emph{why} it holds
-and why it generalizes beyond the exact rules we searched: the accuracy cost of
-stopping on consensus is a directional property of the reasoning trajectory
-itself, not of a threshold or of probe density.
+Section~\ref{sec:results} shows that no rule in the searched space is both safe
+and saving. This section gives the reason, which is what makes the result more
+than a report on $3{,}520$ particular rules. The argument has three parts. Probe
+agreement lacks the independence that makes agreement informative in the first
+place (\S\ref{sec:mech-independence}), so it cannot protect a stop from being
+wrong. What it does report is often a forced placeholder rather than a settled
+answer (\S\ref{sec:mech-placeholder}). And widening the window, the obvious
+remedy, works only by declining to stop (\S\ref{sec:mech-ratio}). The accuracy
+cost that follows is a property of the reasoning trajectory, not of a threshold
+or of probe density.
 
-\subsection{Stopping destroys more than it saves}
-Consider only the stops where committing early \emph{changes} correctness relative
+\subsection{The Role of Independence}
+\label{sec:mech-independence}
+Consensus early exit does not claim to \emph{improve} accuracy; its goal is to
+save tokens without losing any. The question is therefore not whether agreement
+adds information, but whether it provides enough protection to make stopping
+safe. It does not, and the reason is structural.
+
+Self-consistency's majority vote can absorb an error because its paths are
+sampled independently (\S\ref{sec:related}): a wrong answer on one path is
+outvoted by others that reasoned differently. Probing one trajectory yields no
+such thing. Every probe reads the same prefix, so the readings move together;
+when the prefix is wrong, they are wrong together, and a majority over them
+cannot correct anything. Agreement across probes is a statement about the
+stability of one line of reasoning, not corroboration from several.
+
+This is why the accuracy cost is so large when it appears. A consensus rule has
+no mechanism that recovers from a bad stop: whatever the probes agree on is
+committed, and the vote that would have caught the error in the multi-path
+setting does not exist here. The rest of this section shows what the probes
+actually agree on, and why the standard remedy does not repair it.
+
+\subsection{Probe Wording versus Position}
+\label{sec:mech-wording}
+If early agreement reflected a settled belief, the answer a probe returns should
+not depend much on how the probe is worded. We test this directly on paired
+re-probes of the \emph{same frozen prefixes}: at every probe position we read the
+trajectory with two different probe wordings (our boxed-answer suffix and the
+CertaIndex suffix, both capped at $32$ tokens), so the model's state is identical
+and only the elicitation differs.
+
+\begin{table}[t]
+  \centering\small
+  \begin{tabular}{lrcc}
+    \toprule
+    Position & $n$ & Wordings & Probe \\
+    (\% of trajectory) &  & agree & correct \\
+    \midrule
+    $0$--$10$    & $1{,}025$ & $42.7\%$ & $17.9\%$ \\
+    $10$--$20$   & $1{,}184$ & $52.2\%$ & $27.7\%$ \\
+    $20$--$40$   & $1{,}696$ & $63.6\%$ & $46.1\%$ \\
+    $40$--$70$   & $1{,}669$ & $82.3\%$ & $71.5\%$ \\
+    $70$--$100$  & $951$     & $88.9\%$ & $79.7\%$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{Two probe wordings applied to the \emph{same} frozen prefix
+  (\dsseven{}, \textsc{MATH}500). Early in a trajectory the two wordings disagree
+  more often than they agree; by the end they nearly always coincide. Position is
+  a fraction of each trajectory's own length.}
+  \label{tab:wording}
+\end{table}
+
+Table~\ref{tab:wording} shows the result. In the first tenth of a trajectory the
+two wordings return different answers $57\%$ of the time; by the final third they
+disagree only $11\%$ of the time. Early ``answers'' are therefore substantially a
+property of the question asked rather than of the state being read, and they
+become properties of the state only as the trajectory finishes.
+
+This distinguishes our account from the obvious alternative. If the model simply
+held a stable but mistaken belief early on, both wordings would read back the
+\emph{same} wrong value; instead they disagree. What a consensus rule treats as a
+converging answer is, early on, an output the probe has elicited. Note also that
+probe wording has almost no effect on \emph{final} accuracy in the same paired
+data (a $0.65\pp$ readout effect against a $9.15\pp$ effect of \emph{when} one
+probes), so the sensitivity above is specific to early positions and is not a
+defect of any particular suffix.
+
+\subsection{Error Taxonomy}
+\label{sec:mech-placeholder}
+Two annotators independently labelled all $134$ stopped-but-wrong cases
+(Figure~\ref{fig:taxonomy}, $\kappa = 0.82$): only one in five is a case where
+the model had genuinely settled on a wrong value. Three in five are answers it
+had not converged on at all, and a further one in six are artifacts of the
+probe's output format.
+
+The reason is that a probe does not read the model's belief; it \emph{forces} an
+answer. A model that has not finished reasoning must still write something in the
+box, and the cheapest thing to write is what it wrote last time. Repetition of a
+forced answer is therefore stable for reasons that have nothing to do with the
+reasoning being finished, and a consensus rule cannot tell that case apart from a
+settled one. This also predicts the window effect of \S\ref{sec:mech-ratio}: a
+longer window is a longer buffer in which a placeholder can be overturned, which
+is why it reduces false consensus without removing the underlying risk.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/gen/fig_taxonomy.pdf}
+  \caption{\textbf{What consensus actually stops on.} All $134$ stopped-but-wrong
+  cases, labelled independently by two annotators ($\kappa = 0.82$ on the coarse
+  coding). Fewer than one stop in five is the model being wrong about something
+  it had actually decided. The cases were collected under a \emph{short} window
+  (three consecutive agreeing certain probes), which is precisely the regime in
+  which unconverged answers dominate---consistent with
+  Figure~\ref{fig:harm-rescue}, where enlarging the window buys accuracy back
+  only by declining to fire.}
+  \label{fig:taxonomy}
+\end{figure}
+
+\subsection{Effect of Window Size}
+\label{sec:mech-ratio}
+The natural remedy is to demand more agreement before stopping. It helps, but
+only by stopping less often. Consider only the stops where committing early \emph{changes} correctness relative
 to the trajectory's own final answer, and count two outcomes: (final-correct,
 stop-wrong)---a correct recovery destroyed---versus (final-wrong,
 stop-correct)---a wrong answer luckily banked. Pure sampling noise predicts a
@@ -24,9 +128,55 @@ commits mainly once the trajectory has settled. Stopping on consensus therefore
 removes a correct-in-the-end answer many times more often than it rescues a wrong
 one---directional, not sampling noise. This is the recovery phenomenon of
 \S\ref{sec:exp-fc} ($84.2\%$, $89.1\%$), now at the main $16$K/$32$K budgets and
-as a signed effect.
+as a signed effect. Figure~\ref{fig:harm-rescue} plots the whole window axis, so
+the claim rests on the shape of the curve rather than on either endpoint: the
+ratio and the saving fall together, and DEER sits at consensus's best ratio and
+its best saving simultaneously, which no window does.
 
-\subsection{The accuracy tax is intrinsic to the trajectory}
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/gen/fig_harm_rescue.pdf}
+  \caption{\textbf{Lowering the ratio means refusing to fire.} Among stops whose
+  committed answer differs in correctness from the trajectory's frozen final
+  answer, we count recoveries destroyed against wrong answers banked; sampling
+  noise predicts $1{:}1$. Widening the window brings the ratio down from
+  $45{:}1$ to $2{:}1$, but only by stopping on ever fewer problems
+  ($668 \rightarrow 121$ of $684$), so net saving collapses from $92\%$ to
+  $8\%$ alongside it. Dev split, $18$ environments; one consensus rule per $W$
+  (share threshold $1.0$, probe interval $128$, maturity floor $512$, schema
+  validity), with $W$ the only axis that varies.}
+  \label{fig:harm-rescue}
+\end{figure}
+
+\subsection{Case Studies}
+\label{sec:mech-cases}
+The three regimes above appear together on individual trajectories
+(\dsseven{}, \textsc{MATH}500, probes every $64$ tokens; $a\times n$ denotes an
+answer repeated over $n$ consecutive probes). Appendix~\ref{sec:appendix-cases}
+gives the full streams and discussion.
+
+On problem~$320$ the model answers \texttt{0} at its \emph{first} probe and holds
+it for $27$ probes---nearly half a $3{,}683$-token trajectory---before reasoning
+its way to the correct $-\tfrac{24}{25}$. The committed value is not a considered
+wrong answer but one emitted before any real work, and its stability is
+correspondingly uninformative. The run is also long enough to defeat every window
+we searched: even $W{=}24$ fires here and commits \texttt{0}, which is why
+widening the window is not a remedy for a placeholder that outlasts it.
+
+Problem~$253$ asks what fraction of two feet is three inches, a free-response
+question with no options. Every probe from token $384$ to token $1600$ returns the
+letter \texttt{D}; the correct $\tfrac{1}{8}$ appears only at the final probe.
+Agreement is total and refers to nothing, which is the format artifact of
+\S\ref{sec:mech-placeholder} in its clearest form.
+
+The minority case is worth stating too. On problem~$240$ a three-probe rule
+commits \texttt{52} while the trajectory itself ends at \texttt{154}; the gold
+answer is $116$, so both are wrong and stopping destroys nothing. This is the
+regime consensus early exit was designed for---the model was not going to solve
+the problem, so a stop is free. The difficulty is that agreement cannot tell this
+case apart from problem~$320$, and problem~$320$ is the more common one.
+
+\subsection{Probe-Independence of the Accuracy Cost}
 Why is the ratio structural? For a rule stopping at token position $s$, the
 accuracy drop depends only on $s$: committing at $s$ forgoes whatever correction
 the trajectory would have made after it. It is a property of the reasoning, not of
@@ -42,7 +192,7 @@ caution for consensus variants beyond the preregistered schema rather than
 proving a universal claim about them. In short, agreement reports what the model
 has said recently, not whether its reasoning has finished.
 
-\subsection{Ruling out the ``it is just dense probing'' objection}
+\subsection{Accuracy Tax versus Probe Tax}
 The natural rebuttal is that the negative result is an artifact of charging dense
 re-probing. It is not, and separating two costs shows why. Besides the accuracy
 tax, a rule pays a \emph{probe tax}: the probe output $p$ (Section~\ref{sec:accounting}).
@@ -73,34 +223,35 @@ floor, not the probe tax, that DEER escapes.
   \label{tab:grossnet}
 \end{table}
 
-\subsection{It is the signal, not early exit}
-The joint sweep of \S\ref{sec:exp-deer} localizes the cause. Every method that
-stops on \emph{probe agreement}---the swept consensus family and CertaIndex
-alike---either fails a gate or collapses outright; CertaIndex's $70\pp$ loss at
-$99.8\%$ stop rate is the accuracy tax paid in full. The method that clears the
-gates, DEER, does not read probe agreement at all: it stops on the model's own
-confidence in a trial answer at a reasoning boundary, and in
-Figure~\ref{fig:pareto} its threshold frontier sits \emph{above} the consensus
-Pareto boundary throughout the safe region. Because DEER is swept through the
-identical pipeline, gates, and token accounting, the contrast is a controlled
-test: the same early-exit machinery succeeds on a forward-looking signal and
-fails on the consensus signal. The failure is a property of the \emph{signal},
-not of early exit.
+\subsection{Locating the Failure}
+The two experiments of \S\ref{sec:exp-deer}--\ref{sec:exp-prior} localize the
+cause. Every method that stops on \emph{probe agreement}---the swept consensus
+family and the CertaIndex (CoT) reproduction alike---fails a gate or loses many points;
+the one method that clears the gates, DEER, reads not probe agreement but the
+model's own confidence in a trial answer at a reasoning boundary. Because DEER is
+swept through the \emph{identical} pipeline, gates, and token accounting, this is
+a controlled test: the same early-exit machinery fails on the consensus signal and
+succeeds on a non-consensus one, so the failure is a property of the
+\emph{signal}, not of early exit.
 
-\subsection{Implication: change the signal, not the threshold}
-Much prior effort tunes consensus-based stops
-\citep{dynasor_certaindex,aggarwal2023adaptive,li2024esc}; our frontier shows the
-ceiling of that approach is low, and the mechanism above says no amount of tuning
-raises it. The constructive implication is that a safe signal should be about
-whether the \emph{trajectory itself} will still change, not about the agreement of
-backward-looking probes. Our joint sweep already demonstrates this: the
-boundary-confidence signal (DEER) clears the same gates the whole consensus family
-fails (\S\ref{sec:exp-deer}). Verifier- and process-reward-based termination
+ The constructive reading follows directly---a
+safe signal should track whether the \emph{trajectory itself} will still change,
+not what recent probes agree on; verifier- and process-reward-based termination
 \citep{lightman2024verify,wang2024mathshepherd} and learned halting
 \citep{graves2016act,schuster2022confident} point the same way. Turning any of
 these into a \emph{confirmed} method---with its own train/dev$\rightarrow$test
-validation---is the natural next paper; our contribution is to establish
-rigorously which signal not to build it on. Two caveats bound the claim: it
-concerns \emph{consensus-based} rules within the searched schema and dense-probe
-regime, and it does not say early exit is impossible---only that this signal
-cannot make it safe.
+validation---is the natural next step; our contribution is to establish rigorously
+which signal not to build it on \emph{by itself}.
+
+That qualification matters. Our claim is about consensus used as the sole
+criterion for stopping, which is the use we searched and the use that fails.
+Probe agreement is cheap to compute and does carry one piece of information---that
+the current answer has not changed---and combined with a signal that reflects the
+model's own estimate it may well be useful; CertaIndex composes multiple
+indicators for related reasons \citep{dynasor_certaindex}. Nothing here argues
+against such combinations. What the sweep rules out is the step of treating
+agreement, on its own, as sufficient evidence that reasoning has finished.
+
+Two further caveats bound the claim: it concerns \emph{consensus-based} rules
+within the searched schema and dense-probe regime, and it does not say early exit
+is impossible---only that this signal cannot make it safe alone.

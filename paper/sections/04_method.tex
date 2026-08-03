@@ -31,14 +31,14 @@ stops (setting the accuracy drop and the main-token saving $s$) and \emph{how mu
 it probes} to get there (adding $p$). Section~\ref{sec:mechanism} shows that only
 the first is intrinsic.
 
-\subsection{The consensus signal: window size and share threshold}
+\subsection{The consensus rule space $(W, s)$}
 \label{sec:schema}
 The consensus signal any probe-based rule can read reduces to two
 hyperparameters: a \textbf{window size} $W$ (how many of the most recent probes
 to inspect) and a \textbf{share threshold} $s$ (what fraction of that window
 must agree on a single answer before a stop is allowed). This pair spans the
 family to a close approximation: $W{=}1$ is the ``latest-probe'' rule, $s{=}1.0$
-is strict unanimity over the last $W$ probes (the Certaindex-style stop), and an
+is strict unanimity over the last $W$ probes (the CertaIndex-style stop), and an
 entropy-over-the-window criterion closely tracks the same agreement and adds no
 materially new operating point on our grid. We sweep $W\in\{1,3,5,8,12,16,24,30\}$ and
 $s\in\{0.6,0.8,1.0\}$, deliberately including \emph{large} windows so a rule can
@@ -75,7 +75,12 @@ model$\times$benchmark$\times$seed environments. Problems are partitioned
 (\textsc{MATH}500 $300/100/100$, AMC23 $24/8/8$, AIME24 $18/6/6$), so no problem
 leaks across splits. Confirmation reserves seeds $45/46/47$ plus two unseen
 models---\mbox{DeepSeek-R1-Distill-Llama-8B} and \mbox{Distill-Qwen-32B}---all
-evaluated on the \emph{test} split only.
+evaluated on the \emph{test} split only. In one line: \emph{train} generates and
+screens candidate rules in-sample, \emph{dev} is the sole selection target the
+gates are read on, and \emph{test} (with the two unseen models) is read once for
+confirmation after the rules and thresholds are frozen---never for tuning. Where
+later sections say ``train+dev,'' they mean a rule was required to pass a gate
+in-sample on train and is then measured on dev.
 
 \subsection{Preregistered operating points and gates}
 We fix three operating points and their acceptance gates \emph{before} looking

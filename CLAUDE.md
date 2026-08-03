@@ -77,10 +77,12 @@ The min-saving floor rejects "safe only because it never stops" rules.
 ### Mechanism numbers
 - harm:rescue (recovery destroyed : wrong banked) is **window-dependent**:
   ~45:1 at W=1 down to ~2:1 at W=30 — but the low end only comes with near-zero
-  saving (W=30 fires on 121 dev problems vs 668 at W=1). **Do not report a bare
-  35:1**; report the range + the saving caveat. DEER holds ~2.4–3.5:1 *while*
-  saving 28–32%. (Abstract/intro use "up to ~35× at an aggressive stop" as an
-  anchor; §5 gives the full range.)
+  saving (W=30 fires on 121 dev problems vs 668 at W=1). DEER holds ~2.4–3.5:1
+  *while* saving 28–32%. **Unified phrasing (2026-08-03, issue 1)**: abstract,
+  intro, conclusion, and §5 all now say "up to **~45× at an aggressive
+  latest-probe stop, ~2× at the largest windows**" — W=1 is explicitly labeled
+  *latest-probe* so the big number is not read as a representative consensus value.
+  The old bare "35×" is gone.
 
 ### Generalization (all on the TEST split — that is the point)
 - Held-out test split (dev models, seeds 45/46/47): consensus drop dev↔test
@@ -107,22 +109,42 @@ The min-saving floor rejects "safe only because it never stops" rules.
   DEER frontier + C/B/T stars, oracle, gate boxes.
 - Regenerate: `report/make_generalization_figs.py` (oracle cached in
   `report/figures/gen/oracle_cache.json`); then copy the PDFs to `paper/figures/gen/`.
+- **Figures are being overhauled (issues 7 & 8, another agent)**: all ~10 panels
+  are the same saving×drop Pareto — issue 7 diversifies them; issue 8 adds a new
+  Figure-1 idea/schematic. Spec: `paper/revision_v3/figure_prompts.md`. Until then
+  the three Pareto PDFs above are current.
 
-### Paper review progress (section-by-section v2 pass)
-Working through the paper per-claim (rated on credibility / strength / coherence /
-expression accuracy; each substantive claim confirmed with the user before editing).
-- **Done**: Abstract (halved), Introduction, Mechanism §5 (window-dependent ratio
-  + hedges), Results §4.5 (generalization), Conclusion/Limitations, Method §3
-  gates+schema, Appendix window/DEER tables. Compiles clean (14 pp, 0 undefined refs).
-- **Pending**: Related Work §2; Method fine details; Results §4.1–4.4
-  (false-consensus stats, sweep, DEER subsection, baselines); Discussion; Appendix
-  reproducibility text. `tab:baselines` (CertaIndex/TJE/DEER faithful repro) was
-  **verified 2026-08-02** to match `results/related_work/aggregate/report.md`,
-  which uses the robust grader (`related_work/replay.py` →
-  `common.real_answers_equal` → `grading.robust_answers_equal`) and whose two-model
-  full-gen macro (85.4/79.8 → 82.6%) is consistent with the 82.5% main baseline.
-  The earlier "v1 weak-grader" worry was the *consensus sweep* module
-  (`governor_v2/replay_rules.py`), a different path; baselines are fine.
+### Paper review progress (section-by-section v2 pass — COMPLETE)
+Every section reviewed per-claim (credibility / strength / coherence / expression;
+each substantive claim confirmed with the user before editing). **All of §1–§6 +
+appendices done.** Compiles clean (**13 pp**, 0 undefined refs).
+- **§4.1 rerun at 16K/32K (2026-08-03)**: the false-consensus phenomenon numbers
+  were the deprecated 3072-token exploratory ones; re-run on the frozen main
+  trajectories via `benchmark/FalseConsensus/false_consensus_16k.py` (robust
+  grader, all 500 MATH500 ids = dev seeds 42/43/44 + confirmation seeds 45/46/47,
+  1,500 trajectories; **descriptive only, does not touch the sweep or test
+  commitment**). New numbers: fact1 cum 97.8% / win 90.4%; fact2 89.1% / 84.2%;
+  fact3 91.0%→71.6%; **fact4 naive stop 1,477/1,500, 50.5% vs 90.7% = 40.2pp
+  loss** (was 16.4pp @3072). Report: `results/governor_v2_ws_sweep/false_consensus_16k_report.txt`.
+- **Abandoned DEER-inspired controller fully removed** (2026-08-03): the
+  boundary-confidence fast-commit/verify "inspired" controller had limited effect
+  (overlaps DEER) and is gone from the paper — deleted Appendix C
+  (`08_boundary_confidence.tex`) and the orphan `07_baselines.tex` /
+  `08_discussion.tex`. **DEER-as-positive-control is untouched** (that is core
+  beat 4; do not confuse the two).
+- **revision_v3 issues 1–6 done (2026-08-03)** — see `paper/revision_v3/issues.md`
+  and `log.md` 续2: (1) harm:rescue unified; (2) intro ¶2 split into three;
+  (3) one-line train/dev/test flow in §3; (4) merged §5.4+§5.5, de-duplicated
+  §4.3/§4.4/§5; (5) **TJE removed** from `tab:baselines` (data kept in
+  `results/related_work/aggregate/report.md`: Qwen 85.0/−0.4/2.0%; DS 60.7/−19.1/65.0%);
+  (6) subsection titles de-AI-ified.
+- **Pending → issues 7 & 8 (figures), handed to another agent**: prompts in
+  `paper/revision_v3/figure_prompts.md`. #7 = diversify the ~10 look-alike Pareto
+  panels into distinct figure types; #8 = a new Figure-1 idea/schematic of the
+  5-beat `CORE_PAPER_FLOW`, drawn in PowerPoint.
+- `tab:baselines` (now CertaIndex/DEER, TJE dropped) verified 2026-08-02 vs
+  `results/related_work/aggregate/report.md` (robust grader; two-model full-gen
+  macro 85.4/79.8 → 82.6% ≈ 82.5% main baseline).
 
 ---
 

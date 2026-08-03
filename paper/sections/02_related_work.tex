@@ -3,7 +3,7 @@
 
 \paragraph{Probe-based / consensus early exit.}
 The methods we scrutinize periodically query a partial reasoning trajectory for
-its current answer and halt on agreement. Dynasor / Certaindex
+its current answer and halt on agreement. Dynasor / CertaIndex
 \citep{dynasor_certaindex} formalize this with a ``certainty index'' over recent
 probe answers and use it to terminate early when serving reasoning programs, one
 of several responses to the \emph{overthinking} of reasoning models
@@ -11,18 +11,32 @@ of several responses to the \emph{overthinking} of reasoning models
 boxed-answer suffix) and notion of probe agreement, and ask how far \emph{any}
 rule in this family can be pushed before it becomes unsafe.
 
-\paragraph{Early-stopping self-consistency and self-correction.}
-Probe-based early exit is the online, \emph{single-trajectory} analogue of
-early-stopping self-consistency
-\citep{wang2023selfconsistency,aggarwal2023adaptive,li2024esc}: it votes across
-snapshots of one in-progress trajectory rather than across finished samples. That
-difference is the crux---snapshots of an unfinished trajectory are not
-exchangeable draws from a stable answer distribution, because the trajectory is
-still correcting itself. This intrinsic self-correction differs from the
-prompted, post-hoc self-correction that \citet{huang2024selfcorrect} find
-unreliable: we measure answer evolution \emph{within} one uninterrupted
-trajectory, and find (Section~\ref{sec:results}) that a model's mid-trajectory
-answer is far from final.
+\paragraph{Where agreement gets its meaning.}
+Self-consistency \citep{wang2023selfconsistency} samples a \emph{diverse} set of
+reasoning paths and takes the majority answer, on the premise that a hard problem
+admits many routes to one correct answer. Agreement is evidence there because the
+paths are drawn independently: when routes that could have diverged do not, that
+is information about the answer, and the vote can outweigh an error on any single
+path. Early-stopping variants keep this structure and only decide how many
+samples to draw \citep{aggarwal2023adaptive,li2024esc}. CertaIndex uses the same
+structure in its multi-path setting, measuring entropy over answers from
+independently sampled trajectories.
+
+Probing a single chain of thought is a different object, and we call it
+\emph{self-consensus} to keep the two apart. Its readings are not independent
+samples: every probe is conditioned on the same prefix, so agreement between them
+records that the prefix has not changed its answer, not that separate lines of
+reasoning have converged on one. Two consequences follow, and they organize
+Section~\ref{sec:mechanism}. Agreement no longer supplies a vote that can
+outweigh an error, so it offers no protection when a stop commits to a wrong
+answer. And what agreement does report---that the trajectory keeps giving the
+same answer---is only informative if the trajectory has finished reasoning, which
+is exactly what a mid-trajectory probe cannot establish. The trajectory is still
+correcting itself, an intrinsic process distinct from the prompted, post-hoc
+self-correction that \citet{huang2024selfcorrect} find unreliable; we measure
+answer evolution \emph{within} one uninterrupted trajectory, and find
+(Section~\ref{sec:results}) that a model's mid-trajectory answer is far from
+final.
 
 \paragraph{Alternative termination signals.}
 Rather than probe agreement, a stop can read other signals: verifier- and
