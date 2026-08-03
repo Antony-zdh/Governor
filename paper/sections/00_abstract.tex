@@ -1,16 +1,26 @@
 \begin{abstract}
-A popular way to cut reasoning-model inference cost is to probe the partial
-trajectory for its current answer and stop once probes \emph{agree}. We show this
-bet is unsafe, and that the failure is in the \emph{signal}, not the threshold.
-On frozen trajectories from two models and three math benchmarks, a
-\emph{preregistered} sweep of the consensus signal ($3{,}520$ rules, acceptance
-gates fixed in advance) clears \textbf{no gate}: staying accurate forces
-near-zero saving, and real saving forces a multi-point accuracy drop. The reason
-is directional---consensus forms \emph{while the answer is still moving}, so a
-stop destroys a correct-in-the-end answer up to $\mathbf{35\times}$ more often at an aggressive stop
-than it rescues a wrong one. The failure is specific to consensus: swept
-identically, a boundary-confidence method (DEER) \textbf{clears all three gates}
-and holds on a held-out split and two unseen models. Early exit is
-possible---just not on the consensus signal. We release the protocol, the frozen
-trajectories, and the full sweep.
+Reasoning language models can spend thousands of tokens on a single problem,
+motivating early-exit methods that stop generation once an answer appears
+settled. A natural proxy for this state is intermediate-answer
+\emph{stability}: periodically probe a partial reasoning trajectory and stop
+when recent answers agree. We ask whether such stability provides reliable
+evidence that reasoning has \emph{terminated}.
+
+On frozen trajectories from two models and three mathematical reasoning
+benchmarks, we preregister and evaluate $3{,}520$ stopping rules varying the
+agreement window, threshold, probe schedule, maturity requirement, answer
+validity, and reported certainty. None is simultaneously safe and token-saving
+under any of three predefined operating points. Larger windows reduce accuracy
+loss only by firing later and less often, causing token savings to collapse.
+
+We trace this trade-off to a mismatch between what probes measure and what early
+exit requires. Re-probing the same prefix with two wordings produces different
+answers $57\%$ of the time in the first tenth of a trajectory, compared with
+$11\%$ near its end. Manual analysis of $134$ stopped-but-wrong cases further
+finds that $60\%$ commit to answers on which the trajectory had not converged,
+while only $20\%$ reflect settled but incorrect reasoning. A boundary-confidence
+positive control succeeds under the same evaluation, ruling out the
+impossibility of early exit itself. Together, these results reveal a
+\emph{stability--terminality gap}: repeated intermediate-answer agreement alone
+does not establish that a reasoning trajectory has finished.
 \end{abstract}

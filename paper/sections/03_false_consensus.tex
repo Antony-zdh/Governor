@@ -58,23 +58,40 @@ only forms after $2048$ tokens is $71.6\%$ correct. Hard problems both converge
 slowly and converge to worse answers---exactly the problems on which an
 aggressive stopping rule does most damage.
 
-\subsection{An error taxonomy}
-Hand-inspecting stopped-but-wrong cases (a preliminary AI-assisted labeling of
-$28$ cases from an earlier exploratory pass, not the automated counts above)
-yields \emph{four} non-empty types out of five categories.
-By count: \textbf{(A)} numeric collapse---stable convergence to a wrong
-number---$14/28$; \textbf{(D)} derivation gaps---dropped roots/cases, unverified
-solutions---$7/28$; \textbf{(E)} format/option hallucination---a
-non-multiple-choice problem stably emitting a letter such as ``B''---$6/28$,
-which is an artifact of the probe mechanism itself rather than a model belief;
-and \textbf{(B)} expression collapse---$1/28$. Type~\textbf{(C)} (sign errors)
-did not occur in this sample. Type~E is itself a methodological finding: roughly
-one in five ``false consensuses'' is a probe formatting artifact, implying that
-any deployed rule should filter answer \emph{shape}.
+\subsection{What the stopped-but-wrong answers are: a two-annotator study}
+\label{sec:fc-taxonomy}
+The counts above say stopping is costly; hand analysis says \emph{why}. On the
+exploratory dense-logging pass (\dsseven{}, \textsc{MATH}500, $3072$-token budget;
+the same pass a preliminary $28$-case labeling drew from, which this supersedes),
+we take \emph{all} $134$ stopped-but-wrong cases---every problem whose naive-stop
+answer is wrong---and have two annotators independently label each, shown the
+problem, the full probe-answer sequence, and the trajectory's final answer. The
+five-way scheme is \textbf{(A)} numeric collapse (stable convergence to a wrong
+number), \textbf{(B)} expression collapse, \textbf{(C)} sign error, \textbf{(D)}
+reasoning gap---an intermediate quantity, placeholder, or answer emitted
+\emph{before the trajectory has converged}---and \textbf{(E)} format/option
+hallucination (a non-multiple-choice problem stably emitting a letter such as
+``B,'' an artifact of the probe mechanism rather than a model belief). The
+interface and guidelines are released.
+
+Before adjudication the annotators agree on $47.8\%$ of cases (Cohen's
+$\kappa{=}0.29$, fair); the $70$ disagreements are resolved to labels of record
+under a preregistered tie-break ($61$ A/D conflicts to D, $9$ case-by-case, none
+left unresolved). The adjudicated distribution is dominated by \emph{non-terminal}
+errors: \textbf{D $=61.2\%$} ($82/134$), A $=17.9\%$ ($24/134$), E $=18.7\%$
+($25/134$), with B ($1.5\%$) and C ($0.7\%$) negligible. This makes the
+stability--terminality gap concrete: about $61\%$ of stopped-but-wrong
+commitments are answers on which the trajectory had \emph{not yet converged}
+(type~D), versus only ${\sim}18\%$ that are settled-but-incorrect reasoning
+(type~A)---consensus fires on a mid-trajectory placeholder roughly three times more
+often than on genuinely finished-but-wrong reasoning. Type~E is a methodological
+finding in its own right: roughly one in five false consensuses is a probe
+formatting artifact, so any deployed rule should filter answer \emph{shape}.
 
 \paragraph{Takeaway.}
 These observations---local consensus unreliable, recovery common, late
-consensus worse---suggest that a good stopping rule
+consensus worse, and stopped-but-wrong answers mostly \emph{non-terminal}
+placeholders rather than settled mistakes---suggest that a good stopping rule
 must be much more than ``agreement.'' The rest of the paper asks whether the
 \emph{best possible} such rule, drawn from a large preregistered space, can be
 both safe and economical. In the searched space, it cannot.
