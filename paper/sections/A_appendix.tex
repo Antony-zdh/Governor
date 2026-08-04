@@ -1,7 +1,7 @@
 \section{Rule Schema Details}
 \label{sec:appendix-schema}
 
-The consensus schema of Section~\ref{sec:method} centers on two hyperparameters
+The consensus schema of Section~\ref{sec:schema} centers on two hyperparameters
 and a few operational knobs, enumerating to $3{,}520$ candidate rules over a
 fixed-schedule and an event-triggered family. Each rule fixes:
 \begin{enumerate}
@@ -45,11 +45,51 @@ is''), subject to a minimum inter-probe gap and a fallback interval.
 
 The protocol version, split manifest hash, candidate-rule generation script, and
 the three operating-point gates (Table~\ref{tab:gates}) were fixed before any
-held-out evaluation. Commitments C1--C3 (Section~\ref{sec:method}) were recorded
-with the protocol. All three operating-point gates were fixed in advance; when
-the conservative gate proved empty we followed C2 and report the empty gate as
-the finding rather than relaxing it, and all three points are reported for both
-consensus and DEER regardless of outcome.
+held-out evaluation.
+
+\begin{table}[t]
+  \centering\small
+  \begin{tabular}{lccc}
+    \toprule
+    Operating point & Max total & Min total & psf \\
+                    & acc.\ drop & saving    & floor \\
+    \midrule
+    conservative     & $1.0\pp$ & $10\%$ & $0.80$ \\
+    balanced         & $2.0\pp$ & $20\%$ & $0.80$ \\
+    token\_efficient & $3.5\pp$ & $30\%$ & $0.70$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{Preregistered acceptance gates (\S\ref{sec:schema}). A rule must keep
+  the macro-averaged accuracy drop under ``max total acc.\ drop,'' deliver at
+  least ``min total saving'' net tokens, and post positive net saving on at
+  least a psf fraction of environments. Gates are fixed in advance and
+  \emph{not} relaxed post hoc.}
+  \label{tab:gates}
+\end{table} The commitments of Section~\ref{sec:schema} in full:
+\textbf{(C1)} the test split and both confirmation models are never read during
+rule selection. \textbf{(C2)} All three operating points and their gates are
+fixed before seeing held-out data and are not relaxed afterwards; if no rule
+passes a gate, that is reported as the finding rather than engineered away, and
+all three points are reported regardless of outcome. \textbf{(C3)} The frozen
+rule set is fixed on train+dev and its hash recorded before any
+test/confirmation evaluation. When the conservative gate proved empty we
+followed C2 and report the empty gate as the finding rather than relaxing it,
+for both consensus and DEER.
+
+\paragraph{Metric resolution.}
+The total accuracy drop is a macro-average over the $18$ environments (each
+model$\times$benchmark$\times$seed weighted equally). Pooling problems instead
+would let \textsc{MATH}500 ($100$ dev problems per seed vs.\ $8$ for AMC23 and
+$6$ for AIME24) dominate the headline, so a rule that wins only on
+\textsc{MATH}500 could pass; equal per-environment weight forces a selected
+rule to hold on the harder competition sets too. Macro also keeps any single
+problem from swinging the result---one AIME24 problem is $16.7\pp$ of a
+$6$-problem split but only ${\sim}1/108$ of the macro drop---while the three
+seeds damp the extra per-cell noise of the small sets. The gates are read on
+the dev split (the selection target) with train reported alongside; where the
+text says ``train+dev,'' a rule was required to pass a gate in-sample on train
+and is then measured on dev. Because \emph{no} consensus rule clears any gate,
+by a wide margin, the finding does not rest on a single fragile cell.
 
 \section{Reproducibility}
 \label{sec:appendix-repro}
@@ -64,7 +104,7 @@ tries the raw and normalized reference forms and both string and
 math-expression equality; per-problem correctness for the frozen baseline is
 recomputed at replay time rather than trusted from collection.
 
-\section{DEER Threshold Frontier}
+\section{Frontier and Reproduction Tables}
 \label{sec:appendix-tables}
 
 Figure~\ref{fig:ws-heatmap} traces the consensus trade-off along both sweep
@@ -73,6 +113,77 @@ monotonically (from $22\pp$ at $W{=}1$ to $0.8\pp$ at $W{=}30$) while the maximu
 net saving falls with it (from $98\%$ to $39\%$), so the low-drop region is
 reachable only where saving has already collapsed. Table~\ref{tab:deer} gives
 the DEER threshold frontier that does reach the gate region.
+
+\paragraph{Gross versus net savings.}
+Table~\ref{tab:grossnet} separates the two costs of \S\ref{sec:exp-sweep}:
+under dense re-probing a late-stopping rule pays the probe output $p$ over a
+long prefix, opening a gap between its gross savings $(B-s)/B$ and its net
+savings $(B-s-p)/B$. The gap---the probe tax---shifts the savings axis but
+never rescues the accuracy drop.
+
+\begin{table}[t]
+  \centering\small
+  \begin{tabular}{lcc}
+    \toprule
+    Consensus point & Gross saving & Net saving \\
+                    & $(B-s)/B$    & $(B-s-p)/B$ \\
+    \midrule
+    save$\ge10\%$ (drop $2.7\pp$) & $+14.7\%$ & $+10.7\%$ \\
+    save$\ge20\%$ (drop $6.2\pp$) & $+27.0\%$ & $+20.2\%$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{Gross vs.\ net savings for two consensus frontier points; the gap
+  ($\sim\!4$--$7\pp$) is the probe tax. It shifts the \emph{savings} axis but
+  never rescues the accuracy drop---which is the intrinsic tax that keeps the
+  corner empty.}
+  \label{tab:grossnet}
+\end{table}
+
+\paragraph{Prior-stopper reproductions.}
+Table~\ref{tab:baselines} reports the two reproductions of
+\S\ref{sec:exp-prior} in a common harness---the same frozen trajectories, the
+same token accounting. \textbf{CertaIndex (CoT)} \citep{dynasor_certaindex} is
+the consensus stop for a single chain of thought, reproduced from the released
+implementation at its default \texttt{mid} setting (stop once three consecutive
+probes give the same non-empty answer and none hedges), with the authors' probe
+prompt and probe schedule---their rule as shipped, not a variant of ours.
+\textbf{DEER} \citep{deer} here is the faithful readout reproduction (the
+stronger trial-answer-submit variant is what \S\ref{sec:exp-deer} sweeps). Two
+scope notes. First, CertaIndex's multi-path setting is ordinary
+self-consistency: it measures entropy over answers from \emph{independently
+sampled} trajectories, and nothing here bears on it; what we reproduce is the
+single-trajectory case, where the same statistic is read over repeated probes
+of one chain. Second, these are reproductions on our frozen trajectories and
+benchmarks, not re-runs of either paper's end-to-end system, and the original
+CoT results were reported on an easier benchmark, where intermediate answers
+settle sooner.
+
+\begin{table*}[t]
+  \centering\small
+  \begin{tabular}{llccccc}
+    \toprule
+    Method & Model & Accuracy & $\Delta$acc & Fair token saving & Stop rate & Signal \\
+    \midrule
+    Full generation & \qweneight{}   & $85.4\%$ & --- & $0\%$ & $0\%$ & --- \\
+    Full generation & \dsseven{} & $79.8\%$ & --- & $0\%$ & $0\%$ & --- \\
+    \midrule
+    CertaIndex (CoT) & \qweneight{}   & $15.3\%$ & $-70.1\pp$ & $90.1\%$ & $99.8\%$ & consensus \\
+    CertaIndex (CoT) & \dsseven{} & $23.9\%$ & $-55.9\pp$ & $76.7\%$ & $98.7\%$ & consensus \\
+    \midrule
+    DEER       & \qweneight{}   & $86.2\%$ & $\mathbf{+0.8\pp}$ & $16.3\%$ & $41.4\%$ & boundary conf. \\
+    DEER       & \dsseven{} & $74.9\%$ & $-4.8\pp$  & $20.2\%$ & $56.1\%$ & boundary conf. \\
+    \bottomrule
+  \end{tabular}
+  \caption{Prior early-stoppers reproduced on our frozen trajectories (dev, macro
+  over three benchmarks; probe tokens charged). \textbf{CertaIndex (CoT)} stops on
+  almost every problem and stops early, and loses $56$--$70\pp$ while saving
+  $77$--$90\%$ of tokens---the pattern \S\ref{sec:exp-fc} describes, at a single
+  shipped operating point. \textbf{DEER}, reading boundary confidence rather than
+  probe agreement, stays near full accuracy ($+0.8\pp$ on \qweneight{}) while
+  still saving tokens. These are reproductions on our benchmarks, not the original
+  papers' end-to-end numbers.}
+  \label{tab:baselines}
+\end{table*}
 
 \begin{table}[t]
   \centering\small
@@ -111,6 +222,36 @@ give the saving-versus-drop view of the same selection and generalization result
 resolved per split, per model and per benchmark, with the oracle upper bound on
 each panel. They add no claim beyond the main text; they show the distributions
 the summaries are drawn from.
+
+\paragraph{Selection-pipeline details (\S\ref{sec:exp-heldout}).}
+In Figure~\ref{fig:split-transfer}, the $478$ consensus rules that clear the
+conservative gate \emph{in-sample on train} are tracked onto dev and test as a
+band; the three dev-selected DEER thresholds are tracked individually. On
+dev---the split the gate is applied on---not one of the $478$ is admissible,
+while all three DEER points stay inside on every split. The dev and test splits
+are not equally demanding: the same $478$ rules have a median drop of $4.5\pp$
+on dev but $0.6\pp$ on test, an asymmetry driven by the two smallest
+environments (AMC23 and AIME24 under \qweneight{}, $8$ and $6$ problems), which
+carry the same weight as a $100$-problem environment under macro-averaging.
+This is why the claim is stated jointly rather than per split: $364$ of the
+$478$ are admissible on test, but they are exactly the in-sample winners a
+held-out split exists to reject, and none of them is selectable from dev.
+
+\paragraph{Unseen-model details.}
+On the $4\times$ larger \mbox{Distill-Qwen-32B} the conservative gate stays
+empty (the best rule under a $1.0\pp$ drop saves $0.6\%$), but a scale effect
+appears at the looser gates: a few consensus rules become admissible
+\emph{in-sample} ($4$ at balanced, $6$ at token-efficient), reflecting that a
+bigger model's intermediate answers stabilize somewhat earlier---these are not
+the dev-selected rules (dev admits none). On the same-scale
+\mbox{Distill-Llama-8B} all three gates stay empty ($0/0/0$; the best rule
+under a $1.0\pp$ drop saves $9.3\%$). The Llama-8B trajectories were
+re-collected after correcting a chat-template defect (a missing model-specific
+beginning-of-sequence token that degraded its generations); the corrected model
+scores $\sim\!88\%$ on \textsc{MATH}500. The \emph{oracle} upper bound on each
+panel is a perfect probe-based stop committing the earliest correct probe; it
+sits at a negative drop of $2$--$5\pp$ at $40$--$80\%$ saving, far in a corner
+neither method reaches.
 
 \begin{figure}[t]
   \centering

@@ -4,6 +4,32 @@
 
 ---
 
+### 2026-08-03（续5）两幕式重排 + 正文压回 8 页 + abstract 砍半（storyline 对齐）
+- **动机**（用户）：叙事仍未收敛到一条完整线；正文 ~11.5 页要回 8 页；abstract 冗长（砍半）；
+  不许丢内容——离线内容降级进附录而不是删除。
+- **结构性问题**：intro 承诺的顺序是"发现 gap → 解释成因 → sweep 证明调不掉 → DEER 排除"，
+  但正文实际是 sweep（旧 §4）在机制（旧 §5）之前。改为**两幕式**：
+  - **§3 Experimental Setup**（只留冻结轨迹/probe bank/token 记账/模型与切分+macro 一段；
+    rule space、gates、C1–C3 移出）。
+  - **§4 The Stability–Terminality Gap**（发现+解释）：4.1 Agreement Is Not Terminal
+    （原 §4.1 四 facts 并入，消除与机制节的重复）→ 4.2 wording → 4.3 taxonomy →
+    4.4 window/harm:rescue（吸收"trajectory-level"小节压缩版）→ 4.5 independence。
+    case studies 正文删为指针（附录 F 本有全文，零损失）。
+  - **§5 The Gap Cannot Be Tuned Away**：5.1 rule space+gates（gates 表移附录 B、正文一句话；
+    knob 数值去重——附录 A 有全量）→ 5.2 0/3,520 → 5.3 DEER 对照 → 5.4 CertaIndex in the wild
+    （大表 tab:baselines 移附录 D+scope notes）→ 5.5 泛化（478-band/dev-test 不对称/32B scale
+    effect/Llama BOS 脚注全部移附录 E 两段）→ 5.6 accuracy tax vs probe tax（tab:grossnet 移附录 D）
+    → 5.7 Locating the Failure（三段 hedge 合并为一段"三个限定"）。
+  - **§6 Conclusion 砍半**（~75 行→~45 行）：删与 §5.7 逐字重复的"agreement 不废"段，落在
+    persistence-not-terminality + 高潮句。
+- **abstract 砍半**（~250 词→~140 词，6 句）：proxy → 测错对象(gap) → 机制+三证据+窗口无效 →
+  sweep 全空+复现 → DEER 对照 → 高潮句。修一处新引入的过度声明（"clears none on two unseen
+  models"→"the failure reproduces"，因 32B 宽松 gate 有 in-sample 通过者）。
+- **对齐校验**：abs 6 句 ↔ intro 5 段+贡献 ↔ 正文 §2/§4/§5/§6 一一对应；全文交叉引用扫描无旧顺序残留。
+- **结果**：正文 §1–§6 恰好 8 页收尾（高潮句在 p8，Limitations 从 p8 下半开始），全文 16 页
+  （原 19），0 undefined refs。图：正文仍三张（fig1_idea p3 / fig_wording_taxonomy p6 /
+  fig_harm_rescue p7）；tab:main 留正文。
+
 ### 2026-08-03（续4）合并 main 的 stability–terminality 框架 + 收敛为单一主线
 - **背景**：`main` 分支（另一次并行分叉，从 4d434f1f 起）把论文重构为 *Stable Answers,
   Unfinished Reasoning: The Stability–Terminality Gap*（正文 8 页可投版），而 v3 分支是围绕

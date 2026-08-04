@@ -1,12 +1,13 @@
-\section{Method}
+\section{Experimental Setup}
 \label{sec:method}
 
-To ask whether \emph{any}
-probe-based rule can succeed, we need (i) an evaluation that a rule cannot game
-by changing the reasoning it observes, and (ii) a selection procedure that
-cannot silently overfit to a lucky operating point. We preregister both.
+Every measurement in this paper---the direct measurements of the gap
+(Section~\ref{sec:mechanism}) and the rule sweep that tries to tune it away
+(Section~\ref{sec:results})---runs on the same frozen substrate under the same
+token accounting, so that no result can be an artifact of a rule changing the
+reasoning it observes.
 
-\subsection{Probe-independent, frozen trajectories}
+\subsection{Frozen trajectories, offline probes}
 For each problem we generate exactly \emph{one} main trajectory in a single
 request (caps: $16$K tokens for \textsc{MATH}500 and AMC23, $32$K for AIME24)
 and freeze it. All probing is then performed \emph{offline} against fixed text
@@ -23,121 +24,23 @@ conclusion/reflection/answer markers.
 For a rule that stops a problem at token position $s$ after consuming probe
 output $p$, we charge total decode tokens $T=s+p$ and compare against the frozen
 baseline $B$ (the full trajectory, capped at budget). \emph{Net} savings is
-$(B-T)/B$ and \emph{gross} savings is $(B-s)/B$; their gap is the probe cost. The
-accuracy drop compares the correctness of the committed answer at $s$ against that
-of the frozen final answer (it is not an agreement rate between them). Two
-quantities therefore move independently, and we track both: \emph{where} the rule
-stops (setting the accuracy drop and the main-token saving $s$) and \emph{how much
-it probes} to get there (adding $p$). Section~\ref{sec:mechanism} shows that only
-the first is intrinsic.
-
-\subsection{The consensus rule space $(W, s)$}
-\label{sec:schema}
-The consensus signal in the windowed family we study reduces to two
-hyperparameters: a \textbf{window size} $W$ (how many of the most recent probes
-to inspect) and a \textbf{share threshold} $s$ (what fraction of that window
-must agree on a single answer before a stop is allowed). This pair spans the
-family to a close approximation: $W{=}1$ is the ``latest-probe'' rule, $s{=}1.0$
-is strict unanimity over the last $W$ probes (the CertaIndex-style stop), and an
-entropy-over-the-window criterion closely tracks the same agreement and adds no
-materially new operating point on our grid. We sweep $W\in\{1,3,5,8,12,16,24,30\}$ and
-$s\in\{0.6,0.8,1.0\}$, deliberately including \emph{large} windows so a rule can
-demand a long, stable agreement before committing.
-
-Around this core we vary only the operational knobs that govern \emph{when} and
-\emph{how} the signal is read: \textbf{probe schedule} (fixed interval
-$\in\{64,128,256,512\}$ tokens, or event-triggered probing at
-conclusion/entropy/reflection markers); \textbf{maturity} (a minimum-token floor
-$\in\{0,512,1024,2048,4096\}$ before any stop is allowed); \textbf{validity} (an
-answer-shape filter, rejecting empty/letter answers or only empties); and
-\textbf{certainty} (optionally requiring the supporting probes to be flagged
-certain). Enumerating this preregistered grid over a fixed-schedule and an
-event-triggered family yields $3{,}520$ candidate consensus rules; formal
-definitions are in Appendix~\ref{sec:appendix-schema}.
-
-\paragraph{A better signal, swept identically.}
-To test whether the failure is early exit \emph{itself} or the consensus
-\emph{signal}, we sweep one non-consensus method through the same pipeline,
-gates, and token accounting. \textbf{DEER} \citep{deer} stops on the model's own
-confidence in a trial answer at a reasoning boundary; its only hyperparameter is
-a confidence threshold, which we sweep over $14$ values. We use the stronger
-\emph{trial-answer-submit} variant (commit the trial answer directly, no
-separate readout) rather than the faithful readout reproduction---our aim here
-is not to reproduce prior work but to ask whether \emph{any} rule can clear the
-gates. Placing DEER and consensus on one frontier under identical accounting is
-what makes the comparison a controlled test of the signal.
+$(B-T)/B$ and \emph{gross} savings is $(B-s)/B$; their gap is the probe cost.
+The accuracy drop compares the correctness of the committed answer at $s$
+against that of the frozen final answer (it is not an agreement rate between
+them).
 
 \subsection{Models, benchmarks, splits}
+\label{sec:resolution}
 Development uses two models---\dsseven{} and \qweneight{}---on three benchmarks
 (\textsc{MATH}500, AMC23, AIME24), each at seeds $42/43/44$: $18$
 model$\times$benchmark$\times$seed environments. Problems are partitioned
-\emph{by problem id} into $60/20/20$ train/dev/test splits
-(\textsc{MATH}500 $300/100/100$, AMC23 $24/8/8$, AIME24 $18/6/6$), so no problem
-leaks across splits. Confirmation reserves seeds $45/46/47$ plus two unseen
+\emph{by problem id} into $60/20/20$ train/dev/test splits, so no problem leaks
+across splits. Confirmation reserves seeds $45/46/47$ plus two unseen
 models---\mbox{DeepSeek-R1-Distill-Llama-8B} and \mbox{Distill-Qwen-32B}---all
-evaluated on the \emph{test} split only. In one line: \emph{train} generates and
-screens candidate rules in-sample, \emph{dev} is the sole selection target the
-gates are read on, and \emph{test} (with the two unseen models) is read once for
-confirmation after the rules and thresholds are frozen---never for tuning. Where
-later sections say ``train+dev,'' they mean a rule was required to pass a gate
-in-sample on train and is then measured on dev.
-
-\subsection{Preregistered operating points and gates}
-We fix three operating points and their acceptance gates \emph{before} looking
-at held-out data (Table~\ref{tab:gates}). Each gate is applied in order:
-first the \textbf{total accuracy drop} (macro-averaged over the $18$
-environments) must stay under a cap; then the \textbf{total net token saving}
-(macro-averaged) must clear a floor; and finally a \textbf{positive-saving
-fraction} (psf, the fraction of environments with strictly positive net saving)
-floor must be met. A rule is accepted at an operating point only if it satisfies
-all three on train+dev. The saving floor is what distinguishes a genuinely
-useful early exit from a rule that stays accurate only by almost never stopping.
-
-\begin{table}[t]
-  \centering\small
-  \begin{tabular}{lccc}
-    \toprule
-    Operating point & Max total & Min total & psf \\
-                    & acc.\ drop & saving    & floor \\
-    \midrule
-    conservative     & $1.0\pp$ & $10\%$ & $0.80$ \\
-    balanced         & $2.0\pp$ & $20\%$ & $0.80$ \\
-    token\_efficient & $3.5\pp$ & $30\%$ & $0.70$ \\
-    \bottomrule
-  \end{tabular}
-  \caption{Preregistered acceptance gates. A rule must keep the macro-averaged
-  accuracy drop under ``max total acc.\ drop,'' deliver at least ``min total
-  saving'' net tokens, and post positive net saving on at least a psf fraction
-  of environments. Gates are fixed in advance and \emph{not} relaxed post hoc.}
-  \label{tab:gates}
-\end{table}
-
-\subsection{Metric resolution}
-\label{sec:resolution}
-The total accuracy drop is a macro-average over the $18$ environments (each
-model$\times$benchmark$\times$seed weighted equally). We span two models, three
-benchmarks, and three seeds and weight them equally so that selection rewards a
-rule that is robust across benchmarks, models, and randomness, not one that
-overfits a single setting. Pooling problems instead would let MATH500 ($100$ dev
-problems per seed vs.\ $8$ for AMC23 and $6$ for AIME24) dominate the headline,
-so a rule that wins only on MATH500 could pass; equal per-environment weight
-forces a selected rule to hold on the harder competition sets too. Macro also
-keeps any single problem from swinging the result---one AIME24 problem is
-$16.7\pp$ of a $6$-problem split but only ${\sim}1/108$ of the macro drop---while
-the three seeds damp the extra per-cell noise of the small sets. The gates are
-read on the dev split (the selection target) with train reported alongside;
-because \emph{no} consensus rule clears any gate by a wide margin
-(Section~\ref{sec:results}), the finding does not rest on a single fragile cell.
-Held-out confirmation on the test split and two unseen models provides the
-complementary out-of-distribution check.
-
-\subsection{Preregistration commitments}
-Three commitments make the result interpretable. \textbf{(C1)} The test split
-and both confirmation models are never read during rule selection.
-\textbf{(C2)} All three operating points and their gates in
-Table~\ref{tab:gates} are fixed before seeing held-out data and are not relaxed
-afterwards; if no rule passes a gate, that is reported as the finding rather than
-engineered away, and all three points are reported regardless of outcome.
-\textbf{(C3)} The frozen rule set is fixed on train+dev and its hash recorded
-before any test/confirmation evaluation. Section~\ref{sec:results} reports what
-happened when we applied C2.
+evaluated on the \emph{test} split only, read once after all rules and
+thresholds are frozen, never for tuning. Every headline metric is a
+\emph{macro}-average over the $18$ environments, weighting each equally: this
+rewards a rule that is robust across models, benchmarks, and seeds, and keeps
+the large \textsc{MATH}500 split---or any single problem---from dominating the
+headline (Appendix~\ref{sec:appendix-prereg} details the weighting and its
+noise trade-offs).

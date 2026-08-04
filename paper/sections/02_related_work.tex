@@ -5,8 +5,8 @@
 The methods we scrutinize periodically query a partial reasoning trajectory for
 its current answer and halt on agreement. Dynasor / CertaIndex
 \citep{dynasor_certaindex} formalize this with a ``certainty index'' over recent
-probe answers and use it to terminate early when serving reasoning programs, one
-of several responses to the \emph{overthinking} of reasoning models
+probe answers and use it to terminate early when serving reasoning programs, a
+response to the \emph{overthinking} of reasoning models
 \citep{overthinking,deer}. Recent work pushes the same idea further:
 \citet{liu2025answerconvergence} report that a trajectory's answer ``converges''
 well before it ends and stop on that convergence at little \emph{aggregate}
@@ -19,52 +19,30 @@ whether the apparent aggregate savings hide a directional accuracy cost.
 
 \paragraph{Where agreement gets its meaning.}
 Self-consistency \citep{wang2023selfconsistency} samples a \emph{diverse} set of
-reasoning paths and takes the majority answer, on the premise that a hard problem
-admits many routes to one correct answer. Agreement is evidence there because the
-paths are drawn independently: when routes that could have diverged do not, that
-is information about the answer, and the vote can outweigh an error on any single
-path. Early-stopping variants keep this structure and only decide how many
-samples to draw \citep{aggarwal2023adaptive,li2024esc}. CertaIndex uses the same
-structure in its multi-path setting, measuring entropy over answers from
-independently sampled trajectories.
-
-Probing a single chain of thought is a different object, and we call it
-\emph{self-consensus} to keep the two apart. Its readings are not independent
-samples: every probe is conditioned on the same prefix, so agreement between them
-records that the prefix has not changed its answer, not that separate lines of
-reasoning have converged on one. This removes the protection self-consistency
-enjoys---agreement no longer supplies a vote that can outweigh an error---but on
-its own it does not settle the question that matters here: whether agreement, even
-so, tracks \emph{terminality}. That the same-prefix answer is still moving is
-something we establish by direct measurement in Section~\ref{sec:mechanism}---by
-re-wording the probe, labelling wrong stops, and tracking how often the trajectory
-later corrects itself---rather than infer from non-independence alone. This
-within-trajectory answer evolution is also distinct from the prompted, post-hoc
-self-correction that \citet{huang2024selfcorrect} find unreliable, and we find
-(Section~\ref{sec:results}) that a model's mid-trajectory answer is far from
-final.
+reasoning paths and takes the majority answer; agreement is evidence there
+because the paths are drawn independently, so the vote can outweigh an error on
+any single path, and early-stopping variants only decide how many samples to
+draw \citep{aggarwal2023adaptive,li2024esc}. Probing a single chain of thought
+is a different object, which we call \emph{self-consensus} to keep the two
+apart: every probe is conditioned on the same prefix, so agreement records that
+the prefix has not changed its answer, not that separate lines of reasoning
+have converged---the protecting vote is absent. On its own, though, this
+structural point does not settle whether agreement tracks \emph{terminality};
+that the same-prefix answer is still moving is what
+Section~\ref{sec:mechanism} establishes by direct measurement (distinct from
+prompted, post-hoc self-correction, which \citet{huang2024selfcorrect} find
+unreliable).
 
 \paragraph{Alternative termination signals.}
-Rather than probe agreement, a stop can read other signals: verifier- and
+A stop can read signals other than probe agreement: verifier- and
 process-reward-guided decoding \citep{lightman2024verify,wang2024mathshepherd}
-score partial reasoning, and adaptive-computation methods learn a halting signal
-at the token or layer level \citep{graves2016act,schuster2022confident}.
-Confidence-dynamics stops read how the model's answer confidence evolves and halt
-when it settles---a forward-looking signal rather than backward probe agreement
-\citep{hosseini2026codestop}. DEER
-\citep{deer} stops on the model's confidence in a trial answer at reasoning
-boundaries. We use DEER only as a \emph{positive control}
-(Section~\ref{sec:mechanism}): run through the identical pipeline and acceptance
-gates, it clears them where no consensus rule does, indicating that the failure
-is specific to the probe-agreement signal rather than to early exit itself. We do
-not claim this broader class of signals is categorically superior---our
-experiments isolate one signal, not a taxonomy of methods.
-Test-time scaling trades compute for accuracy via repeated sampling and search
-\citep{snell2024scaling,brown2024monkeys}; early exit is its dual, spending less
-without losing accuracy.
-
-\paragraph{Preregistration.}
-To keep an exhaustive rule search from silently overfitting to a favorable
-operating point, we fix the rule schema, splits, and acceptance gates before
-looking at held-out data \citep{preregistration_ml}. This preregistration
-(Section~\ref{sec:method}) is what makes a \emph{negative} result interpretable.
+scores partial reasoning, adaptive-computation methods learn a halting signal
+at the token or layer level \citep{graves2016act,schuster2022confident},
+confidence-dynamics stops read how the model's answer confidence evolves
+\citep{hosseini2026codestop}, and DEER \citep{deer} stops on the model's
+confidence in a trial answer at reasoning boundaries. We use DEER only as a
+\emph{positive control} (Section~\ref{sec:results}): run through the identical
+pipeline and acceptance gates, it clears them where no consensus rule does,
+which localizes the failure to the probe-agreement signal rather than to early
+exit itself. We do not claim this broader class is categorically superior; our
+experiments isolate one signal.
