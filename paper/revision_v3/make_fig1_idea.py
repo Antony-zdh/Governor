@@ -254,7 +254,7 @@ def panel_head(slide, x, y, w, letter, title, subtitle, accent):
 
 def draw_panel_a(slide):
     round_rect(slide, AX, PANEL_Y, AW, PANEL_H, fill=PANEL_FILL, line=PANEL_LINE)
-    panel_head(slide, AX, PANEL_Y, AW, "a", "Agreement ≠ terminality",
+    panel_head(slide, AX, PANEL_Y, AW, "a", "Agreement ≠ termination",
                "the real probe stream of one trajectory", CONS_TEXT)
 
     ix, iw = AX + 0.11, AW - 0.22
@@ -313,7 +313,7 @@ def draw_panel_a(slide):
     badge = round_rect(slide, ix, PANEL_Y + PANEL_H - 0.36, iw, 0.27, radius=0.30,
                        fill=RGBColor(0xFE, 0xF3, 0xC7), line=CONS_LINE)
     label_shape(badge,
-                [[("harm : rescue ≈ 45 : 1", {"bold": True, "color": CONS_TEXT,
+                [[("harm : rescue  45:1 → 2:1", {"bold": True, "color": CONS_TEXT,
                                               "size": 7.4})]])
 
 
@@ -395,8 +395,8 @@ def draw_panel_b(slide):
 
 def draw_panel_c(slide):
     round_rect(slide, CX, PANEL_Y, CW, PANEL_H, fill=PANEL_FILL, line=PANEL_LINE)
-    panel_head(slide, CX, PANEL_Y, CW, "c", "The failure is the signal",
-               "identical pipeline, gates and accounting", DEER_TEXT)
+    panel_head(slide, CX, PANEL_Y, CW, "c", "Early exit is not the problem",
+               "same sweep, gates and accounting", DEER_TEXT)
 
     ix, iw = CX + 0.11, CW - 0.22
     hw = (iw - 0.08) / 2
@@ -459,9 +459,9 @@ def draw_connectors(slide):
 def draw_band(slide):
     y = H - M - BAND_H
     b = round_rect(slide, M, y, W - 2 * M, BAND_H, radius=0.10, fill=INK, line=None)
-    label_shape(b, [[("Early exit is possible — the consensus ",
+    label_shape(b, [[("Early exit is possible — ",
                       {"size": 8.5, "color": WHITE}),
-                     ("signal", {"size": 8.5, "color": WHITE, "bold": True,
+                     ("self-consensus", {"size": 8.5, "color": WHITE, "bold": True,
                                  "italic": True}),
                      (" is what cannot make it safe.",
                       {"size": 8.5, "color": WHITE})]])

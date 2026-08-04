@@ -194,47 +194,6 @@ settle sooner.
 \section{Supporting Figures: Sweep Surface, Selection, and Frontiers}
 \label{sec:appendix-pareto}
 
-This appendix collects the supporting figures referenced from the main text.
-Figure~\ref{fig:consensus-pos} shows where consensus first forms as a fraction of
-each trajectory's length (\S\ref{sec:exp-fc}); Figure~\ref{fig:ws-heatmap} reads
-the empty safe-and-saving corner directly off the sweep's $(W,s)$ surface
-(\S\ref{sec:exp-sweep}); and Figure~\ref{fig:split-transfer} traces the
-train~$\rightarrow$~dev~$\rightarrow$~test selection pipeline
-(\S\ref{sec:exp-heldout}). Figures~\ref{fig:app-splits}--\ref{fig:app-bench} then
-give the saving-versus-drop view of the same selection and generalization results,
-resolved per split, per model and per benchmark, with the oracle upper bound on
-each panel. They add no claim beyond the main text; they show the distributions
-the summaries are drawn from.
-
-\paragraph{Selection-pipeline details (\S\ref{sec:exp-heldout}).}
-In Figure~\ref{fig:split-transfer}, the $478$ consensus rules that clear the
-conservative gate \emph{in-sample on train} are tracked onto dev and test as a
-band; the three dev-selected DEER thresholds are tracked individually. On
-dev---the split the gate is applied on---not one of the $478$ is admissible,
-while all three DEER points stay inside on every split. The dev and test splits
-are not equally demanding: the same $478$ rules have a median drop of $4.5\pp$
-on dev but $0.6\pp$ on test, an asymmetry driven by the two smallest
-environments (AMC23 and AIME24 under \qweneight{}).
-This is why the claim is stated jointly rather than per split: $364$ of the
-$478$ are admissible on test, but they are exactly the in-sample winners a
-held-out split exists to reject, and none of them is selectable from dev.
-
-\paragraph{Unseen-model details.}
-On the $4\times$ larger \mbox{Distill-Qwen-32B} the conservative gate stays
-empty (the best rule under a $1.0\pp$ drop saves $0.6\%$), but a scale effect
-appears at the looser gates: a few consensus rules become admissible
-\emph{in-sample} ($4$ at balanced, $6$ at token-efficient), reflecting that a
-bigger model's intermediate answers stabilize somewhat earlier---these are not
-the dev-selected rules (dev admits none). On the same-scale
-\mbox{Distill-Llama-8B} all three gates stay empty ($0/0/0$; the best rule
-under a $1.0\pp$ drop saves $9.3\%$). The Llama-8B trajectories were
-re-collected after correcting a chat-template defect (a missing model-specific
-beginning-of-sequence token that degraded its generations); the corrected model
-scores $\sim\!88\%$ on \textsc{MATH}500. The \emph{oracle} upper bound on each
-panel is a perfect probe-based stop committing the earliest correct probe; it
-sits at a negative drop of $2$--$5\pp$ at $40$--$80\%$ saving, far in a corner
-neither method reaches.
-
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{figures/gen/fig_consensus_pos.pdf}
@@ -314,6 +273,48 @@ neither method reaches.
   \label{fig:app-bench}
 \end{figure*}
 
+
+This appendix collects the supporting figures referenced from the main text.
+Figure~\ref{fig:consensus-pos} shows where consensus first forms as a fraction of
+each trajectory's length (\S\ref{sec:exp-fc}); Figure~\ref{fig:ws-heatmap} reads
+the empty safe-and-saving corner directly off the sweep's $(W,s)$ surface
+(\S\ref{sec:exp-sweep}); and Figure~\ref{fig:split-transfer} traces the
+train~$\rightarrow$~dev~$\rightarrow$~test selection pipeline
+(\S\ref{sec:exp-heldout}). Figures~\ref{fig:app-splits}--\ref{fig:app-bench} then
+give the saving-versus-drop view of the same selection and generalization results,
+resolved per split, per model and per benchmark, with the oracle upper bound on
+each panel. They add no claim beyond the main text; they show the distributions
+the summaries are drawn from.
+
+\paragraph{Selection-pipeline details (\S\ref{sec:exp-heldout}).}
+In Figure~\ref{fig:split-transfer}, the $478$ consensus rules that clear the
+conservative gate \emph{in-sample on train} are tracked onto dev and test as a
+band; the three dev-selected DEER thresholds are tracked individually. On
+dev---the split the gate is applied on---not one of the $478$ is admissible,
+while all three DEER points stay inside on every split. The dev and test splits
+are not equally demanding: the same $478$ rules have a median drop of $4.5\pp$
+on dev but $0.6\pp$ on test, an asymmetry driven by the two smallest
+environments (AMC23 and AIME24 under \qweneight{}).
+This is why the claim is stated jointly rather than per split: $364$ of the
+$478$ are admissible on test, but they are exactly the in-sample winners a
+held-out split exists to reject, and none of them is selectable from dev.
+
+\paragraph{Unseen-model details.}
+On the $4\times$ larger \mbox{Distill-Qwen-32B} the conservative gate stays
+empty (the best rule under a $1.0\pp$ drop saves $0.6\%$), but a scale effect
+appears at the looser gates: a few consensus rules become admissible
+\emph{in-sample} ($4$ at balanced, $6$ at token-efficient), reflecting that a
+bigger model's intermediate answers stabilize somewhat earlier---these are not
+the dev-selected rules (dev admits none). On the same-scale
+\mbox{Distill-Llama-8B} all three gates stay empty ($0/0/0$; the best rule
+under a $1.0\pp$ drop saves $9.3\%$). The Llama-8B trajectories were
+re-collected after correcting a chat-template defect (a missing model-specific
+beginning-of-sequence token that degraded its generations); the corrected model
+scores $\sim\!88\%$ on \textsc{MATH}500. The \emph{oracle} upper bound on each
+panel is a perfect probe-based stop committing the earliest correct probe; it
+sits at a negative drop of $2$--$5\pp$ at $40$--$80\%$ saving, far in a corner
+neither method reaches.
+
 \section{Case Studies}
 \label{sec:appendix-cases}
 
@@ -339,7 +340,7 @@ reaching $-\tfrac{24}{25}$ and holding it to the end; the trajectory is correct.
 
 This single case makes three points. The stop is not a considered wrong answer
 but a value emitted before any real work has been done, and it is perfectly
-stable for nearly half the trajectory. Its stability therefore says nothing about
+stable for nearly half the trajectory. That it never changes therefore says nothing about
 whether reasoning has finished. And because the run is $27$ probes long, it
 defeats \emph{every} window in our sweep: even $W{=}24$, the second-largest we
 searched, fires here and commits \texttt{0}. Enlarging the window does not

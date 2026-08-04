@@ -8,10 +8,11 @@ search under commitment: a \emph{preregistered} sweep of the consensus family
 with acceptance gates fixed in advance \citep{preregistration_ml}, a
 non-consensus signal swept through the same pipeline, a released
 consensus stopper at its shipped default, and out-of-distribution confirmation.
-The target throughout is an \emph{environment-robust policy}, selected once
-rather than tuned per environment: whether a rule chosen on the development
-environments stays safe and saving on held-out problems, seeds, benchmarks and
-models.
+Two questions run through it. First, whether \emph{any} rule in the family is
+simultaneously safe and saving on the split the gates are applied to. Second,
+if one were, whether it would be an \emph{environment-robust policy}---selected
+once rather than tuned per environment, and still safe and saving on held-out
+problems, seeds, benchmarks and models.
 
 \subsection{Preregistered Rule Space and Gates}
 \label{sec:schema}
@@ -31,13 +32,15 @@ certainty flag. Enumerating this preregistered grid yields $3{,}520$ candidate
 consensus rules (all values and formal definitions in
 Appendix~\ref{sec:appendix-schema}).
 
-\paragraph{A non-consensus control, swept identically.}
-To separate a failure of the \emph{signal} from a failure of early exit itself,
-we sweep one non-consensus method through the same pipeline, gates, and token
-accounting. \textbf{DEER} \citep{deer} stops on the model's own confidence in a
-trial answer at a reasoning boundary; its only hyperparameter is a confidence
-threshold, swept over $14$ values (the stronger \emph{trial-answer-submit}
-variant). Both are placed on one frontier under identical token accounting.
+\paragraph{A non-consensus control.}
+To separate a failure of the consensus family from a failure of early exit
+itself, we sweep one non-consensus method through the same pipeline, gates, and
+token accounting. \textbf{DEER} \citep{deer} stops on the model's own confidence
+in a trial answer at a reasoning boundary; its only hyperparameter is a
+confidence threshold, swept over $14$ values (the stronger
+\emph{trial-answer-submit} variant). Both are placed on one frontier under
+identical token accounting. It is a control on the family, not a one-factor
+ablation of the statistic (\S\ref{sec:locating}).
 
 \paragraph{Gates.}
 We fix three operating points and their acceptance gates \emph{before} looking
@@ -58,21 +61,18 @@ environments (psf).
     token\_efficient & $3.5\pp$ & $30\%$ & $0.70$ \\
     \bottomrule
   \end{tabular}
-  \caption{Preregistered acceptance gates. A rule must keep
-  the macro-averaged accuracy drop under ``max total acc.\ drop,'' deliver at
-  least ``min total saving'' net tokens, and post positive net saving on at
-  least a psf fraction of environments. Gates are fixed in advance and
-  \emph{not} relaxed post hoc.}
+  \caption{Preregistered acceptance gates, fixed in advance and \emph{not}
+  relaxed post hoc. All three conditions are macro-averaged over the $18$
+  development environments.}
   \label{tab:gates}
 \end{table}
 
-The three points (Table~\ref{tab:gates}) span progressively looser accuracy
-constraints paired with progressively higher
-saving requirements. They are not universal safety standards; they test whether
-self-consensus supplies a stable policy under \emph{some} practically meaningful
-pairing of accuracy and saving requirements. The saving floor rejects a rule
-that stays accurate only by almost never stopping, and the psf floor prevents an
-average saving concentrated in a few environments. Three commitments were recorded
+The three points (Table~\ref{tab:gates}) pair progressively looser accuracy
+constraints with progressively higher saving requirements. They are not
+universal safety standards; they test whether self-consensus supplies a usable
+policy under \emph{some} practically meaningful pairing of the two. The saving
+floor rejects a rule that stays accurate only by almost never stopping, and the
+psf floor an average saving concentrated in a few environments. Three commitments were recorded
 with the protocol: the test split and confirmation models are never read
 during selection (C1); the gates are never relaxed post hoc---an empty gate is
 reported as the finding (C2); and the rule set is frozen and hashed before any
@@ -177,19 +177,23 @@ frontiers with an oracle upper bound, and details the dev/test asymmetry
 induced by the small competition sets.
 
 \subsection{Locating the Failure}
+\label{sec:locating}
 Every method that stops on \emph{consensus}---the swept family and the
 CertaIndex (CoT) reproduction alike---fails a gate or loses many points, while
-the one method that clears them does not read consensus; since the same
-machinery, gates, and accounting produce both outcomes, what separates them is
-the \emph{signal}.
+the one method that clears them does not read consensus at all. Run through the
+same machinery, gates, and accounting, the two outcomes differ, so the failure
+lies in how the stop is decided rather than in early exit at these budgets.
 
-Three qualifications bound the claim. It concerns agreement used \emph{alone} as
-the stopping criterion: combined with a signal that reflects the model's own
-estimate, the cheap fact that the answer has not changed may well be
-useful---CertaIndex composes multiple indicators for related reasons
-\citep{dynasor_certaindex}. It concerns the preregistered schema and
+Four qualifications bound the claim. It concerns agreement used \emph{alone}:
+combined with a signal reflecting the model's own estimate, the cheap fact that
+the answer has not changed may well be useful, as CertaIndex's composite
+indicator assumes \citep{dynasor_certaindex}. It concerns the preregistered schema and
 dense-probe regime we searched---our probe grid makes essentially every stop
 position reachable, so the floor is not a lucky miss of the schedule, but a
 finite search demonstrates a systematic risk, not a universal impossibility
-theorem. And it does not say which signal \emph{should} replace agreement; that,
-with its own train/dev$\rightarrow$test confirmation, is left open.
+theorem. The DEER contrast is not a one-factor ablation: DEER also differs in
+when it reads (reasoning boundaries, not a fixed schedule) and what it commits
+(a trial answer, not a probe answer), so it locates the failure in the
+consensus family \emph{as deployed}, not in the agreement statistic in
+isolation. And it does not say which signal \emph{should} replace agreement;
+that, with its own train/dev$\rightarrow$test confirmation, is left open.

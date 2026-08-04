@@ -1,11 +1,12 @@
-\section{The Stability--Terminality Gap}
+\section{The Consensus--Termination Gap}
 \label{sec:mechanism}
 
 This section establishes the paper's central object by direct measurement,
-before any rule sweep. The source of the gap is that a probe does not read a
+before any rule sweep; the exhaustive search of Section~\ref{sec:results} rests
+on what is measured here. The source of the gap is that a probe does not read a
 settled belief---it requires an answer even when the underlying trajectory has
 not settled, so repetition under a fixed query may reflect the elicitation
-procedure rather than reasoning terminality: an elicited placeholder that can
+procedure rather than reasoning termination: an elicited placeholder that can
 look stable while the trajectory keeps correcting itself. We establish, in
 order: agreement is pervasive and non-terminal (\S\ref{sec:exp-fc}); the early
 answer depends on how the probe is worded (\S\ref{sec:mech-wording}); most
@@ -65,18 +66,18 @@ CertaIndex suffix, both capped at $32$ tokens), so the model's state is identica
 and only the elicitation differs. Scope: an exploratory pass on one environment
 (\dsseven{} $\times$ \textsc{MATH}500, seed $42$) re-probed out to $3{,}072$
 tokens---a shorter budget than the $16$K/$32$K main trajectories---read on the
-$241$ trajectories it covers end to end ($2{,}898$ positions), which are
-therefore the \emph{shorter} ones. This section and \S\ref{sec:mech-placeholder}
+$241$ of $400$ trajectories it covers end to end ($2{,}898$ positions), which
+are therefore the \emph{shorter} ones. This section and \S\ref{sec:mech-placeholder}
 are diagnostic: nothing in \S\ref{sec:results} rests on them.
 
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{figures/gen/fig_wording_taxonomy.pdf}
-  \caption{\textbf{Two sides of the stability--terminality gap.}
+  \caption{\textbf{Two sides of the consensus--termination gap.}
   \textbf{(a)} The same frozen prefix (\dsseven{}, \textsc{MATH}500) re-probed
   with two differently worded answer queries. Early on the two wordings return
   the \emph{same} answer less than half the time ($41\%$ in the earliest bin,
-  $46\%$ over the first tenth); by the end they nearly always coincide ($89\%$).
+  $46\%$ over the first tenth); by the end they nearly always coincide ($90\%$).
   Position is a fraction of each trajectory's own length.
   \textbf{(b)} All $134$ stopped-but-wrong cases, labelled independently by two
   annotators ($\kappa{=}0.82$ on the top-level coding): $61.2\%$ commit to an
@@ -86,8 +87,8 @@ are diagnostic: nothing in \S\ref{sec:results} rests on them.
 \end{figure*}
 
 Figure~\ref{fig:wording-taxonomy}(a) shows the result. In the first tenth of a
-trajectory the two wordings return different answers $53\%$ of the time; by the
-final third they disagree only $11\%$ of the time. Early ``answers'' are
+trajectory the two wordings return different answers $54\%$ of the time; by the
+final third they disagree only $10\%$ of the time. Early ``answers'' are
 therefore substantially a property of the question asked, and become properties
 of the state being read only as the trajectory finishes.
 
@@ -114,10 +115,10 @@ format.
 The reason is that a probe does not read the model's belief; it \emph{forces} an
 answer. Because a probe requires an answer even when the underlying trajectory
 has not settled, repetition under a fixed query may reflect the elicitation
-procedure rather than reasoning terminality, and a consensus rule cannot tell
+procedure rather than reasoning termination, and a consensus rule cannot tell
 that case apart from a settled one. This also predicts the window effect of \S\ref{sec:mech-ratio}: a
 longer window is a longer buffer in which a placeholder can be overturned, which
-is why it screens out some non-terminal stability without removing the
+is why it screens out some non-terminal agreement without removing the
 underlying risk.
 
 \subsection{A Directional Cost, Not Sampling Noise}
@@ -158,14 +159,12 @@ fall together.
   \label{fig:harm-rescue}
 \end{figure}
 
-Why does the ratio stay above one wherever the rule still fires? The recovery
-it counts is a property of the reasoning trajectory: for a stop at token
-position $s$, the correction forgone is whatever the trajectory would have made
-after $s$, which depends on the trajectory, not on how it was probed. The
-\emph{realized} accuracy cost of a rule is not itself
-probe-independent---it depends on where the rule stops, and hence on the probe
-schedule and stopping rule---but the recovery asymmetry that produces it is
-present at every position where reasoning is still moving.
+Why does the ratio stay above one wherever the rule still fires? For a stop at
+token position $s$, the correction forgone is whatever the trajectory would
+have made after $s$---a property of the trajectory, not of how it was probed.
+A rule's \emph{realized} cost does depend on where it stops, and hence on the
+probe schedule, but the asymmetry producing that cost is present at every
+position where reasoning is still moving.
 Appendix~\ref{sec:appendix-cases} shows all three regimes on
 individual probe streams, including a first-probe placeholder held for $27$
 consecutive probes---long enough to outlast all but the largest window we
@@ -182,8 +181,8 @@ reasoned differently. Probing one trajectory yields no such thing---successive
 probes observe nested prefixes from the same evolving reasoning path and
 therefore share most of their reasoning history, so the readings move together,
 and when that shared history is wrong they are wrong together. Agreement across
-probes is thus a statement about the stability of one line of reasoning, not
-corroboration from several: a consensus rule holds no vote in reserve to
+probes is thus a statement about one line of reasoning not having changed its
+answer, not corroboration from several: a consensus rule holds no vote in reserve to
 overturn the placeholder it commits to. This explains why the gap is
 \emph{dangerous}, not that it exists---that is what the measurements above
 establish.
