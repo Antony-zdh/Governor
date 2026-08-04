@@ -6,8 +6,12 @@ better-tuned rule avoids it---a wider window, a stricter share, a maturity
 floor, a certainty requirement. This section rules that out by exhaustive
 search under commitment: a \emph{preregistered} sweep of the consensus family
 with acceptance gates fixed in advance \citep{preregistration_ml}, a
-non-consensus positive control swept through the identical pipeline, a released
+non-consensus signal swept through the same pipeline, a released
 consensus stopper at its shipped default, and out-of-distribution confirmation.
+The target throughout is an \emph{environment-robust policy}, selected once
+rather than tuned per environment: whether a rule chosen on the development
+environments stays safe and saving on held-out problems, seeds, benchmarks and
+models.
 
 \subsection{Preregistered Rule Space and Gates}
 \label{sec:schema}
@@ -33,19 +37,42 @@ we sweep one non-consensus method through the same pipeline, gates, and token
 accounting. \textbf{DEER} \citep{deer} stops on the model's own confidence in a
 trial answer at a reasoning boundary; its only hyperparameter is a confidence
 threshold, swept over $14$ values (the stronger \emph{trial-answer-submit}
-variant). Placing DEER and consensus on one frontier under identical accounting
-is what makes the comparison a controlled test of the signal.
+variant). Both are placed on one frontier under identical token accounting.
 
 \paragraph{Gates.}
 We fix three operating points and their acceptance gates \emph{before} looking
 at held-out data, applied in order: the total accuracy drop (macro over the
 $18$ environments) must stay under a cap, then the total net token saving must
 clear a floor, and finally net saving must be positive on a minimum fraction of
-environments (psf)---\emph{conservative}: drop $\le1.0\pp$, saving $\ge10\%$,
-psf $0.80$; \emph{balanced}: $\le2.0\pp$, $\ge20\%$, $0.80$;
-\emph{token-efficient}: $\le3.5\pp$, $\ge30\%$, $0.70$
-(Table~\ref{tab:gates}, appendix). The saving floor is what rejects a rule that
-stays accurate only by almost never stopping. Three commitments were recorded
+environments (psf).
+
+\begin{table}[t]
+  \centering\small
+  \begin{tabular}{lccc}
+    \toprule
+    Operating point & Max total & Min total & psf \\
+                    & acc.\ drop & saving    & floor \\
+    \midrule
+    conservative     & $1.0\pp$ & $10\%$ & $0.80$ \\
+    balanced         & $2.0\pp$ & $20\%$ & $0.80$ \\
+    token\_efficient & $3.5\pp$ & $30\%$ & $0.70$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{Preregistered acceptance gates. A rule must keep
+  the macro-averaged accuracy drop under ``max total acc.\ drop,'' deliver at
+  least ``min total saving'' net tokens, and post positive net saving on at
+  least a psf fraction of environments. Gates are fixed in advance and
+  \emph{not} relaxed post hoc.}
+  \label{tab:gates}
+\end{table}
+
+The three points (Table~\ref{tab:gates}) span progressively looser accuracy
+constraints paired with progressively higher
+saving requirements. They are not universal safety standards; they test whether
+self-consensus supplies a stable policy under \emph{some} practically meaningful
+pairing of accuracy and saving requirements. The saving floor rejects a rule
+that stays accurate only by almost never stopping, and the psf floor prevents an
+average saving concentrated in a few environments. Three commitments were recorded
 with the protocol: the test split and confirmation models are never read
 during selection (C1); the gates are never relaxed post hoc---an empty gate is
 reported as the finding (C2); and the rule set is frozen and hashed before any
@@ -68,18 +95,17 @@ first rule to save $10\%$ already costs $2.66\pp$, saving $20\%$ costs
 $6.17\pp$, and saving $30\%$ costs $11.8\pp$. The large windows behave exactly
 as \S\ref{sec:mech-ratio} predicts: they do buy low drop, but only by stopping
 so late that net saving collapses to zero, and no cell of the $(W,s)$ surface
-clears the conservative gate---demanding more agreement trades stopping
-opportunities away; it does not make the signal terminal.
+clears the conservative gate.
 
-\subsection{The Positive Control Clears the Gates}
+\subsection{A Non-Consensus Signal Clears the Same Gates}
 \label{sec:exp-deer}
-The same gates are cleared, comfortably, by the rule that does \emph{not} read
-probe agreement. Sweeping DEER's confidence threshold through the identical
+The same gates are cleared, comfortably, by a rule that does \emph{not} read
+consensus. Sweeping DEER's confidence threshold through the same
 pipeline and accounting, its trial-answer-submit variant passes all three
 operating points on dev: the conservative point loses only $0.33\pp$ while
 saving $28.2\%$, the balanced point $1.03\pp$ at $29.6\%$, and the
 token-efficient point $2.75\pp$ at $31.9\%$; at a stricter threshold it is
-accuracy-neutral ($-0.06\pp$) while still saving $20.8\%$
+accuracy-neutral ($+0.06\pp$) while still saving $20.8\%$
 (Table~\ref{tab:main}; full threshold frontier in Appendix~\ref{sec:appendix-tables}). Early exit is therefore not impossible at these
 budgets; the consensus \emph{signal} is what cannot make it safe.
 
@@ -94,7 +120,7 @@ budgets; the consensus \emph{signal} is what cannot make it safe.
     Full generation & $82.5\%$ & --- & $0\%$ \\
     \midrule
     Consensus (drop$\le1.0$)  & $81.6\%$ & $-0.9\pp$  & $+0.2\%$ \\
-    Consensus (save$\ge10\%$) & $79.9\%$ & $-2.7\pp$  & $+10.7\%$ \\
+    Consensus (save$\ge10\%$) & $79.9\%$ & $-2.7\pp$  & $+10.9\%$ \\
     \midrule
     DEER (conservative)      & $82.5\%$ & $-0.33\pp$ & $+28.2\%$ \\
     DEER (balanced)          & $81.9\%$ & $-1.03\pp$ & $+29.6\%$ \\
@@ -130,17 +156,17 @@ which is ordinary self-consistency over independently sampled trajectories.
 We read the test split once (commitment C3); with no selected rule to confirm,
 we ask whether the frontier \emph{reproduces}. It does. Each rule's total drop
 on the held-out test split tracks its dev value at $r{=}0.98$, and the joint
-conservative gate stays empty: $0$ rules clear it on both splits, while the
-$444$ rules admissible on test alone are exactly the in-sample winners a
-held-out split exists to reject. On the two unseen
+conservative gate stays empty: $0$ rules clear it on both splits, while $444$
+rules are admissible on test, $364$ of them the in-sample winners a held-out
+split exists to reject. On the two unseen
 models---\mbox{Distill-Qwen-32B} ($4\times$ the development scale) and
 \mbox{DeepSeek-R1-Distill-Llama-8B} (a different architecture and family),
 three test seeds each---the frontier reproduces at $r{=}0.97$ and $r{=}0.94$,
 and the conservative gate stays empty on every model. DEER, swept identically,
 clears the gates everywhere: on dev and test, and on both unseen models
 (accuracy-neutral at $-0.24\pp$ while saving $32.4\%$ on the $32$B;
-$0.67\pp$ at $26.7\%$ on Llama). Consensus is unsafe, and DEER safe-and-saving,
-across every axis we vary---benchmark, seed, $4\times$ scale, and
+$0.67\pp$ at $26.7\%$ on Llama)---across every axis we vary: benchmark, seed,
+$4\times$ scale, and
 architecture. Appendix~\ref{sec:appendix-pareto} traces the selection pipeline
 end to end (Figure~\ref{fig:split-transfer}), gives per-model and per-benchmark
 frontiers with an oracle upper bound, and details the dev/test asymmetry
@@ -160,13 +186,11 @@ it is present wherever reasoning is still moving
 the safe-and-saving corner empty and that DEER escapes.
 
 \subsection{Locating the Failure}
-Every method that stops on \emph{probe agreement}---the swept family and the
-CertaIndex (CoT) reproduction alike---fails a gate or loses many points; the
-one method that clears them does not read probe agreement. Because DEER is
-swept through the identical pipeline, gates, and accounting, the same
-early-exit machinery fails on the consensus signal and succeeds on a
-non-consensus one: the failure is a property of the \emph{signal}, not of
-early exit.
+Every method that stops on \emph{consensus}---the swept family and the
+CertaIndex (CoT) reproduction alike---fails a gate or loses many points, while
+the one method that clears them does not read consensus; since the same
+machinery, gates, and accounting produce both outcomes, what separates them is
+the \emph{signal}.
 
 Three qualifications bound the claim. First, it concerns agreement used
 \emph{alone} as the stopping criterion: combined with a signal that reflects
@@ -178,6 +202,5 @@ consensus schema and dense-probe regime we searched: our probe grid makes
 essentially every stop position reachable, so the floor we observe is not a
 lucky miss of the schedule, but a finite rule search is a systematic risk
 demonstrated, not a universal impossibility theorem. Third, it does not say
-which signal \emph{should} replace agreement: DEER is a control rather than a
-recommendation, and identifying a safe stopping signal---with its own
-train/dev$\rightarrow$test confirmation---is left open.
+which signal \emph{should} replace agreement: identifying a safe stopping
+signal---with its own train/dev$\rightarrow$test confirmation---is left open.

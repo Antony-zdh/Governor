@@ -1,25 +1,20 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-We asked whether intermediate answer-consensus is a safe signal on which to
-early-exit a reasoning LLM. Used on its own it is not, and not because the rule
-is untuned: under a fixed probing procedure agreement establishes that the
+We asked whether self-consensus is a safe signal on which to
+early-exit a reasoning LLM. Used on its own it is not: under a fixed probing
+procedure agreement establishes that the
 current answer \emph{persists}, not that the reasoning has \emph{terminated}---a
 \emph{stability--terminality gap}. What the probes agree on is often an answer
 the model has not settled on---a placeholder the probe forced it to
 produce---and stopping on it destroys a correct-in-the-end answer far more often
 than it rescues a wrong one (up to ${\sim}45\times$ at an aggressive
 latest-probe stop, ${\sim}2\times$ at the largest windows, where the rule has
-nearly stopped firing), so demanding more agreement lowers the loss only by
-declining to fire. The asymmetry is a property of the trajectory, and it shows
-up as an empty safe-and-saving corner across a preregistered space of
-$3{,}520$ rules---reproduced on a held-out split and two unseen models, and
-visible at one shipped operating point in CertaIndex (CoT)---while a
-boundary-confidence control swept through the identical protocol clears every
-gate: the failure is the signal's, not early exit's.
-Repeated agreement under a fixed probing procedure establishes answer
-persistence, not reasoning terminality; within the broad preregistered family
-studied here, making that agreement stricter only trades away stopping
-opportunities rather than turning it into a safe stopping signal. Agreement
+nearly stopped firing), so demanding more agreement lowers the loss by firing
+less often and only later in the trajectory. That asymmetry is a property of the
+trajectory, and it leaves the safe-and-saving corner empty across the
+preregistered space of $3{,}520$ rules---visible too at one shipped operating
+point in CertaIndex (CoT)---while a boundary-confidence control swept through
+the same protocol clears every gate. Agreement
 fails not because it is insufficiently strict, but because it repeatedly
 measures the wrong object.

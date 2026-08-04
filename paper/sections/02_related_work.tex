@@ -15,34 +15,33 @@ conclusion that no single aggressive policy is universally safe
 \citep{dong2026learnstop}. We adopt the same probe mechanism (a short
 boxed-answer suffix) and notion of probe agreement, and ask the question these
 leave open: whether \emph{any} rule in this family is both safe and saving, or
-whether the apparent aggregate savings hide a directional accuracy cost.
+whether the apparent aggregate savings hide a directional accuracy cost. These
+results show that good accuracy--saving points exist for a given model,
+benchmark and parameter setting; we ask instead whether one \emph{transferable
+policy} can be chosen on development environments and carried to new
+benchmarks, models and seeds without retuning.
 
 \paragraph{Where agreement gets its meaning.}
 Self-consistency \citep{wang2023selfconsistency} samples a \emph{diverse} set of
 reasoning paths and takes the majority answer; agreement is evidence there
 because the paths are drawn independently, so the vote can outweigh an error on
 any single path, and early-stopping variants only decide how many samples to
-draw \citep{aggarwal2023adaptive,li2024esc}. Probing a single chain of thought
-is a different object, which we call \emph{self-consensus} to keep the two
-apart: every probe is conditioned on the same prefix, so agreement records that
-the prefix has not changed its answer, not that separate lines of reasoning
-have converged---the protecting vote is absent. On its own, though, this
-structural point does not settle whether agreement tracks \emph{terminality};
-that the same-prefix answer is still moving is what
-Section~\ref{sec:mechanism} establishes by direct measurement (distinct from
-prompted, post-hoc self-correction, which \citet{huang2024selfcorrect} find
-unreliable).
+draw \citep{aggarwal2023adaptive,li2024esc}. Probing a single chain of
+thought---\emph{self-consensus} (\S\ref{sec:intro})---is a different object:
+successive probes observe nested prefixes from the same evolving reasoning path
+and therefore share most of their reasoning history, so agreement records that
+one line of reasoning has not changed its answer, not that separate lines of
+reasoning have converged---the protecting vote is absent. On its own, though, this
+structural point does not settle whether agreement tracks \emph{terminality}.
+
 
 \paragraph{Alternative termination signals.}
-A stop can read signals other than probe agreement: verifier- and
+A stop can read signals other than consensus: verifier- and
 process-reward-guided decoding \citep{lightman2024verify,wang2024mathshepherd}
 scores partial reasoning, adaptive-computation methods learn a halting signal
 at the token or layer level \citep{graves2016act,schuster2022confident},
 confidence-dynamics stops read how the model's answer confidence evolves
 \citep{hosseini2026codestop}, and DEER \citep{deer} stops on the model's
-confidence in a trial answer at reasoning boundaries. We use DEER only as a
-\emph{positive control} (Section~\ref{sec:results}): run through the identical
-pipeline and acceptance gates, it clears them where no consensus rule does,
-which localizes the failure to the probe-agreement signal rather than to early
-exit itself. We do not claim this broader class is categorically superior; our
-experiments isolate one signal.
+confidence in a trial answer at reasoning boundaries. We sweep DEER through our
+own pipeline in Section~\ref{sec:exp-deer}. We do not claim this broader class
+is categorically superior; our experiments isolate one signal.

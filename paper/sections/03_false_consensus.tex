@@ -1,9 +1,9 @@
 \section{False Consensus: Full Analysis}
 \label{sec:appendix-fc}
 
-Section~\ref{sec:exp-fc} summarizes, in four facts, what this appendix
-establishes in full: in an intervention-free setting, intermediate probe
-consensus is not a reliable stopping signal.
+Section~\ref{sec:exp-fc} summarizes what this appendix
+establishes in full: in an intervention-free setting, self-consensus is not a
+reliable stopping signal.
 
 \subsection{Setup}
 \label{sec:fc-setup}
@@ -49,33 +49,14 @@ tokens, with $731$ trajectories stopped on an outright wrong answer.
 The loss is driven by \emph{recovery}: continued reasoning overturns the
 intermediate answer far more often than intuition suggests. Of the $736$
 trajectories that at some point formed a three-probe consensus \emph{different}
-from their final answer, $620$ ($84.2\%$) ended up correct; and of the $1{,}148$
-whose \emph{first} probe was wrong, $89.1\%$ eventually flipped to correct.
-Neither ``first impression'' nor ``local consensus'' is close to terminal.
+from their eventual final answer, $620$ ($84.2\%$) ultimately ended with a
+correct \emph{final} answer---a statement about where continued generation
+arrives, not about the accuracy of the answer a stop would have committed.
+Local consensus is not close to terminal.
 
-Counterintuitively, \emph{later} consensus is \emph{less} trustworthy:
-consensus formed before $512$ tokens is $91.0\%$ correct, but consensus that
-only forms after $2048$ tokens is $71.6\%$ correct. Hard problems both converge
-slowly and converge to worse answers---exactly the problems on which an
-aggressive stopping rule does most damage.
+Normalizing by position \emph{within each trajectory} shows where the damage
+concentrates: reliability \emph{improves} the later the first consensus falls in
+a trajectory's own span, so the earliest consensus---the one an online rule acts
+on---is the least reliable (\S\ref{sec:exp-fc},
+Figure~\ref{fig:consensus-pos}).
 
-\subsection{An error taxonomy}
-Hand-inspecting stopped-but-wrong cases (a preliminary AI-assisted labeling of
-$28$ cases from an earlier exploratory pass, not the automated counts above)
-yields \emph{four} non-empty types out of five categories.
-By count: \textbf{(A)} numeric collapse---stable convergence to a wrong
-number---$14/28$; \textbf{(D)} derivation gaps---dropped roots/cases, unverified
-solutions---$7/28$; \textbf{(E)} format/option hallucination---a
-non-multiple-choice problem stably emitting a letter such as ``B''---$6/28$,
-which is an artifact of the probe mechanism itself rather than a model belief;
-and \textbf{(B)} expression collapse---$1/28$. Type~\textbf{(C)} (sign errors)
-did not occur in this sample. Type~E is itself a methodological finding: roughly
-one in five ``false consensuses'' is a probe formatting artifact, implying that
-any deployed rule should filter answer \emph{shape}.
-
-\paragraph{Takeaway.}
-These observations---local consensus unreliable, recovery common, late
-consensus worse---suggest that a good stopping rule
-must be much more than ``agreement.'' The rest of the paper asks whether the
-\emph{best possible} such rule, drawn from a large preregistered space, can be
-both safe and economical. In the searched space, it cannot.

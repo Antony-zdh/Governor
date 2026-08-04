@@ -6,10 +6,13 @@ of tokens on a single answer. \emph{Early exit}---halting a chain of thought onc
 its reasoning is done---could cut that cost \citep{overthinking,dynasor_certaindex},
 but it requires knowing \emph{when the reasoning has finished}, which the
 trajectory does not announce. A natural and increasingly studied proxy is
-\emph{intermediate answer consensus}: at regular intervals a partial trajectory
-is probed for its current answer (e.g., by appending a short
-``\texttt{Final Answer:}'' suffix), and generation is stopped once recent probes
-\emph{agree} \citep{dynasor_certaindex}. The premise is that if the model
+\emph{self-consensus}: repeatedly probing a \emph{single} partial trajectory for
+its current answer (e.g., by appending a short ``\texttt{Final Answer:}''
+suffix) and stopping once recent probe answers \emph{agree}
+\citep{dynasor_certaindex}. We abbreviate self-consensus as \emph{consensus}
+below, and reserve \emph{self-consistency} for the distinct setting in which
+several trajectories are sampled independently (\S\ref{sec:related}).
+The premise is that if the model
 repeatedly says $x$, it has probably finished reasoning about $x$; recent work
 reports answers that ``converge'' well before a trajectory ends and stops on that
 convergence at little \emph{aggregate} accuracy cost
@@ -22,45 +25,52 @@ apart---a \emph{stability--terminality gap}.\footnote{``False consensus'' here
 denotes non-terminal intermediate probe agreement, unrelated to the
 social-psychology term \citep{ross1977false}.} This
 reconciles the aggregate savings above: those savings are real, but they ride on
-a \emph{directional} accuracy cost that safety-blind, probe-cost-free evaluation
-averages away.
+a \emph{directional} accuracy cost. Aggregate accuracy alone can obscure this
+directional cost, while excluding probe overhead can overstate the resulting
+token savings.
 
-The gap has a concrete source. A model that has not finished reasoning is
-nonetheless \emph{forced} by the probe to write an answer, and the cheapest thing
-to write is what it wrote last time; this elicited placeholder can repeat across
-many probes and look settled while the underlying trajectory goes on to correct
+The gap has a concrete source. A probe requires an answer even when the
+underlying trajectory has not settled, so repetition under a fixed query may
+reflect the elicitation procedure rather than reasoning terminality; this
+elicited placeholder can repeat across many probes and look settled while the
+underlying trajectory goes on to correct
 it. Three direct measurements bear this out (Section~\ref{sec:mechanism}):
 re-probing the \emph{same} frozen prefix with a differently worded query returns a
 different answer $57\%$ of the time in the first tenth of a trajectory against
 $11\%$ near the end, so early ``answers'' are largely artifacts of being asked;
 hand-labelling $134$ wrong stops finds three in five commit to an answer the model
-had not converged on, against one in five it had genuinely settled; and continued
-reasoning recovers a correct answer far more often than a stop banks a wrong
-one---up to ${\sim}\mathbf{45}\times$ at an aggressive latest-probe stop. Widening
-the agreement window does not close the gap: it lowers the loss only by firing
-later and less often, so at the largest windows the ratio falls to
-${\sim}2\times$ while the rule saves almost nothing.
+had not converged on, against one in five it had genuinely settled; and at an
+aggressive latest-probe stop, consensus destroys a correct-in-the-end recovery
+roughly ${\sim}\mathbf{45}\times$ as often as it banks an answer from an
+ultimately incorrect trajectory. This is opposite to the aim of safe early exit:
+the removed computation is predominantly computation that would have corrected
+the answer. Widening the agreement window does not close the gap: it lowers the
+loss by firing less often and only later in the trajectory, so at the largest
+windows the ratio falls to ${\sim}2\times$ while the rule saves almost nothing.
 
-To rule out that this is a badly chosen threshold or a single implementation, we
+Prior reports establish good accuracy--saving points for a particular model,
+benchmark and parameter setting. The stricter question is whether one policy,
+\emph{selected} on development environments, stays safe and saving elsewhere: if
+window, share threshold and operational knobs must be retuned for each new model
+or benchmark, the signal yields no \emph{reusable stopping strategy}. To test
+that, and to rule out a badly chosen threshold or a single implementation, we
 search the signal exhaustively under commitment. On frozen trajectories from two
 models and three benchmarks we run a \emph{preregistered} sweep of the windowed
 consensus family we study---window size $\times$ share threshold plus operational
 knobs, $3{,}520$ rules---with problem-grouped splits and acceptance gates fixed in
 advance (Section~\ref{sec:results}). No setting of these knobs
-closes the gap: \textbf{not one of the $3{,}520$ rules is both safe and
-saving---none clears any gate}. The frontier reproduces on a held-out test split
+clears any gate: \textbf{not one of the $3{,}520$ rules is both safe and
+saving}. The frontier reproduces on a held-out test split
 ($r{=}0.98$) and on unseen models at $4\times$ the scale and a different
 architecture, and a shipped operating point (CertaIndex (CoT)) loses
 $56$--$70\pp$ on the same trajectories.
 
 That the gap cannot be tuned away leaves one alternative explanation---that early
-exit is simply impossible at these budgets. It is not. As a positive control we
-sweep one non-consensus method---DEER, which reads the model's confidence at a
-reasoning boundary---through the identical pipeline and gates: it clears all
-three, losing as little as $0.3\pp$ while saving $28\%$, and does so on the unseen
-models too. DEER is a control, not a proposal; it establishes that early exit is
-achievable, so the consensus family's failure is specific to \emph{what agreement
-measures}. Figure~\ref{fig:idea} is the argument in one picture. Our claim
+exit is simply impossible at these budgets. It is not: swept through the same
+pipeline and gates, a non-consensus method---DEER, which reads the model's
+confidence at a reasoning boundary---clears all three, losing as little as
+$0.3\pp$ while saving $28\%$, on the unseen models too
+(\S\ref{sec:exp-deer}). Figure~\ref{fig:idea} is the argument in one picture. Our claim
 concerns agreement used \emph{alone} as a stopping criterion
 (\S\ref{sec:results}).
 
@@ -68,25 +78,17 @@ concerns agreement used \emph{alone} as a stopping criterion
   \centering
   \includegraphics[width=\textwidth]{figures/gen/fig1_idea.pdf}
   \caption{\textbf{The argument in one picture.}
-  \textbf{(a)} Intermediate probe agreement is not terminal. On a real
-  trajectory (\textsc{MATH}500 problem~68, \dsseven{}, dense $64$-token probes)
-  the model emits the same wrong answer, \texttt{37}, for ten consecutive
-  probes; a rule requiring three agreeing probes fires at generated token~$256$
-  and commits it. Left to run, the trajectory reaches the correct answer
-  \texttt{46} and holds it for its final $47$ probes. Ribbon colours: red the
-  dominant wrong answer, pink other wrong answers, green correct.
-  \textbf{(b)} We ask whether \emph{any} rule in the searched family escapes this. A
-  preregistered sweep of $3{,}520$ rules---window size $W$ $\times$ share
-  threshold $s$, crossed with probe schedule, maturity, validity and
-  certainty---is replayed on $18$ frozen environments against three acceptance
-  gates fixed before the sweep ran. None clears any gate, and the two ways to
-  fail are symmetric: capping the accuracy drop at $1\pp$ permits $0.2\%$ token
-  saving, while demanding $10\%$ saving costs $2.7\pp$.
-  \textbf{(c)} The failure is the \emph{signal}, not early exit. Swept through
-  the identical pipeline, gates and token accounting, a boundary-confidence
-  method (DEER) clears all three gates while consensus clears none---and it does
-  so on the held-out test split, at $4\times$ scale and on a different
-  architecture as well (\S\ref{sec:exp-heldout}).}
+  \textbf{(a)} On \textsc{MATH}500 problem~68 (\dsseven{}, dense $64$-token
+  probes) the model emits the same wrong answer, \texttt{37}, for ten
+  consecutive probes; a three-probe rule fires at token~$256$ and commits it.
+  Left to run, the trajectory reaches the correct \texttt{46}. Ribbon colours:
+  red the dominant wrong answer, pink other wrong answers, green correct.
+  \textbf{(b)} The preregistered sweep of $3{,}520$ rules, replayed on $18$
+  frozen environments against three gates fixed in advance. None clears any
+  gate.
+  \textbf{(c)} Swept through the same pipeline, gates and accounting, a
+  boundary-confidence method (DEER) clears all three---on the test split, at
+  $4\times$ scale and on a different architecture too (\S\ref{sec:exp-heldout}).}
   \label{fig:idea}
 \end{figure*}
 
@@ -104,9 +106,7 @@ concerns agreement used \emph{alone} as a stopping criterion
   belief (Section~\ref{sec:mechanism}).
   \item \textbf{We show the gap is not a threshold or implementation artifact}: a
   preregistered sweep of $3{,}520$ rules on frozen trajectories closes no gate,
-  the frontier reproduces on a held-out split and two unseen models, and a
-  non-consensus positive control (DEER) swept under the identical protocol clears
-  the same gates---ruling out that early exit is simply impossible
-  (Section~\ref{sec:results}). We release the protocol,
+  while a non-consensus signal swept under the same protocol clears the same
+  gates (Section~\ref{sec:results}). We release the protocol,
   trajectories, and sweep in full.
 \end{itemize}

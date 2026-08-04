@@ -45,27 +45,7 @@ is''), subject to a minimum inter-probe gap and a fallback interval.
 
 The protocol version, split manifest hash, candidate-rule generation script, and
 the three operating-point gates (Table~\ref{tab:gates}) were fixed before any
-held-out evaluation.
-
-\begin{table}[t]
-  \centering\small
-  \begin{tabular}{lccc}
-    \toprule
-    Operating point & Max total & Min total & psf \\
-                    & acc.\ drop & saving    & floor \\
-    \midrule
-    conservative     & $1.0\pp$ & $10\%$ & $0.80$ \\
-    balanced         & $2.0\pp$ & $20\%$ & $0.80$ \\
-    token\_efficient & $3.5\pp$ & $30\%$ & $0.70$ \\
-    \bottomrule
-  \end{tabular}
-  \caption{Preregistered acceptance gates (\S\ref{sec:schema}). A rule must keep
-  the macro-averaged accuracy drop under ``max total acc.\ drop,'' deliver at
-  least ``min total saving'' net tokens, and post positive net saving on at
-  least a psf fraction of environments. Gates are fixed in advance and
-  \emph{not} relaxed post hoc.}
-  \label{tab:gates}
-\end{table} The commitments of Section~\ref{sec:schema} in full:
+held-out evaluation. The commitments of Section~\ref{sec:schema} in full:
 \textbf{(C1)} the test split and both confirmation models are never read during
 rule selection. \textbf{(C2)} All three operating points and their gates are
 fixed before seeing held-out data and are not relaxed afterwards; if no rule
@@ -82,10 +62,8 @@ model$\times$benchmark$\times$seed weighted equally). Pooling problems instead
 would let \textsc{MATH}500 ($100$ dev problems per seed vs.\ $8$ for AMC23 and
 $6$ for AIME24) dominate the headline, so a rule that wins only on
 \textsc{MATH}500 could pass; equal per-environment weight forces a selected
-rule to hold on the harder competition sets too. Macro also keeps any single
-problem from swinging the result---one AIME24 problem is $16.7\pp$ of a
-$6$-problem split but only ${\sim}1/108$ of the macro drop---while the three
-seeds damp the extra per-cell noise of the small sets. The gates are read on
+rule to hold on the harder competition sets too; three seeds per cell damp the
+per-environment noise. The gates are read on
 the dev split (the selection target) with train reported alongside; where the
 text says ``train+dev,'' a rule was required to pass a gate in-sample on train
 and is then measured on dev. Because \emph{no} consensus rule clears any gate,
@@ -128,7 +106,7 @@ never rescues the accuracy drop.
     Consensus point & Gross saving & Net saving \\
                     & $(B-s)/B$    & $(B-s-p)/B$ \\
     \midrule
-    save$\ge10\%$ (drop $2.7\pp$) & $+14.7\%$ & $+10.7\%$ \\
+    save$\ge10\%$ (drop $2.7\pp$) & $+14.9\%$ & $+10.9\%$ \\
     save$\ge20\%$ (drop $6.2\pp$) & $+27.0\%$ & $+20.2\%$ \\
     \bottomrule
   \end{tabular}
@@ -179,7 +157,7 @@ settle sooner.
   almost every problem and stops early, and loses $56$--$70\pp$ while saving
   $77$--$90\%$ of tokens---the pattern \S\ref{sec:exp-fc} describes, at a single
   shipped operating point. \textbf{DEER}, reading boundary confidence rather than
-  probe agreement, stays near full accuracy ($+0.8\pp$ on \qweneight{}) while
+  consensus, stays near full accuracy ($+0.8\pp$ on \qweneight{}) while
   still saving tokens. These are reproductions on our benchmarks, not the original
   papers' end-to-end numbers.}
   \label{tab:baselines}
@@ -231,8 +209,7 @@ dev---the split the gate is applied on---not one of the $478$ is admissible,
 while all three DEER points stay inside on every split. The dev and test splits
 are not equally demanding: the same $478$ rules have a median drop of $4.5\pp$
 on dev but $0.6\pp$ on test, an asymmetry driven by the two smallest
-environments (AMC23 and AIME24 under \qweneight{}, $8$ and $6$ problems), which
-carry the same weight as a $100$-problem environment under macro-averaging.
+environments (AMC23 and AIME24 under \qweneight{}).
 This is why the claim is stated jointly rather than per split: $364$ of the
 $478$ are admissible on test, but they are exactly the in-sample winners a
 held-out split exists to reject, and none of them is selectable from dev.
@@ -273,17 +250,12 @@ neither method reaches.
   \includegraphics[width=\textwidth]{figures/gen/fig_ws_heatmap.pdf}
   \caption{\textbf{The safe-and-saving corner is empty across the entire rule
   space.} Dev split, macro-averaged over the $18$ environments. Each cell holds
-  the $160$ rules that share its $(W,s)$ and differ only in the operational
-  knobs, summarised by the two members a gate interrogates.
-  \textbf{(a)} the cell's \emph{safest} rule: colour is its accuracy drop and
-  the number beneath is the saving that rule buys. Larger windows and stricter
-  thresholds do drive the drop towards the $1.0\pp$ cap---but the saving falls
-  with it, reaching $-1\%$ at $W{=}30$, $s{=}1.0$.
-  \textbf{(b)} the cell's \emph{most economical} rule: colour is its net saving
-  and the number beneath is the drop it costs. Substantial saving is available
-  everywhere, at $4$--$73\pp$. A cell would be outlined in green if any of its
-  rules cleared the conservative gate (drop $\leq 1.0\pp$ \emph{and} saving
-  $\geq 10\%$); none is.}
+  the $160$ rules sharing its $(W,s)$, summarised by the two members a gate
+  interrogates: \textbf{(a)} the cell's \emph{safest} rule (colour: accuracy
+  drop; number: the saving it buys) and \textbf{(b)} its \emph{most economical}
+  rule (colour: net saving; number: the drop it costs). A cell would be outlined
+  in green if any of its rules cleared the conservative gate (drop
+  $\leq 1.0\pp$ \emph{and} saving $\geq 10\%$); none is.}
   \label{fig:ws-heatmap}
 \end{figure*}
 
@@ -291,17 +263,14 @@ neither method reaches.
   \centering
   \includegraphics[width=\textwidth]{figures/gen/fig_split_transfer.pdf}
   \caption{\textbf{A rule must clear the gate on every split.} The $478$ amber
-  rules are exactly those that clear the conservative gate \emph{in-sample on
-  train}; drawing all $478$ would be unreadable, so we show their median,
-  interquartile range and full range. Dashed lines mark all three preregistered
-  gates (\textbf{C}onservative, \textbf{B}alanced, \textbf{T}oken-efficient);
-  a rule must sit below them on the left and above them on the right. On dev,
-  the split the gate is applied on, none of the $478$ does. Some recover on
-  test, but a rule selected on dev is never among them: jointly, $0$ of $478$
-  clear all three splits, against $3$ of $3$ for the DEER operating points
-  selected on dev. Macro-averaged over $18$ environments per split; train and
-  dev share seeds $42$--$44$ and differ only in problems, while test uses unseen
-  problems and seeds $45$--$47$.}
+  rules are those clearing the conservative gate \emph{in-sample on train},
+  shown as median, interquartile range and full range. Dashed lines mark the
+  three preregistered gates (\textbf{C}onservative, \textbf{B}alanced,
+  \textbf{T}oken-efficient); a rule must sit below them on the left and above
+  them on the right. On dev---the split the gate is applied on---none of the
+  $478$ does; jointly, $0$ of $478$ clear all three splits, against $3$ of $3$
+  for the dev-selected DEER points. Macro-averaged over $18$ environments per
+  split.}
   \label{fig:split-transfer}
 \end{figure*}
 
@@ -394,7 +363,7 @@ The minority case is equally worth stating. Problem~$240$ (gold $116$) gives
 \ldots,\; \texttt{154}$\times$\texttt{8},\; \texttt{52},\;
 \texttt{154}$\times$\texttt{62}
 \end{center}
-A three-probe rule fires at token $192$ and commits \texttt{52}; the trajectory
+A three-probe rule fires at token $384$ and commits \texttt{52}; the trajectory
 itself ends at \texttt{154}. Both are wrong. Here early stopping destroys
 nothing, because continued reasoning was not going to arrive at the right answer
 either---the model settles firmly on \texttt{154} and holds it for its final $62$

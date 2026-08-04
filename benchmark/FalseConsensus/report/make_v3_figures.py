@@ -477,12 +477,15 @@ def fig_consensus_pos():
 # --------------------------------------------------------------------------- #
 # Figure: what consensus actually stops on (human annotation)
 # --------------------------------------------------------------------------- #
-# Adjudicated coding. The A/D boundary was read differently by the two
-# annotators, so we take annotator 1's reading of it (the sharper one) as the
-# record: A is reserved for cases where the model really had settled on a wrong
-# numeric answer, D for cases where it had not settled at all. The coarse
-# coding both annotators share (settled-or-not / format / other) is what the
-# reliability statistic is computed on.
+# Adjudicated coding. Labels of record come from the committed adjudication
+# layer (results/human_eval/adjudicated/taxonomy_adjudicated.csv), not from
+# either annotator's raw export: A is reserved for cases where the model really
+# had settled on a wrong numeric answer, D for cases where it had not settled at
+# all. The coarse coding both annotators share (settled-or-not / format / other)
+# is what the reliability statistic is computed on; adjudication produces labels
+# of record and does not retroactively change that statistic.
+ADJUDICATED = ("benchmark/FalseConsensus/results/human_eval/adjudicated/"
+               "taxonomy_adjudicated.csv")
 TAX_ORDER = ["D", "A", "E", "O"]
 TAX_LABEL = {"D": "unconverged guess",
              "A": "converged, wrong",
@@ -508,11 +511,19 @@ def fig_taxonomy():
                 out[r["problem_id"]] = t
         return out
 
+    def load_adjudicated():
+        out = {}
+        with open(repo / ADJUDICATED, encoding="utf-8-sig") as f:
+            for r in csv.DictReader(f):
+                t = r["adjudicated_type"].strip().upper()
+                out[r["problem_id"]] = t if t in ("A", "D", "E") else "O"
+        return out
+
     a1, a2 = load("taxonomy_review_1.csv"), load("taxonomy_review_2.csv")
     keys = sorted(set(a1) & set(a2))
     n = len(keys)
 
-    adj = {k: (a1[k] if a1[k] in ("A", "D", "E") else "O") for k in keys}
+    adj = load_adjudicated()
     counts = {c: sum(1 for k in keys if adj[k] == c) for c in TAX_ORDER}
 
     # reliability on the coarse coding both annotators share
@@ -601,10 +612,18 @@ def fig_wording_taxonomy():
                 out[r["problem_id"]] = r["HUMAN_type[A-E]"].strip().upper()
         return out
 
+    def load_adjudicated():
+        out = {}
+        with open(repo / ADJUDICATED, encoding="utf-8-sig") as f:
+            for r in csv.DictReader(f):
+                t = r["adjudicated_type"].strip().upper()
+                out[r["problem_id"]] = t if t in ("A", "D", "E") else "O"
+        return out
+
     a1, a2 = load("taxonomy_review_1.csv"), load("taxonomy_review_2.csv")
     keys = sorted(set(a1) & set(a2))
     n = len(keys)
-    adj = {k: (a1[k] if a1[k] in ("A", "D", "E") else "O") for k in keys}
+    adj = load_adjudicated()
     counts = {c: sum(1 for k in keys if adj[k] == c) for c in TAX_ORDER}
     coarse = lambda t: "AD" if t in ("A", "D") else (t if t == "E" else "O")
     c1 = [coarse(a1[k]) for k in keys]
