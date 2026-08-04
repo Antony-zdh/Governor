@@ -7,9 +7,15 @@ its current answer and halt on agreement. Dynasor / CertaIndex
 \citep{dynasor_certaindex} formalize this with a ``certainty index'' over recent
 probe answers and use it to terminate early when serving reasoning programs, one
 of several responses to the \emph{overthinking} of reasoning models
-\citep{overthinking,deer}. We adopt the same probe mechanism (a short
-boxed-answer suffix) and notion of probe agreement, and ask how far \emph{any}
-rule in this family can be pushed before it becomes unsafe.
+\citep{overthinking,deer}. Recent work pushes the same idea further:
+\citet{liu2025answerconvergence} report that a trajectory's answer ``converges''
+well before it ends and stop on that convergence at little \emph{aggregate}
+accuracy cost, while learned prefix-feature stoppers reach the more cautious
+conclusion that no single aggressive policy is universally safe
+\citep{dong2026learnstop}. We adopt the same probe mechanism (a short
+boxed-answer suffix) and notion of probe agreement, and ask the question these
+leave open: whether \emph{any} rule in this family is both safe and saving, or
+whether the apparent aggregate savings hide a directional accuracy cost.
 
 \paragraph{Where agreement gets its meaning.}
 Self-consistency \citep{wang2023selfconsistency} samples a \emph{diverse} set of
@@ -26,15 +32,15 @@ Probing a single chain of thought is a different object, and we call it
 \emph{self-consensus} to keep the two apart. Its readings are not independent
 samples: every probe is conditioned on the same prefix, so agreement between them
 records that the prefix has not changed its answer, not that separate lines of
-reasoning have converged on one. Two consequences follow, and they organize
-Section~\ref{sec:mechanism}. Agreement no longer supplies a vote that can
-outweigh an error, so it offers no protection when a stop commits to a wrong
-answer. And what agreement does report---that the trajectory keeps giving the
-same answer---is only informative if the trajectory has finished reasoning, which
-is exactly what a mid-trajectory probe cannot establish. The trajectory is still
-correcting itself, an intrinsic process distinct from the prompted, post-hoc
-self-correction that \citet{huang2024selfcorrect} find unreliable; we measure
-answer evolution \emph{within} one uninterrupted trajectory, and find
+reasoning have converged on one. This removes the protection self-consistency
+enjoys---agreement no longer supplies a vote that can outweigh an error---but on
+its own it does not settle the question that matters here: whether agreement, even
+so, tracks \emph{terminality}. That the same-prefix answer is still moving is
+something we establish by direct measurement in Section~\ref{sec:mechanism}---by
+re-wording the probe, labelling wrong stops, and tracking how often the trajectory
+later corrects itself---rather than infer from non-independence alone. This
+within-trajectory answer evolution is also distinct from the prompted, post-hoc
+self-correction that \citet{huang2024selfcorrect} find unreliable, and we find
 (Section~\ref{sec:results}) that a model's mid-trajectory answer is far from
 final.
 
@@ -42,7 +48,10 @@ final.
 Rather than probe agreement, a stop can read other signals: verifier- and
 process-reward-guided decoding \citep{lightman2024verify,wang2024mathshepherd}
 score partial reasoning, and adaptive-computation methods learn a halting signal
-at the token or layer level \citep{graves2016act,schuster2022confident}. DEER
+at the token or layer level \citep{graves2016act,schuster2022confident}.
+Confidence-dynamics stops read how the model's answer confidence evolves and halt
+when it settles---a forward-looking signal rather than backward probe agreement
+\citep{hosseini2026codestop}. DEER
 \citep{deer} stops on the model's confidence in a trial answer at reasoning
 boundaries. We use DEER only as a \emph{positive control}
 (Section~\ref{sec:mechanism}): run through the identical pipeline and acceptance

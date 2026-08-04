@@ -3,24 +3,30 @@
 
 We asked whether intermediate answer-consensus is a safe signal on which to
 early-exit a reasoning LLM. Used on its own it is not, and not because the rule is
-untuned. Agreement is informative in self-consistency because the paths are
-sampled independently; probes of one trajectory share a prefix, so they cannot
-outvote each other's errors. What they agree on is often an answer the model has
-not settled on: three in five of our hand-labelled wrong stops commit to a
-placeholder the probe forced it to produce. Stopping on such an answer destroys a
-correct-in-the-end answer far more often than it rescues a wrong one
-(up to ${\sim}45\times$ at an aggressive latest-probe stop, ${\sim}2\times$ at the
-largest windows, where the rule has nearly stopped firing). This accuracy tax is a property of the trajectory rather than the
-probe, and it shows up as an empty safe-and-saving corner across a preregistered
-space of $3{,}520$ rules---not one of which clears any gate---reproduced on a
-held-out split and two unseen models, and visible at one shipped operating point
-in CertaIndex (CoT), which loses $56$--$70\pp$. That the corner is empty for
-consensus but not for early exit is the point: swept through the identical
-protocol, a method reading the model's own boundary confidence (DEER) clears all
-three gates on the very same trajectories, so the failure is specific to
-consensus. The takeaway for anyone building safe early exit is therefore about
-the choice of signal: read whether the trajectory itself has settled, not whether
-its recent probes agree. This does not put probe agreement beyond use---it is
-cheap, and it does report that the current answer has not changed. What our
-results rule out is treating that report, by itself, as evidence that the
-reasoning is done.
+untuned: under a fixed probing procedure agreement establishes that the current
+answer \emph{persists}, not that the reasoning has \emph{terminated}---a
+\emph{stability--terminality gap}. What the probes agree on is often an answer the
+model has not settled on---three in five of our hand-labelled wrong stops commit
+to a placeholder the probe forced it to produce, and re-wording the probe changes
+the early answer more often than not---because a probe forces an output rather
+than reading a finished belief. Stopping on such an answer destroys a
+correct-in-the-end answer far more often than it rescues a wrong one (up to
+${\sim}45\times$ at an aggressive latest-probe stop, ${\sim}2\times$ at the largest
+windows, where the rule has nearly stopped firing), so demanding more agreement
+lowers the loss only by declining to fire. The recovery asymmetry behind this is a
+property of the trajectory, and it shows up as an empty safe-and-saving corner
+across a preregistered space of $3{,}520$ rules---not one of which clears any
+gate---reproduced on a held-out split and two unseen models, and visible at one
+shipped operating point in CertaIndex (CoT), which loses $56$--$70\pp$. That the
+corner is empty for consensus but not for early exit is a positive control, not a
+proposal: swept through the identical protocol, a method reading the model's own
+boundary confidence (DEER) clears all three gates on the very same trajectories,
+so the failure is specific to consensus rather than to early exit. This does not
+put probe agreement beyond use---it is cheap, and it does report that the current
+answer has not changed; what our results rule out is treating that report, by
+itself, as evidence that the reasoning is done. Repeated agreement under a fixed
+probing procedure establishes answer persistence, not reasoning terminality;
+within the broad preregistered family studied here, making that agreement stricter
+only trades away stopping opportunities rather than turning it into a safe stopping
+signal. Agreement fails not because it is insufficiently strict, but because it
+repeatedly measures the wrong object.

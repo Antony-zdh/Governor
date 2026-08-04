@@ -1,21 +1,29 @@
 \begin{abstract}
-A popular way to cut reasoning-model inference cost is to probe the partial
-trajectory for its current answer and stop once probes \emph{agree}. We show this
-is unsafe as a stopping criterion on its own, and explain why. Self-consistency
-earns its guarantee from \emph{independently sampled} reasoning paths; probing one
-trajectory reads the same prefix repeatedly, so agreement carries no vote that can
-outweigh an error. Hand-labelling $134$ wrong stops shows what agreement actually
-records: three in five commit to an answer the model had not converged on---a
-placeholder the probe compelled it to emit---and only one in five to an answer it
-had genuinely settled on. The cost is directional: a stop destroys a
-correct-in-the-end answer far more often than it rescues a wrong one (up to
-${\sim}\mathbf{45\times}$ at an aggressive latest-probe stop, ${\sim}2\times$ at
-the largest windows, where the rule has almost stopped firing). No tuning escapes
-this: on frozen trajectories from two models and three math benchmarks, a
-\emph{preregistered} sweep of the consensus signal ($3{,}520$ rules, acceptance
-gates fixed in advance) clears \textbf{no gate}. The failure is specific to the
-signal---swept identically, a boundary-confidence method (DEER) \textbf{clears
-all three gates} and holds on a held-out split and two unseen models. Early exit
-is possible; agreement alone cannot make it safe. We release the protocol, the
-frozen trajectories, and the full sweep.
+A natural and increasingly studied way to cut reasoning-model inference cost is to
+probe the partial trajectory for its current answer and stop once probes
+\emph{agree}. We show that repeated agreement is not a safe stopping criterion on
+its own, because it measures the wrong object: under a fixed probing procedure,
+agreement establishes that the current answer \emph{persists}, not that the
+reasoning has \emph{terminated}---a \emph{stability--terminality gap}. The gap has
+a concrete source. A model that has not finished reasoning is still \emph{forced}
+by the probe to emit an answer, and the cheapest thing to emit is what it emitted
+last time; this elicited placeholder can repeat for many probes and look settled,
+yet the trajectory goes on to correct it. We show this directly: re-probing the
+\emph{same} frozen prefix with a differently worded query changes the extracted
+answer $57\%$ of the time early in a trajectory (against $11\%$ near the end),
+hand-labelling $134$ wrong stops finds three in five commit to an answer the model
+had not converged on, and continued reasoning recovers a correct answer far more
+often than a stop banks a wrong one (up to ${\sim}\mathbf{45\times}$ at an
+aggressive latest-probe stop, ${\sim}2\times$ at the largest windows, where the
+rule has nearly stopped firing). Widening the agreement window therefore does not
+make the signal better at detecting terminality; it only lowers the loss by firing
+later and less often. A \emph{preregistered} sweep of $3{,}520$ consensus rules
+(window size, share threshold, and operational knobs; frozen trajectories from two
+models and three math benchmarks; acceptance gates fixed in advance) shows no
+setting of these knobs closes the gap: \textbf{no rule clears any gate}. As a
+positive control that early exit is not itself impossible, a boundary-confidence
+method (DEER) swept through the identical pipeline \textbf{clears all three gates}
+and holds on a held-out split and two unseen models. Agreement fails not because it
+is insufficiently strict, but because it repeatedly measures the wrong object. We
+release the protocol, the frozen trajectories, and the full sweep.
 \end{abstract}

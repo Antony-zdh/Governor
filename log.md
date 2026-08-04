@@ -4,6 +4,34 @@
 
 ---
 
+### 2026-08-03（续4）合并 main 的 stability–terminality 框架 + 收敛为单一主线
+- **背景**：`main` 分支（另一次并行分叉，从 4d434f1f 起）把论文重构为 *Stable Answers,
+  Unfinished Reasoning: The Stability–Terminality Gap*（正文 8 页可投版），而 v3 分支是围绕
+  independence 主线的机制重构（18 页、新图集）。两条线都大改了 §1/§2/§5，直接 merge 会重度冲突。
+  用户决定：**以 v3 为主干**（保留全部新图/重构/TJE 删除/CertaIndex 软化），把 main 的框架搬过来，
+  页数可放宽（不再卡 8 页）。新建工作分支 `v3-stability-terminality`（基于 origin/v3-mechanism-figures）。
+- **从 main 搬入（框架层）**：标题改为 stability–terminality；custom.bib 补 3 篇 2025–26 related work
+  （Answer Convergence EMNLP2025 / CoDE-Stop / LearnStop）；§2 probe-based 段加"prior work 报告
+  consensus 有效"的预防性反驳，alt-signals 段加 confidence-dynamics。
+- **收敛为单一主线**（用户第二轮指令）：全文改写为"重复 agreement 测的是固定 probe 下的
+  **output persistence**，而非 reasoning terminality；unfinished trajectory 上 probe 强迫输出的
+  placeholder 会重复、看似稳定但之后自行修正；扩大 window 只是更晚更少触发、并未提升对 terminality
+  的识别；3,520-sweep 证明该 gap 调不掉；DEER 仅作 positive control 排除'early exit 不可能'"。
+  - Intro 重写为五段单主线；Contribution 收为三点（识别 gap／解释 agreement 测到什么／sweep+DEER 证明
+    非 tuning）；independence 从 contribution 与 §5 开篇**降级**为一个结构性支撑小节（移到 Locating 之前）。
+  - Abstract/Conclusion 重写，落到高潮句 **"Agreement fails not because it is insufficiently strict,
+    but because it repeatedly measures the wrong object."** + 用户指定的 persistence-not-terminality 收尾句。
+  - **收紧四类表述**：删"widely used"→"natural and recently explored"；"any probe-based rule"→
+    "the windowed consensus family we study"；§5.6 不再说 accuracy cost 完全 probe-independent，
+    改为"recovery asymmetry 是 trajectory-level，realized cost 仍依赖 probe/stopping rule"；
+    删"safe signal 应 forward-looking"等处方性结论。
+- **图收敛为 3 张正文高潮**：Figure 1（fig1_idea 总览）保留；**新增合并 Figure 2
+  `fig_wording_taxonomy`**（左：wording-vs-position 43→89%；右：134-case taxonomy 60/20/17/3, κ=0.82）——
+  在 `report/make_v3_figures.py` 加 `fig_wording_taxonomy()`，用 conda base(mpl 3.10.7) 生成；
+  Figure 3（harm_rescue）保留。`fig_consensus_pos` / `fig_ws_heatmap` / `fig_split_transfer` 三张
+  **移入附录 E**（正文改为"(…, appendix)"引用）。
+- 编译干净 **19 页、0 undefined ref**；正文恰好 3 张图；p10 目视 QA 合并图双栏排版正常。
+
 ## 2026-08-01 · ✅ Confirmation 补种子 46/47（Llama-8B + Qwen-32B，test split）采集完成 + 健康核对
 
 **动机**：held-out confirmation 之前只有 seed 45（外加 dev-scale 的 42/43/44）。把两个 confirmation

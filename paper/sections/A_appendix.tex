@@ -97,14 +97,72 @@ the DEER threshold frontier that does reach the gate region.
 \end{table}
 
 
-\section{Per-Model and Per-Benchmark Frontiers}
+\section{Supporting Figures: Sweep Surface, Selection, and Frontiers}
 \label{sec:appendix-pareto}
 
-Figures~\ref{fig:app-splits}--\ref{fig:app-bench} give the saving-versus-drop
-view of the same selection and generalization results summarised in
-\S\ref{sec:exp-heldout}, resolved per split, per model and per benchmark, with
-the oracle upper bound on each panel. They add no claim beyond the main text;
-they show the distributions the summaries are drawn from.
+This appendix collects the supporting figures referenced from the main text.
+Figure~\ref{fig:consensus-pos} shows where consensus first forms as a fraction of
+each trajectory's length (\S\ref{sec:exp-fc}); Figure~\ref{fig:ws-heatmap} reads
+the empty safe-and-saving corner directly off the sweep's $(W,s)$ surface
+(\S\ref{sec:exp-sweep}); and Figure~\ref{fig:split-transfer} traces the
+train~$\rightarrow$~dev~$\rightarrow$~test selection pipeline
+(\S\ref{sec:exp-heldout}). Figures~\ref{fig:app-splits}--\ref{fig:app-bench} then
+give the saving-versus-drop view of the same selection and generalization results,
+resolved per split, per model and per benchmark, with the oracle upper bound on
+each panel. They add no claim beyond the main text; they show the distributions
+the summaries are drawn from.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/gen/fig_consensus_pos.pdf}
+  \caption{\textbf{Consensus forms early, where it is least reliable.} For each
+  dev-split trajectory we take the first window of three agreeing non-empty
+  probes and ask two things: is that answer correct, and would the same problem
+  have been correct if left to run? Position is a fraction of the trajectory's
+  \emph{own} length, so $500$ tokens into a $600$-token trajectory counts as
+  late and $500$ into a $16$K one does not. Consensus forms in $679$ of $684$
+  trajectories, half within the first tenth; the shaded gap is the accuracy a
+  stop at that moment throws away. Open markers mark bins with fewer than $20$
+  trajectories; the final bin ($n{=}3$) should not be read.}
+  \label{fig:consensus-pos}
+\end{figure}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/gen/fig_ws_heatmap.pdf}
+  \caption{\textbf{The safe-and-saving corner is empty across the entire rule
+  space.} Dev split, macro-averaged over the $18$ environments. Each cell holds
+  the $160$ rules that share its $(W,s)$ and differ only in the operational
+  knobs, summarised by the two members a gate interrogates.
+  \textbf{(a)} the cell's \emph{safest} rule: colour is its accuracy drop and
+  the number beneath is the saving that rule buys. Larger windows and stricter
+  thresholds do drive the drop towards the $1.0\pp$ cap---but the saving falls
+  with it, reaching $-1\%$ at $W{=}30$, $s{=}1.0$.
+  \textbf{(b)} the cell's \emph{most economical} rule: colour is its net saving
+  and the number beneath is the drop it costs. Substantial saving is available
+  everywhere, at $4$--$73\pp$. A cell would be outlined in green if any of its
+  rules cleared the conservative gate (drop $\leq 1.0\pp$ \emph{and} saving
+  $\geq 10\%$); none is.}
+  \label{fig:ws-heatmap}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/gen/fig_split_transfer.pdf}
+  \caption{\textbf{A rule must clear the gate on every split.} The $478$ amber
+  rules are exactly those that clear the conservative gate \emph{in-sample on
+  train}; drawing all $478$ would be unreadable, so we show their median,
+  interquartile range and full range. Dashed lines mark all three preregistered
+  gates (\textbf{C}onservative, \textbf{B}alanced, \textbf{T}oken-efficient);
+  a rule must sit below them on the left and above them on the right. On dev,
+  the split the gate is applied on, none of the $478$ does. Some recover on
+  test, but a rule selected on dev is never among them: jointly, $0$ of $478$
+  clear all three splits, against $3$ of $3$ for the DEER operating points
+  selected on dev. Macro-averaged over $18$ environments per split; train and
+  dev share seeds $42$--$44$ and differ only in problems, while test uses unseen
+  problems and seeds $45$--$47$.}
+  \label{fig:split-transfer}
+\end{figure*}
 
 \begin{figure*}[t]
   \centering

@@ -549,12 +549,103 @@ def fig_taxonomy():
                              for i, c in enumerate(TAX_ORDER)})
 
 
+def fig_wording_taxonomy():
+    """Merged Figure 2: two sides of the stability--terminality gap.
+    (a) probe-wording sensitivity vs. trajectory position -- early 'answers'
+    depend on how the probe is worded; (b) the human taxonomy of
+    stopped-but-wrong cases -- most are placeholders the model had not
+    converged on."""
+    import csv
+    repo = HERE.parent.parent.parent
+
+    fig, (axA, axB) = plt.subplots(
+        1, 2, figsize=(7.0, 2.35), gridspec_kw={"width_ratios": [1.0, 1.08]})
+
+    # ---- panel (a): wording sensitivity vs position ----
+    wd = json.loads((OUT / "probe_wording.json").read_text())
+    bins = wd["bins"]
+    labels = ["0–10", "10–20", "20–40", "40–70", "70–100"]
+    x = np.arange(len(bins))
+    agree = [b["agree_pct"] for b in bins]
+    correct = [b["correct_pct"] for b in bins]
+
+    axA.axvspan(-0.45, 0.5, color="#f3f4f6", zorder=0)
+    axA.text(0.02, 3, "same frozen prefix,\ntwo probe wordings", fontsize=5.9,
+             color=C_MUTED, va="bottom")
+    axA.plot(x, agree, "-o", color=C_CONS_D, lw=1.9, ms=4.6, zorder=5,
+             label="two wordings agree")
+    axA.plot(x, correct, "--o", color=C_MUTED, lw=1.5, ms=3.8, zorder=5,
+             label="probe answer correct")
+    axA.annotate(f"{agree[0]:.0f}%", (0, agree[0]), xytext=(0, 6),
+                 textcoords="offset points", ha="center", fontsize=6.4,
+                 color=C_CONS_D)
+    axA.annotate(f"{agree[-1]:.0f}%", (len(bins) - 1, agree[-1]), xytext=(0, 6),
+                 textcoords="offset points", ha="center", fontsize=6.4,
+                 color=C_CONS_D)
+    axA.set_ylim(0, 106)
+    axA.set_xticks(x, labels)
+    axA.tick_params(axis="x", labelsize=6.7)
+    axA.set_xlabel("position (% of the trajectory's own length)", fontsize=7.4)
+    axA.set_ylabel("% of probe points", fontsize=7.6)
+    axA.grid(axis="y", alpha=0.15)
+    axA.set_title("(a) Early answers depend on how you ask",
+                  fontweight="bold", fontsize=8.2, pad=5)
+    axA.legend(loc="lower right", fontsize=6.3, framealpha=0.95,
+               handlelength=1.6, borderpad=0.35, labelspacing=0.25)
+
+    # ---- panel (b): human error taxonomy ----
+    def load(fname):
+        out = {}
+        with open(repo / fname, encoding="utf-8-sig") as f:
+            for r in csv.DictReader(f):
+                out[r["problem_id"]] = r["HUMAN_type[A-E]"].strip().upper()
+        return out
+
+    a1, a2 = load("taxonomy_review_1.csv"), load("taxonomy_review_2.csv")
+    keys = sorted(set(a1) & set(a2))
+    n = len(keys)
+    adj = {k: (a1[k] if a1[k] in ("A", "D", "E") else "O") for k in keys}
+    counts = {c: sum(1 for k in keys if adj[k] == c) for c in TAX_ORDER}
+    coarse = lambda t: "AD" if t in ("A", "D") else (t if t == "E" else "O")
+    c1 = [coarse(a1[k]) for k in keys]
+    c2 = [coarse(a2[k]) for k in keys]
+    cats = sorted(set(c1) | set(c2))
+    po = sum(u == v for u, v in zip(c1, c2)) / n
+    pe = sum((c1.count(c) / n) * (c2.count(c) / n) for c in cats)
+    kappa = (po - pe) / (1 - pe)
+
+    y = np.arange(len(TAX_ORDER))[::-1]
+    vals = [counts[c] / n * 100 for c in TAX_ORDER]
+    axB.barh(y, vals, height=0.62, color=[TAX_COLOR[c] for c in TAX_ORDER],
+             zorder=3)
+    for i, c in enumerate(TAX_ORDER):
+        axB.annotate(f"{vals[i]:.0f}%  ($n$={counts[c]})", (vals[i], y[i]),
+                     xytext=(4, 0), textcoords="offset points", va="center",
+                     fontsize=6.3, color=C_MUTED)
+    axB.set_yticks(y, [TAX_LABEL[c] for c in TAX_ORDER])
+    axB.tick_params(axis="y", labelsize=7.2)
+    axB.set_xlim(0, 104)
+    axB.set_xlabel("share of stopped-but-wrong cases (%)", fontsize=7.4)
+    axB.grid(axis="x", alpha=0.15)
+    axB.set_title("(b) What consensus actually stops on",
+                  fontweight="bold", fontsize=8.2, pad=5)
+    axB.annotate(f"$n$={n},  $\\kappa$={kappa:.2f}", (0.985, 0.06),
+                 xycoords="axes fraction", ha="right", fontsize=6.3,
+                 color=C_MUTED)
+
+    fig.tight_layout(w_pad=1.8)
+    savefig(fig, "fig_wording_taxonomy")
+    print(f"  wording bins={len(bins)} first_agree={agree[0]:.1f} "
+          f"last_agree={agree[-1]:.1f}; taxonomy n={n} kappa={kappa:.3f}")
+
+
 FIGS = {
     "ws_heatmap": fig_ws_heatmap,
     "split_transfer": fig_split_transfer,
     "harm_rescue": fig_harm_rescue,
     "consensus_pos": fig_consensus_pos,
     "taxonomy": fig_taxonomy,
+    "wording_taxonomy": fig_wording_taxonomy,
 }
 
 if __name__ == "__main__":

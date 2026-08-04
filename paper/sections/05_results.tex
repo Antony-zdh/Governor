@@ -49,9 +49,10 @@ mid-trajectory placeholder. The swept rules below and the mechanism of
 Section~\ref{sec:mechanism} quantify the same directional accuracy tax across the
 full rule space.}
 
-Figure~\ref{fig:consensus-pos} shows where this cost is concentrated. Expressing
-the moment consensus first forms as a \emph{fraction} of each trajectory's own
-length---which controls for problem difficulty---half of all consensuses form
+The cost is concentrated early (Figure~\ref{fig:consensus-pos}, appendix).
+Expressing the moment consensus first forms as a \emph{fraction} of each
+trajectory's own length---which controls for problem difficulty---half of all
+consensuses form
 within the first tenth of the trajectory, and there the answer they commit to is
 correct only $27.5\%$ of the time against $85.2\%$ for the same problems run to
 completion. The gap narrows as consensus forms later, but an online rule cannot
@@ -61,21 +62,6 @@ agreement is least informative.
 A good stopping rule must therefore be much more than ``agreement.'' The rest of
 this section asks whether the \emph{best possible} such rule, drawn from a large
 preregistered space, can be both safe and economical.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\columnwidth]{figures/gen/fig_consensus_pos.pdf}
-  \caption{\textbf{Consensus forms early, where it is least reliable.} For each
-  dev-split trajectory we take the first window of three agreeing non-empty
-  probes and ask two things: is that answer correct, and would the same problem
-  have been correct if left to run? Position is a fraction of the trajectory's
-  \emph{own} length, so $500$ tokens into a $600$-token trajectory counts as
-  late and $500$ into a $16$K one does not. Consensus forms in $679$ of $684$
-  trajectories, half within the first tenth; the shaded gap is the accuracy a
-  stop at that moment throws away. Open markers mark bins with fewer than $20$
-  trajectories; the final bin ($n{=}3$) should not be read.}
-  \label{fig:consensus-pos}
-\end{figure}
 
 \subsection{Sweep Results}
 \label{sec:exp-sweep}
@@ -91,8 +77,8 @@ evaluations accuracy strictly \emph{falls} in $64.9\%$ and strictly \emph{rises}
 in only $10.5\%$ (unchanged in $24.6\%$), for a mean drop of $13.0\pp$; over rules
 the total dev drop has median $13.2\pp$ and a minimum of $0.81\pp$.
 \textbf{Not one of the $3{,}520$ rules clears any gate.} The reason is the shape
-of the trade-off, which Figure~\ref{fig:ws-heatmap} reads directly off the
-sweep's own two axes: staying accurate and saving tokens are
+of the trade-off, read directly off the sweep's own two axes
+(Figure~\ref{fig:ws-heatmap}, appendix): staying accurate and saving tokens are
 in direct tension. Only $40$ rules keep the total drop at or below the
 conservative $1.0\pp$ cap, and the most any of them saves is
 $0.2\%$---far under the $10\%$ floor; conversely, the first rule to save $10\%$
@@ -100,30 +86,10 @@ already costs $2.66\pp$, saving $20\%$ costs $6.17\pp$, and saving $30\%$ costs
 $11.8\pp$. Crucially, the sweep now includes \emph{large} windows (up to
 $W{=}30$): these do buy low accuracy drop, but only by stopping so late that net
 saving collapses to zero. No setting of the consensus signal escapes the
-trade-off. Figure~\ref{fig:ws-heatmap} makes this a property of the whole
-surface rather than of the frontier's edge: read cell by cell, the safest rule
-available at each $(W,s)$ approaches the $1\pp$ cap only as the saving it buys
-approaches zero, while every cell that saves substantially costs several points.
-No cell clears the conservative gate.
-
-\begin{figure*}[t]
-  \centering
-  \includegraphics[width=\textwidth]{figures/gen/fig_ws_heatmap.pdf}
-  \caption{\textbf{The safe-and-saving corner is empty across the entire rule
-  space.} Dev split, macro-averaged over the $18$ environments. Each cell holds
-  the $160$ rules that share its $(W,s)$ and differ only in the operational
-  knobs, summarised by the two members a gate interrogates.
-  \textbf{(a)} the cell's \emph{safest} rule: colour is its accuracy drop and
-  the number beneath is the saving that rule buys. Larger windows and stricter
-  thresholds do drive the drop towards the $1.0\pp$ cap---but the saving falls
-  with it, reaching $-1\%$ at $W{=}30$, $s{=}1.0$.
-  \textbf{(b)} the cell's \emph{most economical} rule: colour is its net saving
-  and the number beneath is the drop it costs. Substantial saving is available
-  everywhere, at $4$--$73\pp$. A cell would be outlined in green if any of its
-  rules cleared the conservative gate (drop $\leq 1.0\pp$ \emph{and} saving
-  $\geq 10\%$); none is.}
-  \label{fig:ws-heatmap}
-\end{figure*}
+trade-off: read cell by cell across the whole $(W,s)$ surface, the safest rule
+available at each cell approaches the $1\pp$ cap only as the saving it buys
+approaches zero, while every cell that saves substantially costs several points,
+and no cell clears the conservative gate (Figure~\ref{fig:ws-heatmap}, appendix).
 
 \subsection{A Non-Consensus Signal}
 \label{sec:exp-deer}
@@ -264,7 +230,8 @@ the conservative point ($-0.24\pp$ while saving $32.4\%$, $\tau{=}0.97$) and on
 gates. Consensus is unsafe, and DEER safe-and-saving, across all four axes we
 vary---benchmark, seed, $4\times$ scale, and architecture/family.
 
-Figure~\ref{fig:split-transfer} shows the selection pipeline end to end. The
+The selection pipeline runs end to end in Figure~\ref{fig:split-transfer}
+(appendix). The
 $478$ consensus rules that clear the conservative gate in-sample on train are
 tracked onto dev and test as a band; the three dev-selected DEER thresholds are
 tracked individually. On dev---the split the gate is applied on---not one of the
@@ -284,22 +251,5 @@ correct probe, which sits at a negative drop of $2$--$5\pp$ at $40$--$80\%$
 saving, far in a corner neither method reaches---are given in
 Appendix~\ref{sec:appendix-pareto}.
 
-\begin{figure*}[t]
-  \centering
-  \includegraphics[width=\textwidth]{figures/gen/fig_split_transfer.pdf}
-  \caption{\textbf{A rule must clear the gate on every split.} The $478$ amber
-  rules are exactly those that clear the conservative gate \emph{in-sample on
-  train}; drawing all $478$ would be unreadable, so we show their median,
-  interquartile range and full range. Dashed lines mark all three preregistered
-  gates (\textbf{C}onservative, \textbf{B}alanced, \textbf{T}oken-efficient);
-  a rule must sit below them on the left and above them on the right. On dev,
-  the split the gate is applied on, none of the $478$ does. Some recover on
-  test, but a rule selected on dev is never among them: jointly, $0$ of $478$
-  clear all three splits, against $3$ of $3$ for the DEER operating points
-  selected on dev. Macro-averaged over $18$ environments per split; train and
-  dev share seeds $42$--$44$ and differ only in problems, while test uses unseen
-  problems and seeds $45$--$47$.}
-  \label{fig:split-transfer}
-\end{figure*}
 
 
