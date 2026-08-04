@@ -45,7 +45,19 @@ MAIN = (RES / "governor_v2"
         / "main" / "traj")
 
 VARIANT_A, VARIANT_B = "simple__32", "certaindex__32"
-BINS = [(0.0, 0.1), (0.1, 0.2), (0.2, 0.4), (0.4, 0.7), (0.7, 1.01)]
+BINS = [(0.00, 0.05), (0.05, 0.10), (0.10, 0.15), (0.15, 0.20),
+        (0.20, 0.30), (0.30, 0.40), (0.40, 0.50), (0.50, 0.60),
+        (0.60, 0.70), (0.70, 0.85), (0.85, 1.01)]
+
+# The paired re-probe bank only re-probes out to 3,072 generated tokens. A
+# trajectory longer than that has no observations in the later "% of own
+# length" bins at all, so including it distorts the position normalisation --
+# its probes all land in the early bins by construction. We therefore keep only
+# trajectories the bank actually covers end to end. Of the 400 problems with
+# both a paired bank and a main trajectory this drops 159: 140 that simply run
+# past the probe coverage and 19 that hit the generation budget without
+# finishing. 241 problems and 2,898 comparable probe positions remain.
+PROBE_COVERAGE = 3072
 
 
 def eq(a, b):
@@ -77,12 +89,14 @@ def main():
     agree = collections.defaultdict(lambda: [0, 0])
     correct = collections.defaultdict(lambda: [0, 0])
 
+    kept = {p for p, (_, tu) in meta.items() if 0 < tu <= PROBE_COVERAGE}
+    print(f"{len(kept)}/{len(meta)} trajectories lie within the "
+          f"{PROBE_COVERAGE}-token probe coverage; the rest are dropped")
+
     for (pid, pos), d in by_pos.items():
-        if pid not in meta or VARIANT_A not in d or VARIANT_B not in d:
+        if pid not in kept or VARIANT_A not in d or VARIANT_B not in d:
             continue
         target, total = meta[pid]
-        if total <= 0:
-            continue
         frac = pos / total
         if frac > 1.01:
             continue

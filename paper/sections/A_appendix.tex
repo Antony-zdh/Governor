@@ -92,12 +92,17 @@ net saving falls with it (from $98\%$ to $39\%$), so the low-drop region is
 reachable only where saving has already collapsed. Table~\ref{tab:deer} gives
 the DEER threshold frontier that does reach the gate region.
 
-\paragraph{Gross versus net savings.}
+\paragraph{Accuracy tax versus probe tax.}
 Table~\ref{tab:grossnet} separates the two costs of \S\ref{sec:exp-sweep}:
-under dense re-probing a late-stopping rule pays the probe output $p$ over a
-long prefix, opening a gap between its gross savings $(B-s)/B$ and its net
-savings $(B-s-p)/B$. The gap---the probe tax---shifts the savings axis but
-never rescues the accuracy drop.
+under dense re-probing a late-stopping rule pays the probe output $p$ of
+Section~\ref{sec:accounting} over a long prefix, opening a gap between its gross
+savings $(B-s)/B$ and its net savings $(B-s-p)/B$. That gap---the probe
+tax---scales with probe density and is reducible: sparser or shorter probes and
+KV-cache reuse all shift the \emph{savings} axis. The \emph{accuracy} floor is
+not reducible this way---the recovery asymmetry behind it is present wherever
+reasoning is still moving (\S\ref{sec:mech-ratio})---and it is that floor, not
+the probe tax, that keeps the safe-and-saving corner empty and that DEER
+escapes.
 
 \begin{table}[t]
   \centering\small

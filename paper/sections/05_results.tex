@@ -95,7 +95,11 @@ first rule to save $10\%$ already costs $2.66\pp$, saving $20\%$ costs
 $6.17\pp$, and saving $30\%$ costs $11.8\pp$. The large windows behave exactly
 as \S\ref{sec:mech-ratio} predicts: they do buy low drop, but only by stopping
 so late that net saving collapses to zero, and no cell of the $(W,s)$ surface
-clears the conservative gate.
+clears the conservative gate. Nor is this an artifact of charging dense
+re-probing: that \emph{probe tax} opens only a $4$--$7\pp$ gap between gross and
+net saving and is reducible by a sparser schedule, whereas the accuracy floor
+the gates bind on is not
+(Appendix~\ref{sec:appendix-tables}).
 
 \subsection{A Non-Consensus Signal Clears the Same Gates}
 \label{sec:exp-deer}
@@ -172,19 +176,6 @@ end to end (Figure~\ref{fig:split-transfer}), gives per-model and per-benchmark
 frontiers with an oracle upper bound, and details the dev/test asymmetry
 induced by the small competition sets.
 
-\subsection{Accuracy Tax versus Probe Tax}
-A last rebuttal says the negative result is an artifact of charging dense
-re-probing. Separating two costs shows it is not. Besides the accuracy tax, a
-rule pays a \emph{probe tax}---the probe output $p$ of
-Section~\ref{sec:accounting}---which opens a $4$--$7\pp$ gap between gross and
-net savings at the consensus frontier (Table~\ref{tab:grossnet}, appendix).
-The probe tax scales with probe density and is reducible: sparser or shorter
-probes and KV-cache reuse all shift the \emph{savings} axis. The
-\emph{accuracy} floor is not reducible this way---the recovery asymmetry behind
-it is present wherever reasoning is still moving
-(\S\ref{sec:mech-ratio})---and it is that floor, not the probe tax, that keeps
-the safe-and-saving corner empty and that DEER escapes.
-
 \subsection{Locating the Failure}
 Every method that stops on \emph{consensus}---the swept family and the
 CertaIndex (CoT) reproduction alike---fails a gate or loses many points, while
@@ -192,15 +183,13 @@ the one method that clears them does not read consensus; since the same
 machinery, gates, and accounting produce both outcomes, what separates them is
 the \emph{signal}.
 
-Three qualifications bound the claim. First, it concerns agreement used
-\emph{alone} as the stopping criterion: combined with a signal that reflects
-the model's own estimate, the cheap fact that the answer has not changed may
-well be useful---CertaIndex composes multiple indicators for related reasons
-\citep{dynasor_certaindex}; nothing here argues against such combinations.
-Second, it concerns the preregistered
-consensus schema and dense-probe regime we searched: our probe grid makes
-essentially every stop position reachable, so the floor we observe is not a
-lucky miss of the schedule, but a finite rule search is a systematic risk
-demonstrated, not a universal impossibility theorem. Third, it does not say
-which signal \emph{should} replace agreement: identifying a safe stopping
-signal---with its own train/dev$\rightarrow$test confirmation---is left open.
+Three qualifications bound the claim. It concerns agreement used \emph{alone} as
+the stopping criterion: combined with a signal that reflects the model's own
+estimate, the cheap fact that the answer has not changed may well be
+useful---CertaIndex composes multiple indicators for related reasons
+\citep{dynasor_certaindex}. It concerns the preregistered schema and
+dense-probe regime we searched---our probe grid makes essentially every stop
+position reachable, so the floor is not a lucky miss of the schedule, but a
+finite search demonstrates a systematic risk, not a universal impossibility
+theorem. And it does not say which signal \emph{should} replace agreement; that,
+with its own train/dev$\rightarrow$test confirmation, is left open.

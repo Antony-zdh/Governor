@@ -575,13 +575,16 @@ def fig_wording_taxonomy():
     # ---- panel (a): wording sensitivity vs position ----
     wd = json.loads((OUT / "probe_wording.json").read_text())
     bins = wd["bins"]
-    labels = ["0–10", "10–20", "20–40", "40–70", "70–100"]
+    labels = [f"{round(b['lo'] * 100)}–{min(round(b['hi'] * 100), 100)}"
+              for b in bins]
     x = np.arange(len(bins))
     agree = [b["agree_pct"] for b in bins]
     correct = [b["correct_pct"] for b in bins]
 
-    axA.axvspan(-0.45, 0.5, color="#f3f4f6", zorder=0)
-    axA.text(0.02, 3, "same frozen prefix,\ntwo probe wordings", fontsize=5.9,
+    # shade the first tenth of the trajectory (however many bins that spans)
+    n_early = sum(1 for b in bins if b["lo"] < 0.10)
+    axA.axvspan(-0.45, n_early - 0.5, color="#f3f4f6", zorder=0)
+    axA.text(-0.35, 3, "same frozen prefix,\ntwo probe wordings", fontsize=5.9,
              color=C_MUTED, va="bottom")
     axA.plot(x, agree, "-o", color=C_CONS_D, lw=1.9, ms=4.6, zorder=5,
              label="two wordings agree")
@@ -594,8 +597,9 @@ def fig_wording_taxonomy():
                  textcoords="offset points", ha="center", fontsize=6.4,
                  color=C_CONS_D)
     axA.set_ylim(0, 106)
-    axA.set_xticks(x, labels)
-    axA.tick_params(axis="x", labelsize=6.7)
+    axA.set_xticks(x, labels, rotation=45, ha="right",
+                   rotation_mode="anchor")
+    axA.tick_params(axis="x", labelsize=5.8, pad=1)
     axA.set_xlabel("position (% of the trajectory's own length)", fontsize=7.4)
     axA.set_ylabel("% of probe points", fontsize=7.6)
     axA.grid(axis="y", alpha=0.15)
