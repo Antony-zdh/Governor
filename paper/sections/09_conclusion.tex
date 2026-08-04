@@ -1,20 +1,15 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-We asked whether intermediate answer-consensus is a safe signal on which to
-early-exit a reasoning LLM. It is not, and not because the rule is untuned:
-intermediate agreement measures answer stability under a fixed probe, not whether
-reasoning has terminated---a \emph{stability--terminality gap}. Because continued
-reasoning corrects the answer far more often than it breaks it, stopping on
-consensus destroys a correct-in-the-end answer up to about $45$ times more often
-(at an aggressive stop) than it rescues a wrong one. This recovery asymmetry is a
-trajectory-level property, and it shows up as an empty safe-and-saving corner
-across a preregistered space of $3{,}520$ rules---not one of which clears any
-gate---reproduced on a held-out split and two unseen models, and paid in full by a
-faithful Certaindex reproduction that collapses by $56$--$70\pp$. That the corner
-is empty for consensus but not for early exit shows the failure is specific to the
-\emph{signal}: swept through the identical protocol, a non-consensus method (DEER)
-clears all three gates on the same trajectories. Our claim is therefore narrow and
-firm---probe agreement \emph{alone} does not establish terminality and cannot be
-tuned into a safe stop---while which signal \emph{should} replace it we leave open:
-DEER shows a safe stop exists, not that it is the only or best one.
+Intermediate answer-consensus is not a safe early-exit signal for reasoning LLMs,
+and not because the rule is untuned: agreement measures answer stability under a
+fixed probe, not whether reasoning has terminated---a \emph{stability--terminality
+gap}. Because continued reasoning corrects the answer far more often than it breaks
+it, stopping on consensus destroys a correct-in-the-end answer up to $45$
+times more often than it banks one. This trajectory-level recovery
+asymmetry leaves the safe-and-saving corner empty across all $3{,}520$
+rules, reproduced on a held-out split and two unseen models, whereas a
+non-consensus signal (DEER) swept identically clears every gate, localizing the
+failure to the \emph{signal}. Probe agreement \emph{alone} does not establish
+terminality and cannot be tuned into a safe stop; which signal \emph{should} replace
+it we leave open.
