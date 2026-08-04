@@ -27,9 +27,9 @@ it breaks it, stopping on consensus\footnote{``False consensus'' here denotes
 non-terminal intermediate probe agreement, unrelated to the social-psychology term
 \citep{ross1977false}; we study answer-level, not token/layer-level, early exit
 \citep{graves2016act,schuster2022confident}.} destroys a correct-in-the-end answer
-up to $\mathbf{35}$ times more often at an aggressive stop
-(Section~\ref{sec:mechanism})---an accuracy tax that is a property of the reasoning
-trajectory, not of how one probes it, so no rule in the searched space escapes it. We make the claim hard to dismiss as
+up to $\mathbf{45}$ times more often at an aggressive stop
+(Section~\ref{sec:mechanism})---a recovery asymmetry that is a trajectory-level
+property, so no threshold in the searched space escapes it. We make the claim hard to dismiss as
 ``you did not tune it well'' by searching the space exhaustively under
 commitment: on frozen trajectories from two models and three benchmarks we run a
 \emph{preregistered} sweep of the consensus signal---a window size $\times$ share
@@ -58,31 +58,33 @@ stay in it out of sample.
   \caption{\textbf{Selection $\rightarrow$ generalization, in one picture}
   (two dev models; macro over environments; net saving vs.\ accuracy drop).
   \textbf{Grey}: all $3{,}520$ consensus rules. \textbf{Orange}: the $478$ rules
-  that clear the conservative gate \emph{in-sample on train}---on \emph{dev} and
-  \emph{test} they leave the shaded gate boxes (higher drop, lower saving), so the
-  preregistered gate admits none out of sample. \textbf{Green}: the DEER threshold
-  frontier (identical pipeline and accounting); labelled stars are the three
-  dev-selected operating points (\textbf{C}/\textbf{B}/\textbf{T}), which stay
-  inside the gate on dev and test. \textbf{Purple star}: an oracle upper bound
+  that clear the conservative gate \emph{in-sample on train}; carried unchanged to
+  \emph{dev} and \emph{test} the same rules fall outside the gate region (higher
+  drop, lower saving), so no consensus rule holds up out of sample. \textbf{Green}:
+  the DEER threshold frontier (identical pipeline and accounting); labelled stars
+  are the three dev-selected operating points (\textbf{C}/\textbf{B}/\textbf{T}),
+  which reproduce inside the gate out of sample (\S\ref{sec:exp-heldout}). \textbf{Purple star}: an oracle upper bound
   (earliest correct probe), far in the corner neither method reaches. The failure
   is a property of the consensus \emph{signal}, not of early exit.}
   \label{fig:pareto}
 \end{figure*}
 
 \paragraph{Contribution.}
-We give a rigorous, mechanism-backed demonstration---established so it cannot be
-waved away as an untuned heuristic---that \emph{intermediate answer-consensus is
-an unsafe early-exit signal for reasoning LLMs}, resting on three parts.
-\textbf{(i) A preregistered, probe-independent test} (frozen trajectories, offline
-re-probing, a two-parameter family of $3{,}520$ rules, gates fixed in advance),
-released in full, under which \emph{no} consensus rule is both safe and saving
-(Sections~\ref{sec:method}--\ref{sec:results}).
-\textbf{(ii) A mechanism}: a directional ``continued-reasoning-corrects'' effect
-($\gg\!1{:}1$) makes the accuracy cost intrinsic to the trajectory and independent
-of probe density, so the failure is the \emph{signal}, not the particular rules we
-searched (Section~\ref{sec:mechanism}).
-\textbf{(iii) Out-of-distribution and cross-signal confirmation}: the frontier
-reproduces on a held-out split and two unseen models, a Certaindex reproduction
-collapses, and a non-consensus signal (DEER) swept identically \emph{clears the
-same gates}---localizing the failure to consensus and pointing to where a safe
-signal must come from (Sections~\ref{sec:results}--\ref{sec:mechanism}).
+Our contribution is to identify and characterize a \emph{stability--terminality
+gap} in probe-based early exit---intermediate answer agreement measures whether the
+current answer is \emph{stable under a fixed probing procedure}, not whether the
+reasoning has \emph{terminated}---and to show, under preregistration, that the gap
+cannot be tuned away. \textbf{(i) The gap}, characterized from two sides: probe
+reads are wording-unstable early (two wordings disagree ${\sim}57\%$ of the time in
+the first tenth of a trajectory, $11\%$ near its end) and stopped-but-wrong
+commitments are mostly non-terminal ($61\%$ vs.\ $18\%$ settled-but-wrong),
+reflecting a directional ``continued-reasoning-corrects'' asymmetry
+(Section~\ref{sec:mechanism}). \textbf{(ii) A preregistered, probe-independent
+sweep} of $3{,}520$ rules (frozen trajectories, gates fixed in advance; released in
+full) under which \emph{no} consensus rule is both safe and saving, so the gap is
+not a bad-threshold artifact (Sections~\ref{sec:method}--\ref{sec:results}).
+\textbf{(iii) Generalization and a positive control}: the frontier reproduces on a
+held-out split and two unseen models, a faithful Certaindex reproduction collapses,
+and a non-consensus signal (DEER) swept identically \emph{clears the same
+gates}---localizing the failure to the probe-agreement signal rather than to early
+exit (Sections~\ref{sec:results}--\ref{sec:mechanism}).

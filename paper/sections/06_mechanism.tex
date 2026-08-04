@@ -5,11 +5,12 @@ Section~\ref{sec:results} is an existence proof over $3{,}520$ rules, two seen
 and two unseen models, and both splits. This section explains \emph{why} it holds
 and why it generalizes beyond the exact rules we searched. The one-line reason is
 a \emph{stability--terminality gap}: probe agreement measures whether the current
-answer is \emph{stable}, not whether the reasoning has \emph{terminated}, and that
-gap is a directional property of the trajectory itself---not of a threshold or of
-probe density.
+answer is \emph{stable} under a fixed probing procedure, not whether the reasoning
+has \emph{terminated}. Underlying it is a directional property of the trajectory
+itself---continued reasoning keeps correcting the answer---that no threshold on the
+agreement signal removes.
 
-\subsection{The accuracy tax is intrinsic to the trajectory}
+\subsection{The recovery asymmetry is trajectory-level}
 Count, among stops that \emph{change} correctness relative to the trajectory's own
 final answer, a correct recovery destroyed (final-correct, stop-wrong) versus a
 wrong answer luckily banked (final-wrong, stop-correct). Sampling noise predicts
@@ -21,13 +22,15 @@ $121$ dev problems vs.\ $668$ at $W{=}1$). At any window that saves tokens the
 ratio stays well above $1{:}1$: consensus destroys a correct-in-the-end answer many
 times more often than it banks a wrong one---the recovery phenomenon of
 \S\ref{sec:exp-fc} ($84.2\%$, $89.1\%$) as a signed effect at the main budgets.
-This is structural: a rule stopping at position $s$ forgoes whatever correction the
-trajectory makes after $s$, a property of the reasoning, not the probe, so it
-survives \emph{any} probing scheme and never reaches zero in the sweep. The probe
-grid ($64/128/256/512$) makes essentially every stop position reachable; a sparser
-schedule can only stop later, never at a safer position the grid missed. So
-agreement reports answer \emph{stability}---what the model said recently---not
-whether reasoning has \emph{terminated}. DEER, by contrast, holds
+The asymmetry is trajectory-level: a rule stopping at position $s$ forgoes whatever
+correction the trajectory would make after $s$, so wherever a consensus rule fires
+early it sits in a region where continued reasoning still corrects. The \emph{size}
+of the realized accuracy cost depends on the probe schedule and stopping rule---what
+the sweep varies---but across the grid ($64/128/256/512$ intervals, $8$ windows,
+$3$ thresholds) it never reaches zero: no threshold on the agreement signal escapes
+the region where reasoning is still moving. Agreement thus reports only what the
+model has \emph{said recently}---not whether reasoning has \emph{terminated}. DEER,
+by contrast, holds
 $\approx\!2.4$--$3.5{:}1$ \emph{while} saving $28$--$32\%$, committing mainly once
 the trajectory has settled.
 
@@ -44,8 +47,9 @@ trajectory (only $41\%$ agree in the first $5\%$), but just $11\%$ near its end
 ($89\%$ agree). Early on, the ``answer'' a probe surfaces is an artifact of how it
 is asked as much as of the underlying reasoning---the same prefix probed two ways
 yields two answers---and the wordings converge only as the trajectory settles.
-Agreement therefore certifies that the current answer is \emph{stable to how we
-ask}, not that reasoning has finished.
+Agreement under one fixed wording therefore shows only that the model \emph{repeats}
+an answer under that procedure---not that the answer is robust to how it is asked,
+and not that reasoning has finished.
 \textbf{Stopped-but-wrong answers are mostly non-terminal.} A two-annotator study
 of stopped-but-wrong cases (\S\ref{sec:exp-fc}; Appendix~\ref{sec:fc-taxonomy})
 shows the same gap from the error side: $61\%$ of stopped-but-wrong commitments
@@ -72,5 +76,5 @@ DEER, does not read probe agreement at all: it stops on the model's confidence i
 trial answer, and in Figure~\ref{fig:pareto} its frontier sits \emph{above} the
 consensus Pareto boundary throughout the safe region. Swept through the identical
 pipeline, gates, and accounting, this is a controlled test: the same machinery
-succeeds on a forward-looking signal and fails on consensus. The failure is a
-property of the \emph{signal}, not of early exit.
+succeeds on DEER's boundary-confidence signal and fails on consensus. The failure
+is a property of the probe-agreement \emph{signal}, not of early exit.

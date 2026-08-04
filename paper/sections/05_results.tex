@@ -63,9 +63,8 @@ accuracy drop and net token saving (accounting of Section~\ref{sec:accounting}).
 Applying the preregistered gates yields the paper's central negative result.
 
 The outcome holds across environments: across all $126{,}720$ rule--environment
-evaluations accuracy strictly \emph{falls} in $64.9\%$ and strictly \emph{rises}
-in only $10.5\%$ (unchanged in $24.6\%$), for a mean drop of $13.0\pp$; over rules
-the total dev drop has median $13.2\pp$ and a minimum of $0.81\pp$.
+evaluations accuracy strictly \emph{falls} in $64.9\%$ and rises in only $10.5\%$
+(mean drop $13.0\pp$; over rules, median dev drop $13.2\pp$, minimum $0.81\pp$).
 \textbf{Not one of the $3{,}520$ rules clears any gate.} The reason is the shape
 of the frontier (dev panel of Figure~\ref{fig:pareto}): staying accurate and saving tokens are
 in direct tension. Only $40$ rules keep the total drop at or below the
@@ -81,15 +80,13 @@ trade-off; the safe-and-saving corner is empty.
 \label{sec:exp-deer}
 The same gates are cleared, comfortably, by a rule that does \emph{not} read probe
 agreement. Sweeping DEER's confidence threshold through the identical pipeline and
-token accounting (Section~\ref{sec:schema}), its trial-answer-submit variant
-passes all three operating points on dev: the conservative point loses only
-$0.33\pp$ while saving $28.2\%$, the balanced point $1.03\pp$ at $29.6\%$, and the
-token-efficient point $2.75\pp$ at $31.9\%$; at a stricter threshold it is
-accuracy-neutral ($-0.06\pp$) while still saving $20.8\%$. In
-the dev panel of Figure~\ref{fig:pareto} the DEER frontier sits \emph{above} the consensus frontier
-everywhere in the safe region and enters every gate box that no consensus rule
-reaches. Early exit is therefore not impossible; the consensus \emph{signal} is
-what cannot make it safe (Table~\ref{tab:main}).
+token accounting (Section~\ref{sec:schema}), its trial-answer-submit variant passes
+all three operating points on dev (conservative $-0.33\pp$/$28.2\%$, balanced
+$-1.03\pp$/$29.6\%$, token-efficient $-2.75\pp$/$31.9\%$; accuracy-neutral
+$-0.06\pp$ at $20.8\%$ under a stricter threshold; Table~\ref{tab:main}). In the dev
+panel of Figure~\ref{fig:pareto} its frontier sits \emph{above} the consensus
+frontier everywhere in the safe region. Early exit is therefore not impossible; the
+consensus \emph{signal} is what cannot make it safe.
 
 \begin{table}[t]
   \centering\small
@@ -119,24 +116,19 @@ what cannot make it safe (Table~\ref{tab:main}).
 
 \subsection{Consensus in the wild: a faithful Certaindex reproduction collapses}
 \label{sec:exp-prior}
-The sweep shows no \emph{tuned} consensus rule is safe; a published consensus
-method shows the same failure at its shipped operating point. We reproduce three
-prior stoppers in a common harness---the same frozen trajectories, the same
-\simplek{} probe bank, the same token accounting. \textbf{CertaIndex}
-\citep{dynasor_certaindex} is the faithful share-threshold stop (the direct
-descendant of the consensus family); \textbf{DEER} \citep{deer} here is the
-\emph{faithful} readout reproduction (the stronger trial-answer-submit variant is
-what we swept in \S\ref{sec:exp-deer}); \textbf{TJE} \citep{tje} is a token-level
-stop. Table~\ref{tab:baselines} (appendix) reports the reproductions (not the
-original papers' end-to-end runs).
-
-CertaIndex, at $99.8\%$ stop rate and $70\pp$ lost, is the accuracy tax paid in
-full---the shipped consensus method landing exactly where the swept consensus
-frontier says it must. TJE is unsafe on the weaker model. Even the \emph{faithful}
-DEER readout, a non-consensus signal, already avoids collapse; the stronger
-trial-answer-submit variant we swept turns that into a gate-clearing frontier
-(\S\ref{sec:exp-deer}). That only the non-consensus signal survives is the crux we
-analyze in Section~\ref{sec:mechanism}.
+The sweep shows no \emph{tuned} consensus rule is safe; a published one shows the
+same failure at its shipped operating point. In a common harness (same frozen
+trajectories, \simplek{} probe bank, and token accounting) we reproduce three prior
+stoppers---\textbf{CertaIndex} \citep{dynasor_certaindex}, the faithful
+share-threshold stop and direct descendant of the consensus family; \textbf{DEER}
+\citep{deer}, here the \emph{faithful} readout (the stronger trial-answer-submit
+variant is what we swept in \S\ref{sec:exp-deer}); and token-level \textbf{TJE}
+\citep{tje} (Table~\ref{tab:baselines}, appendix). CertaIndex, at a $99.8\%$ stop
+rate and $70\pp$ lost, is the accuracy tax paid in full---landing exactly where the
+swept frontier says it must---and TJE is unsafe on the weaker model, whereas even
+the faithful DEER readout, a non-consensus signal, avoids collapse. That only the
+non-consensus signal survives is the crux we analyze in
+Section~\ref{sec:mechanism}.
 
 \subsection{The frontier reproduces out of distribution}
 \label{sec:exp-heldout}
