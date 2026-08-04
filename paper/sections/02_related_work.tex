@@ -5,11 +5,23 @@
 The methods we scrutinize periodically query a partial reasoning trajectory for
 its current answer and halt on agreement. Dynasor / Certaindex
 \citep{dynasor_certaindex} formalize this with a ``certainty index'' over recent
-probe answers and use it to terminate early when serving reasoning programs, one
-of several responses to the \emph{overthinking} of reasoning models
-\citep{overthinking,deer}. We adopt the same probe mechanism (a short
-boxed-answer suffix) and notion of probe agreement, and ask how far \emph{any}
-rule in this family can be pushed before it becomes unsafe.
+probe answers and terminate early when serving reasoning programs, one of several
+responses to the \emph{overthinking} of reasoning models
+\citep{overthinking,deer}. The underlying assumption is stated most strongly by
+\citet{liu2025answerconvergence}, who report that reasoning answers ``converge''
+after only ${\sim}60\%$ of steps and that stopping on answer consistency saves
+tokens with little or no \emph{aggregate} accuracy drop. Learned stoppers read
+the same probe signal through richer features: LearnStop
+\citep{dong2026learnstop} predicts prefix correctness from prefix-observable
+quantities---answer stability, prefix vote share, confidence, entropy---and
+finds, as we do, that no single aggressive policy is universally safe (some
+datasets ``admit no certifiable aggressive policy at all''). We adopt the same
+probe mechanism (a short boxed-answer suffix) and notion of probe agreement, but
+rather than reporting one aggregate operating point we ask, under
+\emph{preregistered} safety gates and with probe cost charged, whether \emph{any}
+rule in this family is both safe and saving; the stability--terminality gap
+(Section~\ref{sec:mechanism}) reconciles our empty corner on competition math
+with those optimistic aggregate reports.
 
 \paragraph{Early-stopping self-consistency and self-correction.}
 Probe-based early exit is the online, \emph{single-trajectory} analogue of
@@ -29,8 +41,10 @@ Rather than probe agreement, a stop can read other signals: verifier- and
 process-reward-guided decoding \citep{lightman2024verify,wang2024mathshepherd}
 score partial reasoning, and adaptive-computation methods learn a halting signal
 at the token or layer level \citep{graves2016act,schuster2022confident}. DEER
-\citep{deer} stops on the model's confidence in a trial answer at reasoning
-boundaries. We use DEER only as a \emph{positive control}
+\citep{deer} stops on the model's confidence in a trial answer at a reasoning
+boundary, and CoDE-Stop \citep{hosseini2026codestop} tracks how that confidence
+\emph{evolves} rather than whether probes agree---both read a forward-looking
+signal, not consensus. We use DEER only as a \emph{positive control}
 (Section~\ref{sec:mechanism}): run through the identical pipeline and acceptance
 gates, it clears them where no consensus rule does, indicating that the failure
 is specific to the probe-agreement signal rather than to early exit itself. We do

@@ -109,22 +109,17 @@ useful early exit from a rule that stays accurate only by almost never stopping.
 
 \subsection{Metric resolution}
 \label{sec:resolution}
-The total accuracy drop is a macro-average over the $18$ environments (each
-model$\times$benchmark$\times$seed weighted equally). We span two models, three
-benchmarks, and three seeds and weight them equally so that selection rewards a
-rule that is robust across benchmarks, models, and randomness, not one that
-overfits a single setting. Pooling problems instead would let MATH500 ($100$ dev
-problems per seed vs.\ $8$ for AMC23 and $6$ for AIME24) dominate the headline,
-so a rule that wins only on MATH500 could pass; equal per-environment weight
-forces a selected rule to hold on the harder competition sets too. Macro also
-keeps any single problem from swinging the result---one AIME24 problem is
-$16.7\pp$ of a $6$-problem split but only ${\sim}1/108$ of the macro drop---while
-the three seeds damp the extra per-cell noise of the small sets. The gates are
-read on the dev split (the selection target) with train reported alongside;
-because \emph{no} consensus rule clears any gate by a wide margin
-(Section~\ref{sec:results}), the finding does not rest on a single fragile cell.
-Held-out confirmation on the test split and two unseen models provides the
-complementary out-of-distribution check.
+The total accuracy drop is a macro-average over the $18$ environments, each
+model$\times$benchmark$\times$seed weighted equally, so selection rewards a rule
+robust across benchmarks, models, and randomness rather than one that overfits a
+single setting. Pooling problems instead would let MATH500 ($100$ dev problems per
+seed vs.\ $8$/$6$ for AMC23/AIME24) dominate, so a MATH500-only winner could pass;
+equal per-environment weight forces a rule to hold on the harder competition sets
+and keeps any single problem from swinging the result (one AIME24 problem is
+$16.7\pp$ of its split but only ${\sim}1/108$ of the macro drop). Gates are read
+on dev (train reported alongside); because no rule clears any gate by a wide
+margin (Section~\ref{sec:results}), the finding does not rest on a fragile cell,
+and the test split plus two unseen models provide the out-of-distribution check.
 
 \subsection{Preregistration commitments}
 Three commitments make the result interpretable. \textbf{(C1)} The test split

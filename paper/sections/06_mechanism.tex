@@ -3,127 +3,76 @@
 
 Section~\ref{sec:results} is an existence proof over $3{,}520$ rules, two seen
 and two unseen models, and both splits. This section explains \emph{why} it holds
-and why it generalizes beyond the exact rules we searched: the accuracy cost of
-stopping on consensus is a directional property of the reasoning trajectory
-itself, not of a threshold or of probe density.
-
-\subsection{Stopping destroys more than it saves}
-Consider only the stops where committing early \emph{changes} correctness relative
-to the trajectory's own final answer, and count two outcomes: (final-correct,
-stop-wrong)---a correct recovery destroyed---versus (final-wrong,
-stop-correct)---a wrong answer luckily banked. Pure sampling noise predicts a
-$\approx1{:}1$ ratio; a genuine ``continued reasoning corrects'' effect predicts
-$\gg1$. On the frozen replay this ratio depends strongly on the window: it falls
-from $\approx\!45{:}1$ for a latest-probe stop ($W{=}1$) to $\approx\!2{:}1$ at
-the largest window ($W{=}30$). But the low end is bought only by stopping so
-rarely that net saving vanishes ($W{=}30$ fires on $121$ dev problems vs.\ $668$
-at $W{=}1$); at any window that actually saves tokens the ratio stays well above
-$1{:}1$. DEER, by contrast, holds $\approx\!2.4$--$3.5{:}1$ at its three operating
-points \emph{while} saving $28$--$32\%$, because its boundary-confidence signal
-commits mainly once the trajectory has settled. Stopping on consensus therefore
-removes a correct-in-the-end answer many times more often than it rescues a wrong
-one---directional, not sampling noise. This is the recovery phenomenon of
-\S\ref{sec:exp-fc} ($84.2\%$, $89.1\%$), now at the main $16$K/$32$K budgets and
-as a signed effect.
+and why it generalizes beyond the exact rules we searched. The one-line reason is
+a \emph{stability--terminality gap}: probe agreement measures whether the current
+answer is \emph{stable}, not whether the reasoning has \emph{terminated}, and that
+gap is a directional property of the trajectory itself---not of a threshold or of
+probe density.
 
 \subsection{The accuracy tax is intrinsic to the trajectory}
-Why is the ratio structural? For a rule stopping at token position $s$, the
-accuracy drop depends only on $s$: committing at $s$ forgoes whatever correction
-the trajectory would have made after it. It is a property of the reasoning, not of
-the probe, so it survives \emph{any} probing scheme. This is what never reaches
-zero in the sweep. The probe grid (intervals $64/128/256/512$ tokens) makes
-essentially every stop position reachable and the observed floor is the minimum
-over these schedules; a sparser schedule can only stop later or at a subset of
-positions, never at a safer one the grid missed. Hence no threshold on the
-consensus signal \emph{within the searched space} escapes the accuracy tax; the
-searched space is a lower bound on the cost, not a lucky miss. This does not turn
-a finite rule search into a universal impossibility theorem---it motivates
-caution for consensus variants beyond the preregistered schema rather than
-proving a universal claim about them. In short, this is a
-\emph{stability--terminality gap}: agreement reports what the model has said
-recently---answer \emph{stability}---not whether its reasoning has
-\emph{terminated}.
+Count, among stops that \emph{change} correctness relative to the trajectory's own
+final answer, a correct recovery destroyed (final-correct, stop-wrong) versus a
+wrong answer luckily banked (final-wrong, stop-correct). Sampling noise predicts
+$\approx\!1{:}1$; a ``continued reasoning corrects'' effect predicts $\gg\!1$. On
+the frozen replay this ratio is window-dependent---$\approx\!45{:}1$ at a
+latest-probe stop ($W{=}1$) down to $\approx\!2{:}1$ at $W{=}30$---but the low end
+is bought only by stopping so rarely that net saving vanishes ($W{=}30$ fires on
+$121$ dev problems vs.\ $668$ at $W{=}1$). At any window that saves tokens the
+ratio stays well above $1{:}1$: consensus destroys a correct-in-the-end answer many
+times more often than it banks a wrong one---the recovery phenomenon of
+\S\ref{sec:exp-fc} ($84.2\%$, $89.1\%$) as a signed effect at the main budgets.
+This is structural: a rule stopping at position $s$ forgoes whatever correction the
+trajectory makes after $s$, a property of the reasoning, not the probe, so it
+survives \emph{any} probing scheme and never reaches zero in the sweep. The probe
+grid ($64/128/256/512$) makes essentially every stop position reachable; a sparser
+schedule can only stop later, never at a safer position the grid missed. So
+agreement reports answer \emph{stability}---what the model said recently---not
+whether reasoning has \emph{terminated}. DEER, by contrast, holds
+$\approx\!2.4$--$3.5{:}1$ \emph{while} saving $28$--$32\%$, committing mainly once
+the trajectory has settled.
 
 \subsection{The probe reads stability, not terminality}
 \label{sec:two-wording}
-Two direct measurements make this gap concrete from opposite sides.
-%% NOTE(setup pending): two-wording 57/11 measured on a separate device; data
-%% owner-confirmed. Fill in the exact wordings/models/trajectory count + an
-%% appendix pointer when available.
-\textbf{Probe reads are wording-unstable early.} Re-probing the \emph{same}
-frozen prefixes with a second, differently worded answer query, the two wordings
-disagree on the current answer $57\%$ of the time in the first tenth of a
-trajectory, but only $11\%$ near its end. Early on, the ``answer'' a probe
-surfaces is an artifact of how it is asked as much as of the underlying
-reasoning; the two wordings converge only as the trajectory settles. Agreement
-therefore certifies that the current answer is \emph{stable to how we ask}, not
-that reasoning has finished. \textbf{Stopped-but-wrong answers are mostly
-non-terminal.} The two-annotator study of \S\ref{sec:exp-fc}
-(Appendix~\ref{sec:fc-taxonomy}) shows the same gap from the error side: $61\%$ of
-stopped-but-wrong commitments are to answers the trajectory had \emph{not yet
-converged} on (type~D), versus only ${\sim}18\%$ that are settled but wrong
-(type~A). Both point one way: probe agreement is a stability signal, and
-stability is reached well before terminality.
+Two direct measurements make the gap concrete from opposite sides.
+\textbf{Probe reads are wording-unstable early.} We re-probe the \emph{same}
+frozen prefixes with two differently worded answer queries---the \simplek{} suffix
+and a Certaindex-style suffix---and measure how often they extract the \emph{same}
+current answer (\dsseven{}, \textsc{MATH}500; $2{,}898$ probe points binned by
+trajectory position; Table~\ref{tab:twowording}). Agreement rises monotonically:
+the two wordings disagree on the current answer ${\sim}57\%$ of the time early in a
+trajectory (only $41\%$ agree in the first $5\%$), but just $11\%$ near its end
+($89\%$ agree). Early on, the ``answer'' a probe surfaces is an artifact of how it
+is asked as much as of the underlying reasoning---the same prefix probed two ways
+yields two answers---and the wordings converge only as the trajectory settles.
+Agreement therefore certifies that the current answer is \emph{stable to how we
+ask}, not that reasoning has finished.
+\textbf{Stopped-but-wrong answers are mostly non-terminal.} A two-annotator study
+of stopped-but-wrong cases (\S\ref{sec:exp-fc}; Appendix~\ref{sec:fc-taxonomy})
+shows the same gap from the error side: $61\%$ of stopped-but-wrong commitments
+are to answers the trajectory had \emph{not yet converged} on (type~D), versus
+only ${\sim}18\%$ that are settled but wrong (type~A). Both say the same thing:
+probe agreement is a stability signal, and stability is reached well before
+terminality.
 
-\subsection{Ruling out the ``it is just dense probing'' objection}
-The natural rebuttal is that the negative result is an artifact of charging dense
-re-probing. It is not, and separating two costs shows why. Besides the accuracy
-tax, a rule pays a \emph{probe tax}: the probe output $p$ (Section~\ref{sec:accounting}).
-Under dense re-probing a late-stopping large-window rule pays $p$ over a long
-prefix, opening a gap between its \emph{gross} savings and its (smaller)
-\emph{net} savings (Table~\ref{tab:grossnet}). Unlike the accuracy tax, the probe
-tax scales with probe density and is reducible (sparser or shorter probes,
-KV-cache reuse). The two are separable: the \emph{savings} axis is partly a
-probe-tax artifact and is addressable, but the \emph{accuracy} floor is
-probe-independent and is what makes the corner empty---and it is the accuracy
-floor, not the probe tax, that DEER escapes.
-
-\begin{table}[t]
-  \centering\small
-  \begin{tabular}{lcc}
-    \toprule
-    Consensus point & Gross saving & Net saving \\
-                    & $(B-s)/B$    & $(B-s-p)/B$ \\
-    \midrule
-    save$\ge10\%$ (drop $2.7\pp$) & $+14.7\%$ & $+10.7\%$ \\
-    save$\ge20\%$ (drop $6.2\pp$) & $+27.0\%$ & $+20.2\%$ \\
-    \bottomrule
-  \end{tabular}
-  \caption{Gross vs.\ net savings for two consensus frontier points; the gap
-  ($\sim\!4$--$7\pp$) is the probe tax. It shifts the \emph{savings} axis but
-  never rescues the accuracy drop---which is the intrinsic tax that keeps the
-  corner empty.}
-  \label{tab:grossnet}
-\end{table}
-
-\subsection{It is the signal, not early exit}
-The joint sweep of \S\ref{sec:exp-deer} localizes the cause. Every method that
-stops on \emph{probe agreement}---the swept consensus family and CertaIndex
-alike---either fails a gate or collapses outright; CertaIndex's $70\pp$ loss at
-$99.8\%$ stop rate is the accuracy tax paid in full. The method that clears the
-gates, DEER, does not read probe agreement at all: it stops on the model's own
-confidence in a trial answer at a reasoning boundary, and in
-Figure~\ref{fig:pareto} its threshold frontier sits \emph{above} the consensus
+\subsection{It is the signal---not dense probing, not early exit}
+\label{sec:signal}
+Two objections remain; dismissing both localizes the failure to the signal.
+\emph{``It is just dense probing.''} Besides the accuracy tax, a rule pays a
+\emph{probe tax}: the probe output $p$ (Section~\ref{sec:accounting}). Under dense
+re-probing a late-stopping large-window rule pays $p$ over a long prefix, opening a
+gap between its \emph{gross} and \emph{net} savings (Table~\ref{tab:grossnet}).
+But the probe tax scales with probe density and is reducible (sparser or shorter
+probes, KV-cache reuse), whereas the accuracy floor is probe-independent; it is
+the accuracy floor, not the probe tax, that keeps the corner empty---and it is the
+accuracy floor that DEER escapes. \emph{``Maybe early exit itself is
+impossible.''} It is not. Every method that stops on \emph{probe agreement}---the
+swept consensus family and CertaIndex alike---either fails a gate or collapses
+(CertaIndex loses $70\pp$ at a $99.8\%$ stop rate, the accuracy tax paid in full).
+The one method that clears the gates, DEER, does not read probe agreement at all:
+it stops on the model's confidence in a trial answer at a reasoning boundary, and
+in Figure~\ref{fig:pareto} its threshold frontier sits \emph{above} the consensus
 Pareto boundary throughout the safe region. Because DEER is swept through the
 identical pipeline, gates, and token accounting, the contrast is a controlled
-test: the same early-exit machinery succeeds on a forward-looking signal and
-fails on the consensus signal. The failure is a property of the \emph{signal},
-not of early exit.
-
-\subsection{Implication: change the signal, not the threshold}
-Much prior effort tunes consensus-based stops
-\citep{dynasor_certaindex,aggarwal2023adaptive,li2024esc}; our frontier shows the
-ceiling of that approach is low, and the mechanism above says no amount of tuning
-raises it. The constructive implication is that a safe signal should be about
-whether the \emph{trajectory itself} will still change, not about the agreement of
-backward-looking probes. Our joint sweep already demonstrates this: the
-boundary-confidence signal (DEER) clears the same gates the whole consensus family
-fails (\S\ref{sec:exp-deer}). Verifier- and process-reward-based termination
-\citep{lightman2024verify,wang2024mathshepherd} and learned halting
-\citep{graves2016act,schuster2022confident} point the same way. Turning any of
-these into a \emph{confirmed} method---with its own train/dev$\rightarrow$test
-validation---is the natural next paper; our contribution is to establish
-rigorously which signal not to build it on. Two caveats bound the claim: it
-concerns \emph{consensus-based} rules within the searched schema and dense-probe
-regime, and it does not say early exit is impossible---only that this signal
-cannot make it safe.
+test: the same early-exit machinery succeeds on a forward-looking signal and fails
+on the consensus signal. The failure is a property of the \emph{signal}, not of
+early exit.

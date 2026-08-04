@@ -120,3 +120,67 @@ Table~\ref{tab:deer} gives the DEER threshold frontier that does reach it.
   \label{tab:deer}
 \end{table}
 
+\begin{table*}[t]
+  \centering\small
+  \begin{tabular}{llccccc}
+    \toprule
+    Method & Model & Accuracy & $\Delta$acc & Fair token saving & Stop rate & Signal \\
+    \midrule
+    Full generation & \qweneight{}   & $85.4\%$ & --- & $0\%$ & $0\%$ & --- \\
+    Full generation & \dsseven{} & $79.8\%$ & --- & $0\%$ & $0\%$ & --- \\
+    \midrule
+    CertaIndex & \qweneight{}   & $15.3\%$ & $-70.1\pp$ & $90.1\%$ & $99.8\%$ & consensus \\
+    CertaIndex & \dsseven{} & $23.9\%$ & $-55.9\pp$ & $76.7\%$ & $98.7\%$ & consensus \\
+    TJE        & \qweneight{}   & $85.0\%$ & $-0.4\pp$  & $2.0\%$  & $22.5\%$ & token-level \\
+    TJE        & \dsseven{} & $60.7\%$ & $-19.1\pp$ & $65.0\%$ & $93.4\%$ & token-level \\
+    \midrule
+    DEER       & \qweneight{}   & $86.2\%$ & $\mathbf{+0.8\pp}$ & $16.3\%$ & $41.4\%$ & boundary conf. \\
+    DEER       & \dsseven{} & $74.9\%$ & $-4.8\pp$  & $20.2\%$ & $56.1\%$ & boundary conf. \\
+    \bottomrule
+  \end{tabular}
+  \caption{Prior early-stoppers reproduced on our frozen trajectories (dev, macro
+  over three benchmarks; probe tokens charged; Section~\ref{sec:exp-prior}).
+  CertaIndex---the consensus descendant---\textbf{collapses} ($-56$ to $-70\pp$)
+  while saving $77$--$90\%$ of tokens: it fires on almost every problem, very
+  early, exactly the false-consensus trap of \S\ref{sec:exp-fc}. \textbf{DEER},
+  which reads a \emph{different} signal (boundary confidence), is the only method
+  that stays near full accuracy---$+0.8\pp$ on \qweneight{}---while still saving
+  tokens.}
+  \label{tab:baselines}
+\end{table*}
+
+\begin{table}[t]
+  \centering\small
+  \begin{tabular}{lcc}
+    \toprule
+    Consensus point & Gross saving & Net saving \\
+                    & $(B-s)/B$    & $(B-s-p)/B$ \\
+    \midrule
+    save$\ge10\%$ (drop $2.7\pp$) & $+14.7\%$ & $+10.7\%$ \\
+    save$\ge20\%$ (drop $6.2\pp$) & $+27.0\%$ & $+20.2\%$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{Gross vs.\ net savings for two consensus frontier points
+  (Section~\ref{sec:signal}); the gap ($\sim\!4$--$7\pp$) is the probe tax. It
+  shifts the \emph{savings} axis but never rescues the accuracy drop---the
+  intrinsic tax that keeps the corner empty.}
+  \label{tab:grossnet}
+\end{table}
+
+\subsection{Per-benchmark generalization}
+\label{sec:appendix-genbench}
+Figure~\ref{fig:gen-bench} breaks the out-of-sample result
+(Section~\ref{sec:exp-heldout}) down by benchmark, complementing the per-model
+view in Figure~\ref{fig:gen-models}.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/gen/fig_bench.pdf}
+  \caption{\textbf{Out-of-sample generalization across benchmarks} (test split,
+  development models). The consensus trade-off and the DEER advantage hold on
+  \textsc{MATH}500 and AMC23; on the small AIME24 set (few problems per
+  environment) the two frontiers are noisier and intertwine. Markers as in
+  Figure~\ref{fig:gen-models}.}
+  \label{fig:gen-bench}
+\end{figure*}
+

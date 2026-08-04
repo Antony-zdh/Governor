@@ -88,10 +88,56 @@ often than on genuinely finished-but-wrong reasoning. Type~E is a methodological
 finding in its own right: roughly one in five false consensuses is a probe
 formatting artifact, so any deployed rule should filter answer \emph{shape}.
 
+\subsection{Probe wording (in)stability: the two-wording measurement}
+\label{sec:appendix-twowording}
+Table~\ref{tab:twowording} gives the raw two-wording agreement referenced in
+Section~\ref{sec:two-wording}. For every dense probe point on the frozen
+\dsseven{} \textsc{MATH}500 trajectories (seed $42$; $2{,}898$ probe points) we
+extract the current answer with two differently worded queries---the \simplek{}
+boxed-answer suffix and a Certaindex-style suffix---and record whether they agree,
+binned by the probe's position along the trajectory. Agreement rises monotonically
+from $41.2\%$ in the first $5\%$ of a trajectory to ${\sim}90\%$ past the $70\%$
+mark (pooled $76.0\%$); the probe's own correctness (last column) rises in lockstep
+($17.6\%\!\to\!81.8\%$). Early probe reads are thus unstable to how the question is
+asked \emph{and} unreliable as answers---the measurement side of the
+stability--terminality gap. The headline ${\sim}57\%$/$11\%$ early/late
+disagreement contrast (Section~\ref{sec:two-wording}) brackets these
+per-position values.
+
+\begin{table}[t]
+  \centering\small
+  \begin{tabular}{lrcc}
+    \toprule
+    Position (\% traj.) & $n$ & Wordings agree & Probe correct \\
+    \midrule
+    $0$--$5$    & $34$  & $41.2\%$ & $17.6\%$ \\
+    $5$--$10$   & $179$ & $47.5\%$ & $24.0\%$ \\
+    $10$--$15$  & $161$ & $59.6\%$ & $28.6\%$ \\
+    $15$--$20$  & $150$ & $52.7\%$ & $37.3\%$ \\
+    $20$--$30$  & $340$ & $60.6\%$ & $43.8\%$ \\
+    $30$--$40$  & $316$ & $69.6\%$ & $56.6\%$ \\
+    $40$--$50$  & $325$ & $82.2\%$ & $70.8\%$ \\
+    $50$--$60$  & $321$ & $87.9\%$ & $76.0\%$ \\
+    $60$--$70$  & $299$ & $87.6\%$ & $79.9\%$ \\
+    $70$--$85$  & $422$ & $90.3\%$ & $81.8\%$ \\
+    $85$--$100$ & $351$ & $88.6\%$ & $80.9\%$ \\
+    \midrule
+    Total       & $2{,}898$ & $76.0\%$ & --- \\
+    \bottomrule
+  \end{tabular}
+  \caption{Two-wording probe agreement by trajectory position (\dsseven{},
+  \textsc{MATH}500, seed $42$; \simplek{} vs.\ Certaindex-style suffix). The two
+  wordings extract the same current answer only $41\%$ of the time in the first
+  $5\%$ of a trajectory, rising to ${\sim}90\%$ late, so early agreement reflects
+  how the probe is worded, not that reasoning has terminated.}
+  \label{tab:twowording}
+\end{table}
+
 \paragraph{Takeaway.}
 These observations---local consensus unreliable, recovery common, late
-consensus worse, and stopped-but-wrong answers mostly \emph{non-terminal}
-placeholders rather than settled mistakes---suggest that a good stopping rule
-must be much more than ``agreement.'' The rest of the paper asks whether the
-\emph{best possible} such rule, drawn from a large preregistered space, can be
-both safe and economical. In the searched space, it cannot.
+consensus worse, stopped-but-wrong answers mostly \emph{non-terminal}
+placeholders rather than settled mistakes, and even the probed answer being
+wording-unstable early---suggest that a good stopping rule must be much more than
+``agreement.'' The rest of the paper asks whether the \emph{best possible} such
+rule, drawn from a large preregistered space, can be both safe and economical. In
+the searched space, it cannot.
