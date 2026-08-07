@@ -22,6 +22,10 @@ from benchmark.FalseConsensus.governor_v2.dense_probe import (
     DenseProbeCollector,
     parse_args as dense_probe_parse_args,
 )
+from benchmark.FalseConsensus.governor_v2.boundary_probe import (
+    DEER_MODEL_SLUG,
+    load_boundary_positions,
+)
 from benchmark.FalseConsensus.governor_v2.make_splits import (
     apportion,
     assign_benchmark,
@@ -508,6 +512,52 @@ class CollectionPreparationTests(unittest.TestCase):
             "heldout_scale",
             {job["model_role"] for job in small_models},
         )
+
+
+class BoundaryExtractionTests(unittest.TestCase):
+    def test_deer_model_slug_map_covers_dev_models(self) -> None:
+        self.assertEqual(
+            DEER_MODEL_SLUG["deepseek-ai-deepseek-r1-distill-qwen-7b"],
+            "deepseek",
+        )
+        self.assertEqual(DEER_MODEL_SLUG["qwen-qwen3-8b"], "qwen3")
+
+    def test_load_boundary_positions_caps_and_sorts(self) -> None:
+        import gzip
+        import tempfile
+
+        records = [
+            {
+                "problem_id": 1,
+                "generated_trial_count": 3,
+                "max_attempts": 30,
+                "trials": [
+                    {"token_position": 464, "candidate_id": 2},
+                    {"token_position": 301, "candidate_id": 1},
+                    {"token_position": 900, "candidate_id": 3},
+                ],
+            },
+            {
+                "problem_id": 2,
+                "generated_trial_count": 35,
+                "max_attempts": 30,
+                # 33 distinct positions -> must be capped at 30
+                "trials": [
+                    {"token_position": i * 10, "candidate_id": i}
+                    for i in range(1, 34)
+                ],
+            },
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            with gzip.open(d / "trials.jsonl.gz", "wt", encoding="utf-8") as f:
+                for r in records:
+                    f.write(json.dumps(r) + "\n")
+            out = load_boundary_positions(d)
+        self.assertEqual(out[1], [301, 464, 900])  # sorted, deduped
+        self.assertLessEqual(len(out[2]), 30)  # capped at 30
+        self.assertEqual(out[2], sorted(out[2]))
+
 
 class ReplayTests(unittest.TestCase):
     def test_certaindex_equivalence_preserves_argument_order(self) -> None:
