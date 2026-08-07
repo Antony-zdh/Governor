@@ -16,6 +16,12 @@ from benchmark.FalseConsensus.governor_v2.adaptive_probe import (
 from benchmark.FalseConsensus.governor_v2.dense_probe import (
     checkpoint_positions,
 )
+from benchmark.FalseConsensus.governor_v2.dense_probe import (
+    PROBE_SUFFIXES,
+    SIMPLE_SUFFIX,
+    DenseProbeCollector,
+    parse_args as dense_probe_parse_args,
+)
 from benchmark.FalseConsensus.governor_v2.make_splits import (
     apportion,
     assign_benchmark,
@@ -341,6 +347,80 @@ class CollectionPreparationTests(unittest.TestCase):
             [64, 128, 192, 256],
         )
 
+    def test_probe_style_simple_matches_original_constant(self) -> None:
+        # Arm A must select the identical suffix string the original
+        # SIMPLE_SUFFIX constant held -- a whitespace difference invalidates
+        # the paired probe-wording experiment.
+        self.assertEqual(PROBE_SUFFIXES["simple"], SIMPLE_SUFFIX)
+        self.assertEqual(
+            SIMPLE_SUFFIX, "**Final Answer**\n\n\\[ \\boxed{"
+        )
+        self.assertIn("certaindex", PROBE_SUFFIXES)
+        self.assertTrue(
+            PROBE_SUFFIXES["certaindex"].endswith(SIMPLE_SUFFIX),
+            "certaindex suffix must end with the simple suffix verbatim",
+        )
+        self.assertTrue(
+            PROBE_SUFFIXES["certaindex"].startswith(
+                "... Oh, I suddenly got the answer to the whole problem, "
+            ),
+            "certaindex suffix must carry the commitment nudge verbatim",
+        )
+
+    def test_parse_args_probe_style_defaults_to_simple(self) -> None:
+        import sys
+
+        argv = sys.argv
+        try:
+            sys.argv = [
+                "dense_probe.py",
+                "--main-run",
+                "/tmp/m",
+                "--output",
+                "/tmp/o",
+            ]
+            args = dense_probe_parse_args()
+            self.assertEqual(args.probe_style, "simple")
+            self.assertIsNone(args.problem_ids)
+        finally:
+            sys.argv = argv
+
+    def test_parse_args_probe_style_certaindex_selects_arm_b(self) -> None:
+        import sys
+
+        argv = sys.argv
+        try:
+            sys.argv = [
+                "dense_probe.py",
+                "--main-run",
+                "/tmp/m",
+                "--output",
+                "/tmp/o",
+                "--probe-style",
+                "certaindex",
+                "--problem-ids",
+                "/tmp/ids.txt",
+            ]
+            args = dense_probe_parse_args()
+            self.assertEqual(args.probe_style, "certaindex")
+            self.assertEqual(args.problem_ids, Path("/tmp/ids.txt"))
+        finally:
+            sys.argv = argv
+
+    def test_load_problem_ids_parses_one_per_line(self) -> None:
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".txt", delete=False
+        ) as handle:
+            handle.write("1\n3\n\n  25  \n32\n")
+            path = Path(handle.name)
+        try:
+            ids = DenseProbeCollector._load_problem_ids(path)
+            self.assertEqual(ids, {1, 3, 25, 32})
+        finally:
+            path.unlink()
+
     def test_matrix_dependencies_and_parameterization(self) -> None:
         protocol = json.loads(
             (HERE / "protocol.json").read_text(encoding="utf-8")
@@ -428,7 +508,6 @@ class CollectionPreparationTests(unittest.TestCase):
             "heldout_scale",
             {job["model_role"] for job in small_models},
         )
-
 
 class ReplayTests(unittest.TestCase):
     def test_certaindex_equivalence_preserves_argument_order(self) -> None:

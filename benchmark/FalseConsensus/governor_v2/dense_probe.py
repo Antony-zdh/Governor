@@ -14,6 +14,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Dict, Iterable, List
 
+import hashlib
 import openai
 
 
@@ -23,7 +24,21 @@ sys.path.insert(0, str(REPO_ROOT / "benchmark/TokenDeprivation"))
 sys.path.insert(0, str(REPO_ROOT))
 
 
+# Suffixes copied verbatim from probe_compare/reprobe_paired.py::PROBE_SUFFIXES
+# (which is itself kept in sync with logging_run.py::PROBE_SUFFIXES). A
+# whitespace difference invalidates the paired probe-wording experiment, so the
+# two arms must share this exact definition -- do not retype.
 SIMPLE_SUFFIX = "**Final Answer**\n\n\\[ \\boxed{"
+PROBE_SUFFIXES = {
+    "simple": SIMPLE_SUFFIX,
+    "certaindex": (
+        "... Oh, I suddenly got the answer to the whole problem, "
+        "**Final Answer**\n\n\\[ \\boxed{"
+    ),
+}
+# Sentinel problem used only to fingerprint the chat template, so a reader can
+# verify the assistant-turn framing matches the main trajectories.
+_TEMPLATE_SENTINEL = "What is 1+1?"
 UNCERTAIN_WORDS = ("wait", "hold", "but", "okay", "no", "hmm")
 CSV_FIELDS = (
     "problem_id",
@@ -51,6 +66,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--start-token", type=int, default=64)
     parser.add_argument("--probe-tokens", type=int, default=32)
     parser.add_argument("--workers", type=int, default=12)
+    parser.add_argument(
+        "--probe-style",
+        choices=list(PROBE_SUFFIXES.keys()),
+        default="simple",
+        help="which probe suffix to append (Arm A = simple, Arm B = certaindex)",
+    )
+    parser.add_argument(
+        "--problem-ids",
+        type=Path,
+        default=None,
+        help="file of problem ids (one per line) to restrict collection to; "
+        "default collects every trajectory in the main run",
+    )
     parser.add_argument("--flatten-only", action="store_true")
     return parser.parse_args()
 
@@ -118,6 +146,11 @@ class DenseProbeCollector:
             raise ValueError("--model disagrees with main trajectory manifest")
         self.dataset = str(self.main_settings["dataset"])
         self.base_seed = int(self.main_settings["base_seed"])
+        self.probe_style = str(args.probe_style)
+        self.suffix = PROBE_SUFFIXES[self.probe_style]
+        # Problem-id restriction (dev split). None => collect everything, the
+        # original behaviour.
+        self.allowed_ids = self._load_problem_ids(args.problem_ids)
         self.client = openai.OpenAI(
             api_key=args.api_key,
             base_url=args.url,
@@ -130,18 +163,38 @@ class DenseProbeCollector:
         self.probe_dir = self.output / "probes"
         self.probe_dir.mkdir(parents=True, exist_ok=True)
         self.lock = threading.Lock()
+        template_fingerprint = hashlib.sha256(
+            apply_chat_template(_TEMPLATE_SENTINEL, self.model).encode("utf-8")
+        ).hexdigest()
+        suffix_fingerprint = hashlib.sha256(
+            self.suffix.encode("utf-8")
+        ).hexdigest()
         self.settings = {
             "collection_schema": "governor-v2-dense-probe-1",
             "main_run": str(args.main_run),
             "model": self.model,
             "dataset": self.dataset,
             "base_seed": self.base_seed,
-            "probe_style": "simple",
+            "probe_style": self.probe_style,
+            "probe_suffix_sha256": suffix_fingerprint,
+            "chat_template_sha256": template_fingerprint,
+            "tokenizer_model": self.model,
             "probe_tokens": args.probe_tokens,
             "dense_interval": args.interval,
             "start_token": args.start_token,
         }
         self._initialize_manifest()
+
+    @staticmethod
+    def _load_problem_ids(path):
+        if path is None:
+            return None
+        ids = set()
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line:
+                ids.add(int(line))
+        return ids
 
     def _initialize_manifest(self) -> None:
         path = self.output / "probe_manifest.json"
@@ -187,6 +240,8 @@ class DenseProbeCollector:
         if trajectory.get("run_settings", {}).get("model") != self.model:
             raise ValueError(f"model mismatch in {trajectory_path}")
         problem_id = int(trajectory["problem_id"])
+        if self.allowed_ids is not None and problem_id not in self.allowed_ids:
+            return problem_id
         output_path = self.probe_dir / f"problem_{problem_id}.json"
         if output_path.exists():
             return problem_id
@@ -205,7 +260,7 @@ class DenseProbeCollector:
         records = []
         for probe_id, position in enumerate(positions, start=1):
             prefix = self.tokenizer.decode(token_ids[:position])
-            response, latency = self.complete(chat + prefix + SIMPLE_SUFFIX)
+            response, latency = self.complete(chat + prefix + self.suffix)
             probe_text = str(response.choices[0].text)
             answer = self.obtain_answer(probe_text)
             answer = self.strip_string(answer) if answer else ""
@@ -242,8 +297,11 @@ class DenseProbeCollector:
         return problem_id
 
 
-def trajectory_paths(main_run: Path) -> Iterable[Path]:
-    return sorted((main_run / "traj").glob("problem_*.json"))
+def trajectory_paths(main_run: Path, allowed_ids=None) -> Iterable[Path]:
+    paths = sorted((main_run / "traj").glob("problem_*.json"))
+    if allowed_ids is None:
+        return paths
+    return [p for p in paths if int(p.stem.split("_")[-1]) in allowed_ids]
 
 
 def main() -> None:
@@ -257,7 +315,14 @@ def main() -> None:
         (args.main_run / "run_manifest.json").read_text(encoding="utf-8")
     )
     collector = DenseProbeCollector(args, manifest)
-    paths = list(trajectory_paths(args.main_run))
+    paths = list(trajectory_paths(args.main_run, collector.allowed_ids))
+    print(
+        f"probe_style={collector.probe_style} suffix_sha256="
+        f"{collector.settings['probe_suffix_sha256'][:12]}... "
+        f"chat_template_sha256={collector.settings['chat_template_sha256'][:12]}... "
+        f"{len(paths)} trajectories to probe",
+        flush=True,
+    )
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
         futures = [pool.submit(collector.collect, path) for path in paths]
         for index, future in enumerate(as_completed(futures), start=1):

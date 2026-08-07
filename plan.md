@@ -1506,3 +1506,17 @@ teammate 给出的下一步五步，及讨论后的排期/细化：
   (3) DEER 三个点仍过三档 gate。protocol 规定 macro，故 pooled 只能作为
   robustness check 汇报，不能替换主指标（否则像 metric shopping）。
   数据现成：`dev/consensus_dev_train.jsonl.gz` 每行带 `n`，只需重新聚合。
+
+### 2026-08-07 — v5 GPU G1/G2 in flight
+
+- [G1 collecting] 18 dev envs, dense_certaindex32, ~57k probes. DeepSeek
+  fast; Qwen3-8B KV-thrash fixed by lowering workers. Acceptance: per-env
+  counts 100/8/6, token_position lists exactly equal to paired dense_simple32,
+  zero probe_out>32, zero errors. Analysis: `report/compute_probe_wording_v5.py`
+  (no 3072-cap), produces `results/probe_wording_v5/{probe_wording_v5.json,
+  per_position.csv, report.md}`.
+- [G2 collecting] boundary_simple32 at DEER positions (~6.8k probes). Then
+  `report/compute_boundary_consensus_v5.py` replays consensus_fixed 1760
+  rules, gates, harm:rescue by W; output `results/boundary_consensus_v5/`.
+- [commit] G1 as soon as it accepts on `v5-gpu-20260807`; push; do NOT merge
+  to main; no force-push. Then G2.

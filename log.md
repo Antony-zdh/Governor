@@ -1055,3 +1055,34 @@ Abstract/Intro/Method/Results/Mechanism/Conclusion/Limitations/Appendix 全部�
   False。抽查 dev 684 条 baseline，仅 3 条判决受影响（0.44%，同一道题 3 seed），basline 89.33→89.77%。
   新脚本已在每次调用前 `var={}` 保护；已提交 bank 无需重跑。
 - 论文编译干净 18 页、0 undefined ref。
+
+## 2026-08-07 — v5 GPU experiments dispatched (G1 + G2)
+
+Branch `v5-gpu-20260807` off `v5-preprint`. Both experiments from
+`paper/revision_v5/GOAL_UGCPU2_V5.md`, run concurrently on ugcpu2 (8×3090):
+
+- **Preflight**: gov env `/localdata/dzhaoah/miniforge3/envs/gov`; installed
+  dynasor `-e .` (was missing). Grader verified: `answers_equal("0.5",
+  r"\frac{1}{2}")=True` and dev full-gen macro accuracy = **82.77%** (18 envs),
+  matching the committed value. Model weights at `/localdata/dzhaoah/hf-cache/hub`
+  (XDG/HF_HOME override). Max frozen trajectory = 32768 tokens (AIME24 budget).
+
+- **G1** (`dense_certaindex32`): extended `governor_v2/dense_probe.py` minimally
+  with `--probe-style {simple,certaindex}` and `--problem-ids <file>`, default
+  behaviour byte-for-byte unchanged (flatten-only reproduces dense_simple32
+  `probes.csv` sha256 identically). Tokenizer verified by re-encoding frozen
+  `full_text` (0 mismatches vs `main_token_count_reencoded` for both models).
+  Served DeepSeek-7B (GPU0, port 18000) + Qwen3-8B (GPU1, port 18001), bf16,
+  prefix caching, max-model-len 33792. Qwen3-8B KV cache only ~34k tokens
+  (weights 15.27GB) — 16 workers thrashed the prefix cache (hit 97%→32%,
+  throughput 53→8 tok/s); fixed by per-benchmark workers (Qwen 6/4/2,
+  DeepSeek 16). Result: Qwen restored to ~90 tok/s.
+
+- **G2** (`boundary_simple32`): `governor_v2/boundary_probe.py` collects
+  simple@32 probes at DEER's own boundary token positions (extracted from
+  `deer_confidence_bank_cap30/full/<env>/trials.jsonl.gz`, `token_position`
+  field, capped 30/problem). Reuses G1's probe construction. Served on GPUs
+  2,3 (ports 18002/18003) so G2 never contends with G1. Replay driver
+  `report/compute_boundary_consensus_v5.py` replays the consensus_fixed
+  family (1760 rules) with `probes_are_scheduled=True`, macro over 18 dev envs,
+  through the three preregistered gates, plus canonical per-W harm:rescue.
