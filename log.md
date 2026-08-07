@@ -1086,3 +1086,34 @@ Branch `v5-gpu-20260807` off `v5-preprint`. Both experiments from
   `report/compute_boundary_consensus_v5.py` replays the consensus_fixed
   family (1760 rules) with `probes_are_scheduled=True`, macro over 18 dev envs,
   through the three preregistered gates, plus canonical per-W harm:rescue.
+
+## 2026-08-07 — G1/G2 complete (pushed to v5-gpu-20260807)
+
+Both experiments done, committed, pushed (branch `v5-gpu-20260807`, off
+`v5-preprint`; NOT merged to main).
+
+- **G1** (commit `e74bf610`): 18 dev envs, 684 traj, 55,574 probes paired 1:1
+  with `dense_simple32`. Headline (vs v3 1-env/241-traj/3072-cap):
+  first-tenth disagreement 45.87% (v3 53.5%, shrank), final-third 13.01%
+  (v3 10.5%, grew), overall agreement 75.41% (v3 76.0%, ~unchanged). Per
+  model: DeepSeek-7B 59.5%/18.2%, Qwen3-8B 36.3%/9.3%. §4.2 conclusion
+  survives on the full un-truncated 18-env set.
+- **G2** (commit `e4407f23`): boundary_simple32 (9,329 probes at DEER's own
+  boundary positions) + consensus_fixed replay (1,760 rules, probes_are_
+  scheduled=True, macro-18, three gates). **Gate clearance 0/0/0** ->
+  hypothesis (a): consensus clears no gate even at DEER's boundary positions;
+  timing confound eliminated by measurement. Harm:rescue by W: 22.0:1 -> 2.3:1
+  (committed 45.1 -> 2.0), exceeds base-rate null at every W. Frontier:
+  boundary safe-corner saves 3.93% @ drop<=1pp but 10/20/30% saving floors
+  cost MORE drop (3.75/10.18/13.48pp vs committed 2.66/6.17/11.76pp), so no
+  gate clears. Outcome (b) was a real possibility and is NOT found; reported
+  as-is.
+
+Lessons (in memory `ugcpu2-g1-g2-probe-collection`): Qwen3-8B's 34k-token KV
+cache thrashes on dense long-trajectory probing above ~4 workers (cache
+fragments 98%->60%, throughput 100->4 tok/s); cache-safe is workers=2
+(math500/amc23) / 1 (aime24 32k). The earlier "degradation" was also masked
+orphan-collector stacking (pkill doesn't kill collectors stuck in the openai
+client; relaunching stacked 8+4+2=14 concurrent). A few probe answers are
+pathological sympy factor/gammasimp loops; the v5 grader runs each eq() in a
+worker process hard-killed at 4s.
