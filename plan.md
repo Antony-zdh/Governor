@@ -1531,4 +1531,12 @@ teammate 给出的下一步五步，及讨论后的排期/细化：
   与 `fig_harm_rescue` caption · C1 `certaindex_mid.py` docstring + §5.4 scope note ·
   C2 §5.7 interval-512 提升 · C3 §2 扩写 · G1 §4.2 数字更新 · G2 §5.7 升级 ·
   **新增 A2 附录功效说明**。
+- 攻击者扫描第二轮 B1–B6 结案：B1/B2/B4a/B6 死（B2 靠一个越界网格新实验杀死），
+  **B4b 与 B5 是活的**，都是披露层问题、方向对论文有利。
+- **队列新增 4 条（同样待逐条批准）**：
+  B2 越界网格附录表（W→256、maturity→12288，296 条越界规则仍 0/0/0，
+  saving 随 W 单调转负）· B4b 「18 环境 = 6 格子 × 3 种子、ICC 0.79、等效约 7」
+  的限定句 + A2 功效段同时报分层/朴素两个自助数 · B5 §4.2 说明 $p$ 只计 decode
+  ＋附录 prefill 量级表（consensus 11–53× vs DEER 4.19×）· B6 Appendix C 复现说明
+  点名 test archive 的三档 budget 过滤。
 - 第 4 轮（呈现层，CPU，无实验）尚未穷举，已知条目见 `DEFECT_LOG.md` 末节。
