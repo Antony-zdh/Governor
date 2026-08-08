@@ -1055,3 +1055,102 @@ Abstract/Intro/Method/Results/Mechanism/Conclusion/Limitations/Appendix 全部�
   False。抽查 dev 684 条 baseline，仅 3 条判决受影响（0.44%，同一道题 3 seed），basline 89.33→89.77%。
   新脚本已在每次调用前 `var={}` 保护；已提交 bank 无需重跑。
 - 论文编译干净 18 页、0 undefined ref。
+
+## 2026-08-07 — v5 GPU experiments dispatched (G1 + G2)
+
+Branch `v5-gpu-20260807` off `v5-preprint`. Both experiments from
+`paper/revision_v5/GOAL_UGCPU2_V5.md`, run concurrently on ugcpu2 (8×3090):
+
+- **Preflight**: gov env `/localdata/dzhaoah/miniforge3/envs/gov`; installed
+  dynasor `-e .` (was missing). Grader verified: `answers_equal("0.5",
+  r"\frac{1}{2}")=True` and dev full-gen macro accuracy = **82.77%** (18 envs),
+  matching the committed value. Model weights at `/localdata/dzhaoah/hf-cache/hub`
+  (XDG/HF_HOME override). Max frozen trajectory = 32768 tokens (AIME24 budget).
+
+- **G1** (`dense_certaindex32`): extended `governor_v2/dense_probe.py` minimally
+  with `--probe-style {simple,certaindex}` and `--problem-ids <file>`, default
+  behaviour byte-for-byte unchanged (flatten-only reproduces dense_simple32
+  `probes.csv` sha256 identically). Tokenizer verified by re-encoding frozen
+  `full_text` (0 mismatches vs `main_token_count_reencoded` for both models).
+  Served DeepSeek-7B (GPU0, port 18000) + Qwen3-8B (GPU1, port 18001), bf16,
+  prefix caching, max-model-len 33792. Qwen3-8B KV cache only ~34k tokens
+  (weights 15.27GB) — 16 workers thrashed the prefix cache (hit 97%→32%,
+  throughput 53→8 tok/s); fixed by per-benchmark workers (Qwen 6/4/2,
+  DeepSeek 16). Result: Qwen restored to ~90 tok/s.
+
+- **G2** (`boundary_simple32`): `governor_v2/boundary_probe.py` collects
+  simple@32 probes at DEER's own boundary token positions (extracted from
+  `deer_confidence_bank_cap30/full/<env>/trials.jsonl.gz`, `token_position`
+  field, capped 30/problem). Reuses G1's probe construction. Served on GPUs
+  2,3 (ports 18002/18003) so G2 never contends with G1. Replay driver
+  `report/compute_boundary_consensus_v5.py` replays the consensus_fixed
+  family (1760 rules) with `probes_are_scheduled=True`, macro over 18 dev envs,
+  through the three preregistered gates, plus canonical per-W harm:rescue.
+
+## 2026-08-07 — G1/G2 complete (pushed to v5-gpu-20260807)
+
+Both experiments done, committed, pushed (branch `v5-gpu-20260807`, off
+`v5-preprint`; NOT merged to main).
+
+- **G1** (commit `e74bf610`): 18 dev envs, 684 traj, 55,574 probes paired 1:1
+  with `dense_simple32`. Headline (vs v3 1-env/241-traj/3072-cap):
+  first-tenth disagreement 45.87% (v3 53.5%, shrank), final-third 13.01%
+  (v3 10.5%, grew), overall agreement 75.41% (v3 76.0%, ~unchanged). Per
+  model: DeepSeek-7B 59.5%/18.2%, Qwen3-8B 36.3%/9.3%. §4.2 conclusion
+  survives on the full un-truncated 18-env set.
+- **G2** (commit `e4407f23`): boundary_simple32 (9,329 probes at DEER's own
+  boundary positions) + consensus_fixed replay (1,760 rules, probes_are_
+  scheduled=True, macro-18, three gates). **Gate clearance 0/0/0** ->
+  hypothesis (a): consensus clears no gate even at DEER's boundary positions;
+  timing confound eliminated by measurement. Harm:rescue by W: 22.0:1 -> 2.3:1
+  (committed 45.1 -> 2.0), exceeds base-rate null at every W. Frontier:
+  boundary safe-corner saves 3.93% @ drop<=1pp but 10/20/30% saving floors
+  cost MORE drop (3.75/10.18/13.48pp vs committed 2.66/6.17/11.76pp), so no
+  gate clears. Outcome (b) was a real possibility and is NOT found; reported
+  as-is.
+
+Lessons (in memory `ugcpu2-g1-g2-probe-collection`): Qwen3-8B's 34k-token KV
+cache thrashes on dense long-trajectory probing above ~4 workers (cache
+fragments 98%->60%, throughput 100->4 tok/s); cache-safe is workers=2
+(math500/amc23) / 1 (aime24 32k). The earlier "degradation" was also masked
+orphan-collector stacking (pkill doesn't kill collectors stuck in the openai
+client; relaunching stacked 8+4+2=14 concurrent). A few probe answers are
+pathological sympy factor/gammasimp loops; the v5 grader runs each eq() in a
+worker process hard-killed at 4s.
+
+## 2026-08-08 — F1/F2 rework (independent acceptance defects fixed)
+
+Merged `origin/v5-preprint` (now has `a4bc0333` round-2 C1/C2/C3 + `28659fe1`
+acceptance) into `v5-gpu-20260807` (fast-forward, no force-push). Both
+defects from `paper/revision_v5/G1_G2_ACCEPTANCE.md` fixed; analysis-layer
+only, no re-collection, no frozen data touched.
+
+- **F1 (material) — G1 headline must be macro, not pooled.** The protocol
+  mandates macro-18 (mean of per-env rates, equal weight per env); pooled is
+  position-weighted (math500 100/env dominates aime24 6) and forbidden as a
+  headline. Added `macro` + per-model-macro to `probe_wording_v5.json`
+  `headlines`; rewrote `report.md` §4/§6 to lead with macro, pooled retained
+  labelled "robustness check". Macro reproduces the reviewer's numbers exactly:
+  first-tenth **54.45%**, final-third **16.40%**, overall **33.92%**
+  (DeepSeek-7B 68.61/22.80, Qwen3-8B 40.29/9.99). **Corrects the qualitative
+  verdict**: under macro the early disagreement REPRODUCES v3 (53.5->54.4, not
+  the pooled 45.9 "shrink"), late RISES (10.5->16.4), so §4.2 is stronger, not
+  weaker -- the earlier pooled-based "v3 overstated the early effect" was wrong.
+  Regression test `ProbeWordingV5MacroTests` pins 54.45/16.40 from
+  per_position.csv and the JSON macro block.
+
+- **F2 (minor) — G2 frontier comparison spans different problem sets.** The
+  boundary stream covers 659 problems (those DEER recorded trials for); the
+  committed sweep covers 684. Recomputed the committed fixed-grid frontier
+  restricted to the same 659 (CPU, fork-inherited cache + 16-worker replay,
+  hard-kill grader), and report it as the like-for-like; full-684 kept labelled
+  separately. The 25-problem gap is design-forced (DEER recorded 0 trials -- no
+  reasoning boundary exists). The 659-restriction barely moves the committed
+  frontier (2.657->2.662, 6.167->6.192, 11.759->11.809pp at 10/20/30% saving),
+  and the 659-restricted committed grid also clears 0/0/0 gates. The 0/0/0
+  boundary headline is unchanged (computed on the boundary stream itself).
+
+Also: `replay_rows.jsonl.gz` is now written sorted by rule_id (the replay pool
+uses `imap_unordered`, so the prior file's row order was non-deterministic;
+content was identical and gates reproduced, but the file was not byte-stable
+across runs).

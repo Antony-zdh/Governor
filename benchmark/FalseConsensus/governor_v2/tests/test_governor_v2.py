@@ -16,6 +16,16 @@ from benchmark.FalseConsensus.governor_v2.adaptive_probe import (
 from benchmark.FalseConsensus.governor_v2.dense_probe import (
     checkpoint_positions,
 )
+from benchmark.FalseConsensus.governor_v2.dense_probe import (
+    PROBE_SUFFIXES,
+    SIMPLE_SUFFIX,
+    DenseProbeCollector,
+    parse_args as dense_probe_parse_args,
+)
+from benchmark.FalseConsensus.governor_v2.boundary_probe import (
+    DEER_MODEL_SLUG,
+    load_boundary_positions,
+)
 from benchmark.FalseConsensus.governor_v2.make_splits import (
     apportion,
     assign_benchmark,
@@ -341,6 +351,80 @@ class CollectionPreparationTests(unittest.TestCase):
             [64, 128, 192, 256],
         )
 
+    def test_probe_style_simple_matches_original_constant(self) -> None:
+        # Arm A must select the identical suffix string the original
+        # SIMPLE_SUFFIX constant held -- a whitespace difference invalidates
+        # the paired probe-wording experiment.
+        self.assertEqual(PROBE_SUFFIXES["simple"], SIMPLE_SUFFIX)
+        self.assertEqual(
+            SIMPLE_SUFFIX, "**Final Answer**\n\n\\[ \\boxed{"
+        )
+        self.assertIn("certaindex", PROBE_SUFFIXES)
+        self.assertTrue(
+            PROBE_SUFFIXES["certaindex"].endswith(SIMPLE_SUFFIX),
+            "certaindex suffix must end with the simple suffix verbatim",
+        )
+        self.assertTrue(
+            PROBE_SUFFIXES["certaindex"].startswith(
+                "... Oh, I suddenly got the answer to the whole problem, "
+            ),
+            "certaindex suffix must carry the commitment nudge verbatim",
+        )
+
+    def test_parse_args_probe_style_defaults_to_simple(self) -> None:
+        import sys
+
+        argv = sys.argv
+        try:
+            sys.argv = [
+                "dense_probe.py",
+                "--main-run",
+                "/tmp/m",
+                "--output",
+                "/tmp/o",
+            ]
+            args = dense_probe_parse_args()
+            self.assertEqual(args.probe_style, "simple")
+            self.assertIsNone(args.problem_ids)
+        finally:
+            sys.argv = argv
+
+    def test_parse_args_probe_style_certaindex_selects_arm_b(self) -> None:
+        import sys
+
+        argv = sys.argv
+        try:
+            sys.argv = [
+                "dense_probe.py",
+                "--main-run",
+                "/tmp/m",
+                "--output",
+                "/tmp/o",
+                "--probe-style",
+                "certaindex",
+                "--problem-ids",
+                "/tmp/ids.txt",
+            ]
+            args = dense_probe_parse_args()
+            self.assertEqual(args.probe_style, "certaindex")
+            self.assertEqual(args.problem_ids, Path("/tmp/ids.txt"))
+        finally:
+            sys.argv = argv
+
+    def test_load_problem_ids_parses_one_per_line(self) -> None:
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".txt", delete=False
+        ) as handle:
+            handle.write("1\n3\n\n  25  \n32\n")
+            path = Path(handle.name)
+        try:
+            ids = DenseProbeCollector._load_problem_ids(path)
+            self.assertEqual(ids, {1, 3, 25, 32})
+        finally:
+            path.unlink()
+
     def test_matrix_dependencies_and_parameterization(self) -> None:
         protocol = json.loads(
             (HERE / "protocol.json").read_text(encoding="utf-8")
@@ -428,6 +512,51 @@ class CollectionPreparationTests(unittest.TestCase):
             "heldout_scale",
             {job["model_role"] for job in small_models},
         )
+
+
+class BoundaryExtractionTests(unittest.TestCase):
+    def test_deer_model_slug_map_covers_dev_models(self) -> None:
+        self.assertEqual(
+            DEER_MODEL_SLUG["deepseek-ai-deepseek-r1-distill-qwen-7b"],
+            "deepseek",
+        )
+        self.assertEqual(DEER_MODEL_SLUG["qwen-qwen3-8b"], "qwen3")
+
+    def test_load_boundary_positions_caps_and_sorts(self) -> None:
+        import gzip
+        import tempfile
+
+        records = [
+            {
+                "problem_id": 1,
+                "generated_trial_count": 3,
+                "max_attempts": 30,
+                "trials": [
+                    {"token_position": 464, "candidate_id": 2},
+                    {"token_position": 301, "candidate_id": 1},
+                    {"token_position": 900, "candidate_id": 3},
+                ],
+            },
+            {
+                "problem_id": 2,
+                "generated_trial_count": 35,
+                "max_attempts": 30,
+                # 33 distinct positions -> must be capped at 30
+                "trials": [
+                    {"token_position": i * 10, "candidate_id": i}
+                    for i in range(1, 34)
+                ],
+            },
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            with gzip.open(d / "trials.jsonl.gz", "wt", encoding="utf-8") as f:
+                for r in records:
+                    f.write(json.dumps(r) + "\n")
+            out = load_boundary_positions(d)
+        self.assertEqual(out[1], [301, 464, 900])  # sorted, deduped
+        self.assertLessEqual(len(out[2]), 30)  # capped at 30
+        self.assertEqual(out[2], sorted(out[2]))
 
 
 class ReplayTests(unittest.TestCase):
@@ -668,6 +797,75 @@ class ReplayTests(unittest.TestCase):
         )
         self.assertTrue(cached_baseline["baseline_correct"])
         self.assertTrue(cached_baseline["correct"])
+
+
+class ProbeWordingV5MacroTests(unittest.TestCase):
+    """Pin the protocol-mandated macro headline (F1 regression).
+
+    The macro headline is the mean of per-environment disagreement rates, equal
+    weight per environment (NOT a weighted mean of per-bin macro values, and
+    NOT pooled -- the protocol forbids pooled for headlines). This recomputes
+    the macro directly from the committed per_position.csv and asserts it
+    matches both the expected values and the committed probe_wording_v5.json
+    headlines.macro block.
+    """
+
+    RESULTS = Path(__file__).resolve().parents[2] / "results" / "probe_wording_v5"
+    FIRST_TENTH = {0, 1}   # bins 0-10% (v3 definition)
+    FINAL_THIRD = {9, 10}  # bins 70-100% (v3 definition)
+
+    def _macro_disagree(self, rows, binset):
+        import statistics as st
+        from collections import defaultdict
+        env = defaultdict(lambda: [0, 0])  # (model,bench,seed) -> [n, disagree]
+        for r in rows:
+            if int(r["bin"]) not in binset:
+                continue
+            key = (r["model"], r["benchmark"], r["seed"])
+            env[key][0] += 1
+            env[key][1] += 1 - int(r["agree"])
+        rates = [d / n for n, d in env.values() if n > 0]
+        return st.fmean(rates) * 100.0 if rates else None
+
+    @classmethod
+    def setUpClass(cls):
+        cls.csv = cls.RESULTS / "per_position.csv"
+        cls.json = cls.RESULTS / "probe_wording_v5.json"
+        if not cls.csv.exists() or not cls.json.exists():
+            raise unittest.SkipTest("probe_wording_v5 artifacts not present")
+
+    def test_macro_first_tenth_is_54pct(self):
+        import csv
+        rows = list(csv.DictReader(self.csv.open()))
+        m = self._macro_disagree(rows, self.FIRST_TENTH)
+        self.assertIsNotNone(m)
+        self.assertAlmostEqual(m, 54.45, places=1,
+                               msg="macro first-tenth disagreement must be "
+                               "~54.45% (protocol headline)")
+
+    def test_macro_final_third_is_16pct(self):
+        import csv
+        rows = list(csv.DictReader(self.csv.open()))
+        m = self._macro_disagree(rows, self.FINAL_THIRD)
+        self.assertIsNotNone(m)
+        self.assertAlmostEqual(m, 16.40, places=1,
+                               msg="macro final-third disagreement must be "
+                               "~16.40% (protocol headline)")
+
+    def test_committed_json_has_macro_headline_block(self):
+        d = json.loads(self.json.read_text())
+        self.assertIn("macro", d["headlines"],
+                      "headlines must serialise the macro block (F1)")
+        m = d["headlines"]["macro"]
+        self.assertAlmostEqual(
+            m["first_tenth"]["disagree_pct"], 54.45, places=1)
+        self.assertAlmostEqual(
+            m["final_third"]["disagree_pct"], 16.40, places=1)
+        self.assertAlmostEqual(
+            m["overall"]["disagree_pct"], 33.92, places=1)
+        # per-model macro present too
+        self.assertIn("macro_deepseek7b", d["headlines"])
+        self.assertIn("macro_qwen3_8b", d["headlines"])
 
 
 if __name__ == "__main__":
