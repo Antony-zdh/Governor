@@ -1117,3 +1117,40 @@ orphan-collector stacking (pkill doesn't kill collectors stuck in the openai
 client; relaunching stacked 8+4+2=14 concurrent). A few probe answers are
 pathological sympy factor/gammasimp loops; the v5 grader runs each eq() in a
 worker process hard-killed at 4s.
+
+## 2026-08-08 — F1/F2 rework (independent acceptance defects fixed)
+
+Merged `origin/v5-preprint` (now has `a4bc0333` round-2 C1/C2/C3 + `28659fe1`
+acceptance) into `v5-gpu-20260807` (fast-forward, no force-push). Both
+defects from `paper/revision_v5/G1_G2_ACCEPTANCE.md` fixed; analysis-layer
+only, no re-collection, no frozen data touched.
+
+- **F1 (material) — G1 headline must be macro, not pooled.** The protocol
+  mandates macro-18 (mean of per-env rates, equal weight per env); pooled is
+  position-weighted (math500 100/env dominates aime24 6) and forbidden as a
+  headline. Added `macro` + per-model-macro to `probe_wording_v5.json`
+  `headlines`; rewrote `report.md` §4/§6 to lead with macro, pooled retained
+  labelled "robustness check". Macro reproduces the reviewer's numbers exactly:
+  first-tenth **54.45%**, final-third **16.40%**, overall **33.92%**
+  (DeepSeek-7B 68.61/22.80, Qwen3-8B 40.29/9.99). **Corrects the qualitative
+  verdict**: under macro the early disagreement REPRODUCES v3 (53.5->54.4, not
+  the pooled 45.9 "shrink"), late RISES (10.5->16.4), so §4.2 is stronger, not
+  weaker -- the earlier pooled-based "v3 overstated the early effect" was wrong.
+  Regression test `ProbeWordingV5MacroTests` pins 54.45/16.40 from
+  per_position.csv and the JSON macro block.
+
+- **F2 (minor) — G2 frontier comparison spans different problem sets.** The
+  boundary stream covers 659 problems (those DEER recorded trials for); the
+  committed sweep covers 684. Recomputed the committed fixed-grid frontier
+  restricted to the same 659 (CPU, fork-inherited cache + 16-worker replay,
+  hard-kill grader), and report it as the like-for-like; full-684 kept labelled
+  separately. The 25-problem gap is design-forced (DEER recorded 0 trials -- no
+  reasoning boundary exists). The 659-restriction barely moves the committed
+  frontier (2.657->2.662, 6.167->6.192, 11.759->11.809pp at 10/20/30% saving),
+  and the 659-restricted committed grid also clears 0/0/0 gates. The 0/0/0
+  boundary headline is unchanged (computed on the boundary stream itself).
+
+Also: `replay_rows.jsonl.gz` is now written sorted by rule_id (the replay pool
+uses `imap_unordered`, so the prior file's row order was non-deterministic;
+content was identical and gates reproduced, but the file was not byte-stable
+across runs).

@@ -106,35 +106,40 @@ See the `corr simple%` / `corr certaindex%` columns above: probe-answer correctn
 
 Disagreement = 1 - agreement. First tenth = bins 0-10%; final third = bins 70-100% (the v3 definition, so the two are directly comparable).
 
-### pooled
+**Macro over the 18 environments (protocol-mandated headline weighting: mean of per-environment rates, equal weight per environment -- NOT a weighted mean of the per-bin macro values).**
+
+### macro over 18 environments
+- first tenth (0-10%): disagree 54.45% / agree 45.55% (n_envs=18, n_pooled=4360)
+- final third (70-100%): disagree 16.40% / agree 83.60% (n_envs=18, n_pooled=14050)
+- overall: disagree 33.92% / agree 66.08% (n_envs=18)
+
+### macro DeepSeek-7B (9 envs)
+- first tenth (0-10%): disagree 68.61% / agree 31.39% (n_envs=9, n_pooled=1803)
+- final third (70-100%): disagree 22.80% / agree 77.20% (n_envs=9, n_pooled=5870)
+- overall: disagree 45.20% / agree 54.80% (n_envs=9)
+
+### macro Qwen3-8B (9 envs)
+- first tenth (0-10%): disagree 40.29% / agree 59.71% (n_envs=9, n_pooled=2557)
+- final third (70-100%): disagree 9.99% / agree 90.01% (n_envs=9, n_pooled=8180)
+- overall: disagree 22.64% / agree 77.36% (n_envs=9)
+
+
+*Robustness check -- pooled (position-weighted, not a headline metric; math500's 100 problems/env dominate aime24's 6, and pooling additionally weights by probe-count, so long trajectories are over-represented. This is exactly why the protocol forbids pooled for headlines.):*
+
+### pooled (robustness check)
 - first tenth (0-10%): disagree 45.87% / agree 54.13% (n=4360)
 - final third (70-100%): disagree 13.01% / agree 86.99% (n=14050)
 - overall: agree 75.41% (n=46360)
 
-### DeepSeek-7B
+### DeepSeek-7B pooled
 - first tenth (0-10%): disagree 59.51% / agree 40.49% (n=1803)
 - final third (70-100%): disagree 18.21% / agree 81.79% (n=5870)
 - overall: agree 66.53% (n=19416)
 
-### Qwen3-8B
+### Qwen3-8B pooled
 - first tenth (0-10%): disagree 36.25% / agree 63.75% (n=2557)
 - final third (70-100%): disagree 9.28% / agree 90.72% (n=8180)
 - overall: agree 81.82% (n=26944)
-
-### macro (18 envs)
-- first tenth: disagree 54.45% (n=4360)
-- final third: disagree 16.40% (n=14050)
-- overall: agree 66.08%
-
-### macro DeepSeek-7B (9 envs)
-- first tenth: disagree 68.61% (n=1803)
-- final third: disagree 22.80% (n=5870)
-- overall: agree 54.80%
-
-### macro Qwen3-8B (9 envs)
-- first tenth: disagree 40.29% (n=2557)
-- final third: disagree 9.99% (n=8180)
-- overall: agree 77.36%
 
 
 ## 5. Readout-vs-timing decomposition
@@ -158,10 +163,12 @@ The sensitivity to wording is early-specific: the two suffixes agree far less ea
 
 ## 6. Direct comparison against committed v3 numbers
 
-| metric | v3 (1 env, 241 traj, 3072-cap) | v5 (18 envs, 684 traj, no cap) | change |
-|---|---:|---:|---|
-| first-tenth disagreement | 53.5% (n=213) | 45.9% (n=4360) | shrank |
-| last-bin disagreement | 11.4% | 12.0% | grew |
-| overall disagreement | 24.0% | 24.6% | grew |
+Comparison against the committed v3 numbers. v3 is one environment (DeepSeek-7B x MATH500, seed 42, 3,072-token cap, 241 trajectories / 2,898 positions) -- itself a single-env rate -- so it compares directly to the v5 macro (mean of 18 per-env rates). Both v3 and v5 are per-environment rates, so macro is the like-for-like headline; pooled is shown only as a robustness row.
 
-**Verdict.** The v5 numbers remove the 3,072-token cap and the single-environment scope. Once length selection is removed, the early disagreement in the first tenth shrinks (v3 53.5% -> v5 45.9%) and the final-third disagreement grows (v3 11.4% -> v5 13.0%); overall agreement is essentially unchanged (76.0% -> 75.4% agree). The qualitative shape -- early answers are substantially a property of the question asked (46% disagree early) and become properties of the state only as the trajectory finishes (13% disagree late) -- **survives on the full 18-environment, un-truncated set, so the §4.2 conclusion is unchanged**. The per-model split shows the effect is larger on DeepSeek-7B (first-tenth 60% disagree) than on Qwen3-8B (36%), but present in both.
+| metric | v3 (1 env, 241 traj, 3072-cap) | v5 macro (18 envs, 684 traj, no cap) | v5 pooled (robustness) |
+|---|---:|---:|---:|
+| first-tenth disagreement | 53.5% (n=213) | **54.4%** (n_envs=18) | 45.9% |
+| final-third disagreement | 11.4% (n=773) | **16.4%** (n_envs=18) | 13.0% |
+| overall disagreement | 24.0% | **33.9%** | 24.6% |
+
+**Verdict (macro, protocol headline).** Removing the 3,072-token cap and the single-environment scope, the early first-tenth disagreement **reproduces v3 almost exactly** (53.5% -> 54.4%) -- the v3 length-selected subsample did *not* over-state the early effect; it is confirmed at ~54% on the full 18-environment, un-truncated set (barely better than random). The late disagreement **rises** (11.4% -> 16.4%) -- late convergence is somewhat less clean than v3's single-env 11.4% suggested -- but remains ~3x lower than early (16% vs 54%), so the directional shape (early answers are an elicitation artifact; converge as the trajectory finishes) **holds and is now measured on a broader, un-biased base** -- §4.2's argument is **stronger, not weaker** than v3. (The pooled row tells a different story -- 45.9% / 13.0% -- because math500's 100 problems/env dominate aime24's 6 under position-count weighting; the protocol forbids pooled as a headline for exactly this reason, and an earlier draft of this report quoted pooled and wrongly concluded the early effect had shrunk.) Per-model macro: DeepSeek-7B 68.6% / 22.8%, Qwen3-8B 40.3% / 10.0% (first-tenth / final-third) -- the effect is present and larger on DeepSeek-7B but clearly in both.

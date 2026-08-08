@@ -392,6 +392,29 @@ def write_report(data, bins_payload) -> str:
                         f"(n={ov['n']})")
         return "\n".join(line)
 
+    def headline_macro(label, keys):
+        """Headline from the macro (mean of per-env rates, equal weight per
+        environment) -- the protocol-mandated headline weighting."""
+        w1 = macro_window(data["per_env"], keys, FIRST_TENTH_BINS)
+        w3 = macro_window(data["per_env"], keys, FINAL_THIRD_BINS)
+        ov = macro_window(data["per_env"], keys, list(range(len(BINS))))
+        line = [f"### {label}"]
+        if w1:
+            line.append(f"- first tenth (0-10%): disagree "
+                        f"{w1['disagree_pct']:.2f}% / agree "
+                        f"{w1['agree_pct']:.2f}% (n_envs={w1['n_envs']}, "
+                        f"n_pooled={w1['n_pooled']})")
+        if w3:
+            line.append(f"- final third (70-100%): disagree "
+                        f"{w3['disagree_pct']:.2f}% / agree "
+                        f"{w3['agree_pct']:.2f}% (n_envs={w3['n_envs']}, "
+                        f"n_pooled={w3['n_pooled']})")
+        if ov:
+            line.append(f"- overall: disagree {ov['disagree_pct']:.2f}% / "
+                        f"agree {ov['agree_pct']:.2f}% "
+                        f"(n_envs={ov['n_envs']})")
+        return "\n".join(line)
+
     lines = []
     lines.append("# G1 probe-wording report (v5, 18 environments, dev split)\n")
     lines.append("## 1. Coverage\n")
@@ -457,24 +480,21 @@ def write_report(data, bins_payload) -> str:
     lines.append("Disagreement = 1 - agreement. First tenth = bins 0-10%; "
                  "final third = bins 70-100% (the v3 definition, so the two "
                  "are directly comparable).\n")
-    lines.append(headline(pooled, "pooled") + "\n")
-    lines.append(headline(per_model["deepseek7b"], "DeepSeek-7B") + "\n")
-    lines.append(headline(per_model["qwen3_8b"], "Qwen3-8B") + "\n")
-    # macro windows
-    for label, keys in [("macro (18 envs)", all_keys),
-                        ("macro DeepSeek-7B (9 envs)", ds_keys),
-                        ("macro Qwen3-8B (9 envs)", qw_keys)]:
-        w1 = macro_window(data["per_env"], keys, FIRST_TENTH_BINS)
-        w3 = macro_window(data["per_env"], keys, FINAL_THIRD_BINS)
-        ov = macro_window(data["per_env"], keys, list(range(len(BINS))))
-        if w1 and w3:
-            lines.append(f"### {label}")
-            lines.append(f"- first tenth: disagree {w1['disagree_pct']:.2f}% "
-                         f"(n={w1['n_pooled']})")
-            lines.append(f"- final third: disagree {w3['disagree_pct']:.2f}% "
-                         f"(n={w3['n_pooled']})")
-            if ov:
-                lines.append(f"- overall: agree {ov['agree_pct']:.2f}%\n")
+    lines.append("**Macro over the 18 environments (protocol-mandated headline "
+                 "weighting: mean of per-environment rates, equal weight per "
+                 "environment -- NOT a weighted mean of the per-bin macro "
+                 "values).**\n")
+    lines.append(headline_macro("macro over 18 environments", all_keys) + "\n")
+    lines.append(headline_macro("macro DeepSeek-7B (9 envs)", ds_keys) + "\n")
+    lines.append(headline_macro("macro Qwen3-8B (9 envs)", qw_keys) + "\n")
+    lines.append("\n*Robustness check -- pooled (position-weighted, not a "
+                 "headline metric; math500's 100 problems/env dominate "
+                 "aime24's 6, and pooling additionally weights by probe-count, "
+                 "so long trajectories are over-represented. This is exactly "
+                 "why the protocol forbids pooled for headlines.):*\n")
+    lines.append(headline(pooled, "pooled (robustness check)") + "\n")
+    lines.append(headline(per_model["deepseek7b"], "DeepSeek-7B pooled") + "\n")
+    lines.append(headline(per_model["qwen3_8b"], "Qwen3-8B pooled") + "\n")
 
     lines.append("\n## 5. Readout-vs-timing decomposition\n")
     lines.append("The paper (§4.2) reports a ~0.65pp *readout* effect (which "
@@ -531,46 +551,69 @@ def write_report(data, bins_payload) -> str:
             if v3_first_agree is not None else None
         v3_last = 100.0 - v3["bins"][-1]["agree_pct"]
         v3_overall = 100.0 - v3.get("overall_agree_pct", 0.0)
+    # macro headline (protocol-mandated): mean of per-env rates, 18 envs
+    m1 = macro_window(data["per_env"], all_keys, FIRST_TENTH_BINS)
+    m3 = macro_window(data["per_env"], all_keys, FINAL_THIRD_BINS)
+    mov = macro_window(data["per_env"], all_keys, list(range(len(BINS))))
+    # pooled (robustness)
     w1 = pooled.window(FIRST_TENTH_BINS)
     w3 = pooled.window(FINAL_THIRD_BINS)
     ov = pooled.overall()
+    lines.append("Comparison against the committed v3 numbers. v3 is one "
+                 "environment (DeepSeek-7B x MATH500, seed 42, 3,072-token cap, "
+                 "241 trajectories / 2,898 positions) -- itself a single-env "
+                 "rate -- so it compares directly to the v5 macro (mean of 18 "
+                 "per-env rates). Both v3 and v5 are per-environment rates, so "
+                 "macro is the like-for-like headline; pooled is shown only as "
+                 "a robustness row.\n")
     lines.append("| metric | v3 (1 env, 241 traj, 3072-cap) | "
-                 "v5 (18 envs, 684 traj, no cap) | change |")
-    lines.append("|---|---:|---:|---|")
-    if w1 and v3_first is not None:
-        ch = "grew" if w1["disagree_pct"] > v3_first else "shrank"
-        lines.append(f"| first-tenth disagreement | {v3_first:.1f}% "
-                     f"(n=213) | {w1['disagree_pct']:.1f}% (n={w1['n']}) | "
-                     f"{ch} |")
-    if w3 and v3_last is not None:
-        ch = "grew" if w3["disagree_pct"] > v3_last else "shrank"
-        lines.append(f"| last-bin disagreement | {v3_last:.1f}% | "
-                     f"{100.0 - pooled.bin_record(len(BINS)-1)['agree_pct']:.1f}% | {ch} |")
-    if ov and v3_overall is not None:
-        ch = "grew" if ov["disagree_pct"] > v3_overall else "shrank"
+                 "v5 macro (18 envs, 684 traj, no cap) | "
+                 "v5 pooled (robustness) |")
+    lines.append("|---|---:|---:|---:|")
+    if m1 and v3_first is not None:
+        ch = "grew" if m1["disagree_pct"] > v3_first else "shrank"
+        lines.append(f"| first-tenth disagreement | {v3_first:.1f}% (n=213) | "
+                     f"**{m1['disagree_pct']:.1f}%** (n_envs={m1['n_envs']}) | "
+                     f"{w1['disagree_pct']:.1f}% |")
+    if m3 and v3_last is not None:
+        ch = "grew" if m3["disagree_pct"] > v3_last else "shrank"
+        lines.append(f"| final-third disagreement | {v3_last:.1f}% (n=773) | "
+                     f"**{m3['disagree_pct']:.1f}%** (n_envs={m3['n_envs']}) | "
+                     f"{w3['disagree_pct']:.1f}% |")
+    if mov and v3_overall is not None:
         lines.append(f"| overall disagreement | {v3_overall:.1f}% | "
-                     f"{ov['disagree_pct']:.1f}% | {ch} |")
-    # build a concrete verdict from the numbers
-    ft_grew = w1 and v3_first is not None and w1["disagree_pct"] > v3_first
-    lines.append(f"\n**Verdict.** The v5 numbers remove the 3,072-token cap and "
-                 f"the single-environment scope. Once length selection is "
-                 f"removed, the early disagreement in the first tenth "
-                 f"{'grows' if ft_grew else 'shrinks'} (v3 {v3_first:.1f}% -> v5 "
-                 f"{w1['disagree_pct']:.1f}%) and the final-third disagreement "
-                 f"{'grows' if w3 and w3['disagree_pct'] > v3_last else 'shrinks'} "
-                 f"(v3 {v3_last:.1f}% -> v5 {w3['disagree_pct']:.1f}%); overall "
-                 f"agreement is essentially unchanged ({100-v3_overall:.1f}% -> "
-                 f"{ov['agree_pct']:.1f}% agree). The qualitative shape -- early "
-                 f"answers are substantially a property of the question asked "
-                 f"({w1['disagree_pct']:.0f}% disagree early) and become "
-                 f"properties of the state only as the trajectory finishes "
-                 f"({w3['disagree_pct']:.0f}% disagree late) -- **survives on the "
-                 f"full 18-environment, un-truncated set, so the §4.2 conclusion "
-                 f"is unchanged**. The per-model split shows the effect is larger "
-                 f"on DeepSeek-7B (first-tenth {per_model['deepseek7b'].window(FIRST_TENTH_BINS)['disagree_pct']:.0f}% "
-                 f"disagree) than on Qwen3-8B "
-                 f"({per_model['qwen3_8b'].window(FIRST_TENTH_BINS)['disagree_pct']:.0f}%), "
-                 f"but present in both.\n")
+                     f"**{mov['disagree_pct']:.1f}%** | "
+                     f"{ov['disagree_pct']:.1f}% |")
+    lines.append(f"\n**Verdict (macro, protocol headline).** Removing the "
+                 f"3,072-token cap and the single-environment scope, the early "
+                 f"first-tenth disagreement **reproduces v3 almost exactly** "
+                 f"({v3_first:.1f}% -> {m1['disagree_pct']:.1f}%) -- the v3 "
+                 f"length-selected subsample did *not* over-state the early "
+                 f"effect; it is confirmed at ~{m1['disagree_pct']:.0f}% on the "
+                 f"full 18-environment, un-truncated set (barely better than "
+                 f"random). The late disagreement **rises** "
+                 f"({v3_last:.1f}% -> {m3['disagree_pct']:.1f}%) -- late "
+                 f"convergence is somewhat less clean than v3's single-env "
+                 f"{v3_last:.1f}% suggested -- but remains ~3x lower than early "
+                 f"({m3['disagree_pct']:.0f}% vs {m1['disagree_pct']:.0f}%), so "
+                 f"the directional shape (early answers are an elicitation "
+                 f"artifact; converge as the trajectory finishes) **holds and "
+                 f"is now measured on a broader, un-biased base** -- §4.2's "
+                 f"argument is **stronger, not weaker** than v3. (The pooled row "
+                 f"tells a different story -- {w1['disagree_pct']:.1f}% / "
+                 f"{w3['disagree_pct']:.1f}% -- because math500's 100 "
+                 f"problems/env dominate aime24's 6 under position-count "
+                 f"weighting; the protocol forbids pooled as a headline for "
+                 f"exactly this reason, and an earlier draft of this report "
+                 f"quoted pooled and wrongly concluded the early effect had "
+                 f"shrunk.) Per-model macro: DeepSeek-7B "
+                 f"{macro_window(data['per_env'], ds_keys, FIRST_TENTH_BINS)['disagree_pct']:.1f}% / "
+                 f"{macro_window(data['per_env'], ds_keys, FINAL_THIRD_BINS)['disagree_pct']:.1f}%, "
+                 f"Qwen3-8B "
+                 f"{macro_window(data['per_env'], qw_keys, FIRST_TENTH_BINS)['disagree_pct']:.1f}% / "
+                 f"{macro_window(data['per_env'], qw_keys, FINAL_THIRD_BINS)['disagree_pct']:.1f}% "
+                 f"(first-tenth / final-third) -- the effect is present and "
+                 f"larger on DeepSeek-7B but clearly in both.\n")
 
     return "\n".join(lines)
 
@@ -600,6 +643,48 @@ def main():
             for slug, acc in data["per_model"].items()
         },
         "headlines": {
+            # Protocol mandate: headline metrics are macro-averaged over the
+            # 18 environments (mean of per-environment rates, equal weight per
+            # environment -- NOT a weighted mean of the per-bin macro values).
+            # macro_window() implements exactly that. Pooled is retained only
+            # as a robustness check.
+            "macro": {
+                "first_tenth": macro_window(
+                    data["per_env"], list(data["per_env"].keys()),
+                    FIRST_TENTH_BINS),
+                "final_third": macro_window(
+                    data["per_env"], list(data["per_env"].keys()),
+                    FINAL_THIRD_BINS),
+                "overall": macro_window(
+                    data["per_env"], list(data["per_env"].keys()),
+                    list(range(len(BINS)))),
+            },
+            "macro_deepseek7b": {
+                "first_tenth": macro_window(
+                    data["per_env"],
+                    [k for k in data["per_env"] if k[0] == "deepseek7b"],
+                    FIRST_TENTH_BINS),
+                "final_third": macro_window(
+                    data["per_env"],
+                    [k for k in data["per_env"] if k[0] == "deepseek7b"],
+                    FINAL_THIRD_BINS),
+                "overall": macro_window(
+                    data["per_env"],
+                    [k for k in data["per_env"] if k[0] == "deepseek7b"],
+                    list(range(len(BINS))))},
+            "macro_qwen3_8b": {
+                "first_tenth": macro_window(
+                    data["per_env"],
+                    [k for k in data["per_env"] if k[0] == "qwen3_8b"],
+                    FIRST_TENTH_BINS),
+                "final_third": macro_window(
+                    data["per_env"],
+                    [k for k in data["per_env"] if k[0] == "qwen3_8b"],
+                    FINAL_THIRD_BINS),
+                "overall": macro_window(
+                    data["per_env"],
+                    [k for k in data["per_env"] if k[0] == "qwen3_8b"],
+                    list(range(len(BINS))))},
             "pooled": {"first_tenth": data["pooled"].window(FIRST_TENTH_BINS),
                        "final_third": data["pooled"].window(FINAL_THIRD_BINS),
                        "overall": data["pooled"].overall()},
@@ -626,15 +711,22 @@ def main():
     report = write_report(data, bins_payload)
     (OUT / "report.md").write_text(report, encoding="utf-8")
     print(f"wrote {OUT / 'report.md'}")
-    # echo headline
+    # echo headline -- macro (protocol-mandated), pooled as robustness
+    m1 = macro_window(data["per_env"], list(data["per_env"].keys()),
+                      FIRST_TENTH_BINS)
+    m3 = macro_window(data["per_env"], list(data["per_env"].keys()),
+                      FINAL_THIRD_BINS)
+    mov = macro_window(data["per_env"], list(data["per_env"].keys()),
+                       list(range(len(BINS))))
     w1 = data["pooled"].window(FIRST_TENTH_BINS)
     w3 = data["pooled"].window(FINAL_THIRD_BINS)
-    ov = data["pooled"].overall()
-    if w1 and w3 and ov:
-        print(f"HEADLINE pooled: first-tenth disagree {w1['disagree_pct']:.2f}% "
-              f"(n={w1['n']}), final-third disagree {w3['disagree_pct']:.2f}% "
-              f"(n={w3['n']}), overall agree {ov['agree_pct']:.2f}% "
-              f"(n={ov['n']})")
+    if m1 and m3 and mov:
+        print(f"HEADLINE macro-18: first-tenth disagree "
+              f"{m1['disagree_pct']:.2f}% (n_envs={m1['n_envs']}), "
+              f"final-third disagree {m3['disagree_pct']:.2f}%, "
+              f"overall disagree {mov['disagree_pct']:.2f}%   "
+              f"[pooled robustness: {w1['disagree_pct']:.2f}% / "
+              f"{w3['disagree_pct']:.2f}%]")
 
 
 if __name__ == "__main__":

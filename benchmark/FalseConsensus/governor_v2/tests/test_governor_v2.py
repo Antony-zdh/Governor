@@ -799,5 +799,74 @@ class ReplayTests(unittest.TestCase):
         self.assertTrue(cached_baseline["correct"])
 
 
+class ProbeWordingV5MacroTests(unittest.TestCase):
+    """Pin the protocol-mandated macro headline (F1 regression).
+
+    The macro headline is the mean of per-environment disagreement rates, equal
+    weight per environment (NOT a weighted mean of per-bin macro values, and
+    NOT pooled -- the protocol forbids pooled for headlines). This recomputes
+    the macro directly from the committed per_position.csv and asserts it
+    matches both the expected values and the committed probe_wording_v5.json
+    headlines.macro block.
+    """
+
+    RESULTS = Path(__file__).resolve().parents[2] / "results" / "probe_wording_v5"
+    FIRST_TENTH = {0, 1}   # bins 0-10% (v3 definition)
+    FINAL_THIRD = {9, 10}  # bins 70-100% (v3 definition)
+
+    def _macro_disagree(self, rows, binset):
+        import statistics as st
+        from collections import defaultdict
+        env = defaultdict(lambda: [0, 0])  # (model,bench,seed) -> [n, disagree]
+        for r in rows:
+            if int(r["bin"]) not in binset:
+                continue
+            key = (r["model"], r["benchmark"], r["seed"])
+            env[key][0] += 1
+            env[key][1] += 1 - int(r["agree"])
+        rates = [d / n for n, d in env.values() if n > 0]
+        return st.fmean(rates) * 100.0 if rates else None
+
+    @classmethod
+    def setUpClass(cls):
+        cls.csv = cls.RESULTS / "per_position.csv"
+        cls.json = cls.RESULTS / "probe_wording_v5.json"
+        if not cls.csv.exists() or not cls.json.exists():
+            raise unittest.SkipTest("probe_wording_v5 artifacts not present")
+
+    def test_macro_first_tenth_is_54pct(self):
+        import csv
+        rows = list(csv.DictReader(self.csv.open()))
+        m = self._macro_disagree(rows, self.FIRST_TENTH)
+        self.assertIsNotNone(m)
+        self.assertAlmostEqual(m, 54.45, places=1,
+                               msg="macro first-tenth disagreement must be "
+                               "~54.45% (protocol headline)")
+
+    def test_macro_final_third_is_16pct(self):
+        import csv
+        rows = list(csv.DictReader(self.csv.open()))
+        m = self._macro_disagree(rows, self.FINAL_THIRD)
+        self.assertIsNotNone(m)
+        self.assertAlmostEqual(m, 16.40, places=1,
+                               msg="macro final-third disagreement must be "
+                               "~16.40% (protocol headline)")
+
+    def test_committed_json_has_macro_headline_block(self):
+        d = json.loads(self.json.read_text())
+        self.assertIn("macro", d["headlines"],
+                      "headlines must serialise the macro block (F1)")
+        m = d["headlines"]["macro"]
+        self.assertAlmostEqual(
+            m["first_tenth"]["disagree_pct"], 54.45, places=1)
+        self.assertAlmostEqual(
+            m["final_third"]["disagree_pct"], 16.40, places=1)
+        self.assertAlmostEqual(
+            m["overall"]["disagree_pct"], 33.92, places=1)
+        # per-model macro present too
+        self.assertIn("macro_deepseek7b", d["headlines"])
+        self.assertIn("macro_qwen3_8b", d["headlines"])
+
+
 if __name__ == "__main__":
     unittest.main()

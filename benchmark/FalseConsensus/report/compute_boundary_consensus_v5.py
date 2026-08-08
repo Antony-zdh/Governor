@@ -62,6 +62,19 @@ BOUNDARY = "boundary_simple32"
 _ENV_CACHE: list = []
 _RULE_INDEX: dict = {}
 
+# For the 659-restricted committed frontier (F2): dense_simple32 probes on the
+# SAME 659 problems the boundary stream covers (those DEER recorded trials for),
+# so the fixed-grid frontier is comparable like-for-like. Built once in main
+# (with the hard-kill grader, because a few dense_simple32 probe answers are
+# pathological sympy cases) and fork-inherited by the replay pool.
+_DENSE659_CACHE: list = []
+_RULES659: dict = {}
+
+# Hard-kill grader (same approach as compute_probe_wording_v5.eq): a few probe
+# answers send sympy factor/gammasimp into multi-minute loops; grade each pair
+# in a worker process that is hard-killed on a 4s timeout.
+from compute_probe_wording_v5 import eq as _eq_hardkill  # noqa: E402
+
 
 def eq(a, b) -> bool:
     latex2sympy2.var = {}
@@ -239,6 +252,144 @@ def committed_fixed_grid_frontier():
     return out
 
 
+def _dense659_problem_ids(env_dir: Path) -> set:
+    """Problems in this env that have DEER boundary positions (the G2 set)."""
+    pids = set()
+    for bp in sorted((env_dir / BOUNDARY / "probes").glob("problem_*.json")):
+        d = json.loads(bp.read_text(encoding="utf-8"))
+        if d.get("probes"):  # non-empty -> DEER recorded trials
+            pids.add(int(d["problem_id"]))
+    return pids
+
+
+def build_dense659_cache():
+    """dense_simple32 probes (the fixed 64-token grid) restricted to the 659
+    problems that have DEER boundary positions, so the committed fixed-grid
+    frontier is on the SAME problem set as the boundary frontier. Uses the
+    hard-kill grader (a few dense_simple32 answers are pathological sympy
+    cases)."""
+    split_map = RR.load_split_map(
+        GOV / "generated" / "split_manifest.json")
+    cache = []
+    total = 0
+    for main_run in RR.discover_runs(RES / "governor_v2", "development"):
+        manifest = json.loads((main_run / "run_manifest.json").read_text())
+        s = manifest["run_settings"]
+        if s["model"] not in DEVID:
+            continue
+        bench = str(s["dataset"])
+        budget = SEL[bench]
+        model = str(s["model"])
+        seed = int(s.get("seed", s.get("base_seed", -1)))
+        pids = _dense659_problem_ids(main_run.parent)
+        items = []
+        for pid in sorted(pids):
+            traj_path = main_run / "traj" / f"problem_{pid}.json"
+            if not traj_path.exists():
+                continue
+            traj = json.loads(traj_path.read_text(encoding="utf-8"))
+            if split_map.get((bench, pid)) != "dev":
+                continue
+            probes = RR.load_probes(main_run, pid)  # dense_simple32 + adaptive
+            if not probes:
+                continue
+            corr = {}
+            for pr in probes:
+                a = RR.normalize_answer(pr.get("probe_answer"))
+                if a and a not in corr:
+                    corr[a] = _eq_hardkill(a, traj["target"])
+            base_ok = (_eq_hardkill(traj["final_answer"], traj["target"])
+                       if "final_answer" in traj
+                       else bool(traj["final_correct"]))
+            items.append((traj, probes, corr, base_ok))
+            total += 1
+        cache.append((bench, budget, model, seed, items))
+        print(f"  dense659 cached {model.split('/')[-1]:28s} {bench:8s} "
+              f"seed {seed}: {len(items)} problems", flush=True)
+    print(f"  dense659 total problems: {total}", flush=True)
+    return cache
+
+
+def _replay_dense659(rule_id) -> dict:
+    """Replay one consensus_fixed rule on the 659-problem dense_simple32 stream
+    using the FIXED 64-token grid schedule (NOT probes_are_scheduled -- this is
+    the committed grid, restricted to the 659 problem set)."""
+    rule = RuleSpec.from_dict(_RULES659[rule_id])
+    env_rows = []
+    for bench, budget, model, seed, items in _DENSE659_CACHE:
+        if not items:
+            continue
+        vals = [RR.replay_one(traj, probes, rule, bench, budget,
+                             probes_are_scheduled=False,
+                             answer_correctness=corr,
+                             baseline_answer_correctness=base_ok)
+                for traj, probes, corr, base_ok in items]
+        n = len(vals)
+        baseline = st.fmean(v["baseline_correct"] for v in vals)
+        acc = st.fmean(v["correct"] for v in vals)
+        drop = 100.0 * (baseline - acc)
+        bl_tok = st.fmean(v["baseline_decode_tokens"] for v in vals)
+        tot_tok = st.fmean(v["total_decode_tokens"] for v in vals)
+        saving = (bl_tok - tot_tok) / bl_tok if bl_tok else 0.0
+        env_rows.append({
+            "drop_pp": drop, "saving_fraction": saving,
+            "frac_positive": 1.0 if saving > 0 else 0.0})
+    return {
+        "rule_id": rule_id,
+        "macro_drop_pp": st.fmean(r["drop_pp"] for r in env_rows),
+        "macro_saving_fraction": st.fmean(r["saving_fraction"]
+                                         for r in env_rows),
+        "frac_envs_positive_saving": st.fmean(r["frac_positive"]
+                                              for r in env_rows),
+        "n_envs": len(env_rows),
+    }
+
+
+def passes_gate_dense659(rec, gate):
+    return (rec["macro_drop_pp"] <= gate["drop_pp"]
+            and rec["macro_saving_fraction"] >= gate["saving"]
+            and rec["frac_envs_positive_saving"] >= gate["psf"])
+
+
+def committed_fixed_grid_frontier_659(rules_path):
+    """Committed fixed-grid consensus frontier restricted to the same 659
+    problems the boundary stream covers (like-for-like comparison). Built in
+    main with the hard-kill grader; the replay pool fork-inherits the cache.
+    Returns frontier_quantiles + gate clearance + the per-rule rows."""
+    global _DENSE659_CACHE, _RULES659
+    _DENSE659_CACHE[:] = build_dense659_cache()
+    _RULES659.clear()
+    rule_ids = []
+    with gzip.open(rules_path, "rt") as f:
+        for line in f:
+            d = json.loads(line)
+            if d["metadata"]["template"] == "consensus_fixed":
+                _RULES659[d["rule_id"]] = d
+                rule_ids.append(d["rule_id"])
+    print(f"  dense659 replaying {len(rule_ids)} consensus_fixed rules on "
+          f"659-problem subset", flush=True)
+    rows = {}
+    # Pool workers fork from main after _DENSE659_CACHE/_RULES659 are set, so
+    # they inherit them without a per-worker rebuild.
+    with Pool(processes=16) as pool:
+        for i, rec in enumerate(pool.imap_unordered(
+                _replay_dense659, rule_ids, chunksize=8), start=1):
+            rows[rec["rule_id"]] = rec
+            if i % 400 == 0 or i == len(rule_ids):
+                print(f"  dense659 replayed {i}/{len(rule_ids)}", flush=True)
+    pts = {rid: {"macro_drop_pp": r["macro_drop_pp"],
+                 "macro_saving_fraction": r["macro_saving_fraction"]}
+           for rid, r in rows.items()}
+    gate_clearers = {g["name"]: sum(1 for r in rows.values()
+                                    if passes_gate_dense659(r, g))
+                     for g in GATES}
+    return {"frontier": frontier_quantiles(pts),
+            "gate_clearers": gate_clearers,
+            "n_problems": sum(len(items)
+                              for *_, items in _DENSE659_CACHE),
+            "n_envs": sum(1 for *_, items in _DENSE659_CACHE if items)}
+
+
 def frontier_quantiles(rules):
     """From {rid: {macro_drop_pp, macro_saving_fraction}}, return key numbers."""
     pts = [(r["macro_drop_pp"], r["macro_saving_fraction"])
@@ -290,9 +441,12 @@ def main():
                 print(f"  replayed {i}/{len(rule_ids)} rules", flush=True)
 
     # write per-(rule,env) rows
+    # write per-(rule,env) rows -- sorted by rule_id for byte-stable output
+    # (the replay pool uses imap_unordered, so insertion order is non-deterministic;
+    # sorting makes re-runs reproducible).
     with gzip.open(OUT / "replay_rows.jsonl.gz", "wt") as f:
-        for rec in rows.values():
-            for er in rec["env_rows"]:
+        for rid in sorted(rows):
+            for er in rows[rid]["env_rows"]:
                 f.write(json.dumps(er) + "\n")
 
     # gates
@@ -323,6 +477,9 @@ def main():
 
     committed = committed_fixed_grid_frontier()
     committed_frontier = frontier_quantiles(committed)
+    # F2: committed fixed-grid frontier restricted to the SAME 659 problems the
+    # boundary stream covers (DEER recorded trials for them), like-for-like.
+    c659 = committed_fixed_grid_frontier_659(rules_path)
     # committed harm:rescue (from CHR cache)
     committed_harm = {}
     chr_cache = HERE / "figures" / "gen" / "harm_rescue_cache.json"
@@ -336,9 +493,14 @@ def main():
 
     summary = {
         "n_rules": len(rows),
+        "n_boundary_problems": 659,
+        "n_dev_problems_committed_sweep": 684,
+        "n_problems_excluded_no_deer_trials": 25,
         "gate_clearers": gate_counts,
         "frontier_boundary": frontier,
         "frontier_committed_fixed_grid": committed_frontier,
+        "frontier_committed_fixed_grid_659": c659["frontier"],
+        "gate_clearers_committed_659": c659["gate_clearers"],
         "harm_rescue_by_W_boundary": harm_by_w,
         "harm_rescue_by_W_committed": committed_harm,
         "clearing_rule_ids": clearing,
@@ -376,8 +538,19 @@ def write_report(summary, rows, committed):
                  f"**{verdict_1}** on dev.\n")
 
     lines.append("## 2. Accuracy-drop / net-saving frontier\n")
-    lines.append("| quantity | boundary stream | committed fixed-grid "
-                 "consensus |")
+    fc659 = summary["frontier_committed_fixed_grid_659"]
+    g659 = summary["gate_clearers_committed_659"]
+    lines.append("The boundary stream covers **659 problems** (those DEER "
+                 "recorded trials for); the committed fixed-grid sweep covers "
+                 "all 684 dev problems. The 25-problem gap is design-forced: "
+                 "DEER recorded 0 trials for those 25 -- no reasoning boundary "
+                 "exists, so there is no position to probe. The like-for-like "
+                 "comparison restricts the committed grid to the same 659 "
+                 "problems; the full-684 numbers are kept labelled separately."
+                 "\n")
+    lines.append("**Like-for-like (same 659 problems):**\n")
+    lines.append("| quantity | boundary stream (659) | committed fixed-grid "
+                 "(659) |")
     lines.append("|---|---:|---:|")
     def pct(x):  # saving fraction -> percentage
         return f"{x*100:.2f}%" if x is not None else "n/a"
@@ -385,15 +558,31 @@ def write_report(summary, rows, committed):
         return f"{x:.2f}pp" if x is not None else "n/a"
     lines.append(f"| max net saving among drop<=1.0pp | "
                  f"{pct(fb['max_saving_fraction_drop_le_1pp'])} | "
-                 f"{pct(fc['max_saving_fraction_drop_le_1pp'])} |")
+                 f"{pct(fc659['max_saving_fraction_drop_le_1pp'])} |")
     lines.append(f"| drop at first 10% saving | "
                  f"{ppp(fb['drop_pp_at_10pct_saving'])} | "
-                 f"{ppp(fc['drop_pp_at_10pct_saving'])} |")
+                 f"{ppp(fc659['drop_pp_at_10pct_saving'])} |")
     lines.append(f"| drop at first 20% saving | "
                  f"{ppp(fb['drop_pp_at_20pct_saving'])} | "
-                 f"{ppp(fc['drop_pp_at_20pct_saving'])} |")
+                 f"{ppp(fc659['drop_pp_at_20pct_saving'])} |")
     lines.append(f"| drop at first 30% saving | "
                  f"{ppp(fb['drop_pp_at_30pct_saving'])} | "
+                 f"{ppp(fc659['drop_pp_at_30pct_saving'])} |")
+    lines.append(f"\nGate clearance on the 659-restricted committed grid "
+                 f"(reference, not the headline): conservative "
+                 f"{g659['conservative']}, balanced {g659['balanced']}, "
+                 f"token_efficient {g659['token_efficient']}.\n")
+    lines.append("*Full-684 committed fixed-grid (labelled separately, NOT the "
+                 "like-for-like set):*\n")
+    lines.append("| quantity | committed fixed-grid (full 684) |")
+    lines.append("|---|---:|")
+    lines.append(f"| max net saving among drop<=1.0pp | "
+                 f"{pct(fc['max_saving_fraction_drop_le_1pp'])} |")
+    lines.append(f"| drop at first 10% saving | "
+                 f"{ppp(fc['drop_pp_at_10pct_saving'])} |")
+    lines.append(f"| drop at first 20% saving | "
+                 f"{ppp(fc['drop_pp_at_20pct_saving'])} |")
+    lines.append(f"| drop at first 30% saving | "
                  f"{ppp(fc['drop_pp_at_30pct_saving'])} |")
 
     lines.append("\n## 3. Harm:rescue by window W\n")

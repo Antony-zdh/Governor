@@ -14,12 +14,27 @@ Verdict: the boundary-aligned consensus stream **clears NO gate (0 rules on any 
 
 ## 2. Accuracy-drop / net-saving frontier
 
-| quantity | boundary stream | committed fixed-grid consensus |
+The boundary stream covers **659 problems** (those DEER recorded trials for); the committed fixed-grid sweep covers all 684 dev problems. The 25-problem gap is design-forced: DEER recorded 0 trials for those 25 -- no reasoning boundary exists, so there is no position to probe. The like-for-like comparison restricts the committed grid to the same 659 problems; the full-684 numbers are kept labelled separately.
+
+**Like-for-like (same 659 problems):**
+
+| quantity | boundary stream (659) | committed fixed-grid (659) |
 |---|---:|---:|
 | max net saving among drop<=1.0pp | 3.93% | n/a |
 | drop at first 10% saving | 3.75pp | 2.66pp |
-| drop at first 20% saving | 10.18pp | 6.17pp |
-| drop at first 30% saving | 13.48pp | 11.76pp |
+| drop at first 20% saving | 10.18pp | 6.19pp |
+| drop at first 30% saving | 13.48pp | 11.81pp |
+
+Gate clearance on the 659-restricted committed grid (reference, not the headline): conservative 0, balanced 0, token_efficient 0.
+
+*Full-684 committed fixed-grid (labelled separately, NOT the like-for-like set):*
+
+| quantity | committed fixed-grid (full 684) |
+|---|---:|
+| max net saving among drop<=1.0pp | n/a |
+| drop at first 10% saving | 2.66pp |
+| drop at first 20% saving | 6.17pp |
+| drop at first 30% saving | 11.76pp |
 
 ## 3. Harm:rescue by window W
 
