@@ -1154,3 +1154,31 @@ Also: `replay_rows.jsonl.gz` is now written sorted by rule_id (the replay pool
 uses `imap_unordered`, so the prior file's row order was non-deterministic;
 content was identical and gates reproduced, but the file was not byte-stable
 across runs).
+
+## 2026-08-08 — 攻击者扫描（A1–A4），四条全部失败
+
+第 3 轮的补充：不再问「论文哪里写得不严」，而是「要推翻它我会攻哪里」。
+四条攻击线全部跑到可判定结论，记录在 `paper/revision_v5/DEFECT_LOG.md`
+的「攻击者扫描」一节，脚本在 `paper/revision_v5/scripts/`。
+
+- **A1 探针截断**（死）。229,693 条 `dense_simple32` 探针里撞满 32-token 上限
+  的 1.05%、空输出 0.61%，众数 4–6 token。按位置十分位，截断率**最早最低
+  （0.50%）、最晚最高（1.41%）**——与「截断制造早期分歧」所需方向相反。
+- **A3 DEER 记账不对称**（死）。逐行比对 `deer_threshold_sweep.replay_problem`
+  与 `replay_rules`：两者都只为停机/提交前的 probe/trial 输出付费，都在从不
+  触发时支付整条 schedule。完全对称。
+- **A4 撞预算轨迹的免费 saving**（死，方向反了）。杠杆是真的：dev macro 下
+  撞预算轨迹占 8.22%、扛 19.52% baseline token（2.4×）。但排除它们后
+  **DEER 的 saving 上升**（0.995 保守点 0.333pp/28.21% → 0.519pp/33.98%，
+  因为在这些轨迹上 DEER 常常从不提交、付全额 budget 加全部 trial，saving 为负），
+  **consensus 仍 0/0/0 且更差**（10/20/30% saving 代价 3.24/7.29/12.45pp
+  vs 2.66/6.17/11.76，652 题上没有任何规则 drop ≤1pp）。两边都更硬。
+- **A2 功效**（死，但值得写进论文）。分层自助（2 模型×3 benchmark 交叉设计内
+  对 3 种子重采，B=2000）：P(conservative 非空)=4.05%，drop≤1pp 最大 saving
+  的 95% 区间上端 11.03%（越过 10% 门槛）。但**逐规则**概率决定性地否定了攻击：
+  单条规则最大 P=0.0190，偶发通过者真实 macro drop 2.66–2.82pp，是 1.0pp 上限
+  的 2.7 倍。那 4% 是对 3,520 条相关规则取极大值的产物。
+
+**建议新增论文条目（待批准）**：附录里加一段功效说明，把「0/3,520」从裸点估计
+变成带不确定性的断言。仍然**未动 `paper/sections/`、`acl_latex.tex`、`custom.bib`
+任何一行**。

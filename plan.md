@@ -1520,3 +1520,15 @@ teammate 给出的下一步五步，及讨论后的排期/细化：
   rules, gates, harm:rescue by W; output `results/boundary_consensus_v5/`.
 - [commit] G1 as soon as it accepts on `v5-gpu-20260807`; push; do NOT merge
   to main; no force-push. Then G2.
+
+### 2026-08-08 — 攻击者扫描完成，第 4 轮待开
+
+- 攻击者扫描 A1–A4 全部结案（见 `log.md` 与 `DEFECT_LOG.md`）。四条都不成立，
+  A4 与 A2 的证据反而加强负结果。
+- **待 Antony 逐条批准的论文改动队列**（一条都还没动）：
+  D4 κ 的 "top-level coding" 限定词 · D2 gross-saving 行 · D3 pooled/LOEO 附录 ·
+  D5 SHA 表 · D6 grader 硬失败（外加 macOS spawn/fork 复现坑）· D1 三处 null 措辞
+  与 `fig_harm_rescue` caption · C1 `certaindex_mid.py` docstring + §5.4 scope note ·
+  C2 §5.7 interval-512 提升 · C3 §2 扩写 · G1 §4.2 数字更新 · G2 §5.7 升级 ·
+  **新增 A2 附录功效说明**。
+- 第 4 轮（呈现层，CPU，无实验）尚未穷举，已知条目见 `DEFECT_LOG.md` 末节。
