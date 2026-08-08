@@ -347,7 +347,157 @@ cache 是 harm=361（45.1:1）。stop 数完全一致（668），说明规则重
 
 ---
 
-## 第 2/3 轮 — 依赖 GPU（已派给 ugcpu2，见 `GOAL_UGCPU2_V5.md`）
+## 第 2 轮 — 比较有效性与对外主张（CPU，只读已提交 bank）
+
+| # | 缺陷 | 状态 | 算力 | 墙钟 |
+|---|---|---|---|---|
+| C1 | CertaIndex 56–70pp 复现的配置是否忠实 | **settled-ok（需补脚注 + 改代码注释）** | CPU 单核 | 已完成 |
+| C2 | DEER 对比还有第四个混淆：决策点数量 | **settled-ok，且是新的正面结果** | CPU 单核 | 已完成 |
+| C3 | 相关工作覆盖偏薄，与 dong2026learnstop 的区分不足 | **settled-fix** | CPU 单核 | 已完成 |
+
+### C1 — 56–70pp 是全文最容易被外部核验推翻的数字
+
+**受威胁的论断。** §5.4：CertaIndex (CoT) "reproduced from the released
+implementation at its default setting" 在冻结轨迹上 "stops on 98.7–99.8%" 且
+"loses 56–70pp while saving 77–90%"。
+
+**攻击路线。** 这是唯一一条关于**别人已发表方法**的定量断言，而且断言它灾难性地
+失败。Dynasor 自己的论文报告的是「省 token、准确率基本不掉」。一个审稿人只要打开
+`dynasor/core/cot.py` 比对配置，就能主张我们复现错了。论文用一句
+"not an implementation defect" 挡住，但那是断言，不是证据。
+
+#### 结论：`settled-ok` — 三个数字全部核对无误，配置逐项忠实；但有一处注释写错了
+
+**数字核对**（`results/related_work/aggregate_certaindex/dev_macro.csv`）：
+
+| 量 | Qwen3-8B | DeepSeek-7B | 论文 |
+|---|---|---|---|
+| accuracy_diff_pp | −70.11 | −55.89 | 56–70pp ✓ |
+| stop_rate | 0.9978 | 0.9867 | 98.7–99.8% ✓ |
+| all_generated saving | 90.10% | 76.68% | 77–90% ✓ |
+
+**配置逐项比对** `related_work/common.py` ↔ `dynasor/core/cot.py`，**全部一致**：
+probe suffix 逐字符相同、`uncertain_words` 六个词相同、patience 3、interval 64、
+probe cap 20、temperature 0.6、top_p 0.95。`effort_level("mid") == (3, 64)` 确认。
+
+**但 `certaindex_mid.py` 的 docstring 有一处推理是错的。** 它写：
+
+> The probe happens *after* each 64-token chunk in both conventions (the first
+> probe is on prefix[:64]), so there is no off-by-one between the two
+
+上游不是这样。`cot.py:73` 用 `current_prompt` 构造 probe 请求，而
+`cot.py:99` 才把本轮生成的 `result` 追加进 `current_prompt`——Python 在调用点就
+把字符串求值了。所以**上游的探针位置是 0, 64, 128, …，我们的是 64, 128, 192, …**。
+docstring 声称的「没有 off-by-one」，理由是错的。
+
+**但结论碰巧是对的，而且可以证明。** 记我们的 `probes[i]` 在位置 $64(i{+}1)$，
+上游的 `probe[j]` 在位置 $64j$，于是 $j\ge1$ 时 `upstream[j] == probes[j-1]`。
+上游在最小的 $j\ge2$ 触发，窗口 $\{j{-}2,j{-}1,j\}$；当 $j\ge3$ 时该窗口
+$=$ 我们的 $\{j{-}3,j{-}2,j{-}1\}$，令 $i=j{-}1$，则上游在位置 $64(i{+}1)$ 提交
+`probes[i]` 的答案——**与我们的截断位置和提交答案完全相同**。
+
+唯一的真实残差是上游多出一个最早的触发窗口 $\{0, 64, 128\}$（需要位置 0 的探针，
+我们的 bank 里没有）。若它触发，上游在 **token 128** 截断——比我们模型化的更早。
+
+**这个残差的上界**（必要条件：位置 64 与 128 的探针都非空、certain、且数学等价，
+用 robust grader 判等，2,736 条轨迹全量）：**52.23%**。分环境从 DeepSeek/AIME24 的
+12.5% 到 Qwen3/AMC23 的 68.8%。
+
+**方向对我们有利。** 残差一旦发生，上游停得**更早**，准确率只会更低。也就是说
+**56–70pp 是一个保守下界**，真实的 released implementation 至少损失这么多。
+
+**行动**：(1) 改 `certaindex_mid.py` 的 docstring——现在的理由是错的，换成上面那个
+索引对齐证明；(2) §5.4 或附录 `tab:baselines` 的 scope note 里加一句：上游在
+位置 0 起探，我们从 64 起，两者在 $j\ge3$ 时截断位置与提交答案相同，唯一差异是
+上游多一个更早的触发机会（必要条件在 52.2% 的轨迹上成立），**因此我们的数字是
+保守的**。这一句把「你复现错了」这条攻击线彻底堵死，而且是往对我们不利的方向让步，
+可信度更高。
+
+### C2 — DEER 拿到的停机机会比 consensus 少一个数量级
+
+**受威胁的论断。** §5.7 列了三条限定（读什么信号 / 何时读 / 提交什么），
+声称 "the failure lies in how the stop is decided rather than in early exit"。
+
+**攻击路线。** 还有**第四个**没被列出的因子：**决策点数量**。实测（committed bank）：
+
+| | 每条轨迹的停机机会（中位） |
+|---|---|
+| DEER（boundary，cap 30） | **9**（均值 13.3，最大 30，**0% 触到 cap-30**） |
+| consensus（interval 64） | **54**（均值 84，最大 512） |
+| 分基准：math500 | DEER 2–6 vs consensus 38–62（≈10–19×） |
+| 分基准：aime24 | DEER ~20 vs consensus ~194（≈10×） |
+
+给一个方法 10 倍的开火机会，它就有 10 倍的机会开错火——这与信号质量无关。
+审稿人可以主张整个结果是决策密度效应。（顺带排除一个相邻假设：cap-30 **从未** 生效，
+所以 cap 没有偏袒 DEER。）
+
+#### 结论：`settled-ok` — 这个混淆在已提交数据里就能排除，而且结果是正面的
+
+规则空间本来就有 `probe.schedule.interval_tokens` 这条轴（64/128/256/512 各 440 条
+`consensus_fixed`，另有 1,760 条 `consensus_adaptive`）。**interval 512 时
+math500 上的决策点约 5 个，正好落在 DEER 的 2–6 区间**。按环境 macro 重算 dev
+（先复现基准线：0/3,520 过三个 gate、40 条 drop ≤1.0 pp、上界 0.21%，全部吻合）：
+
+| interval | 规则数 | drop ≤1.0 pp | 最低 drop 的那条 | 过 conservative gate |
+|---|---|---|---|---|
+| 64 | 440 | 0 | 3.519 pp @ 净省 11.18%（stop rate 0.464） | 0 |
+| 128 | 440 | 0 | 1.907 pp @ 7.82%（0.252） | 0 |
+| 256 | 440 | 0 | 1.685 pp @ 1.26%（0.067） | 0 |
+| **512** | 440 | **0** | **1.574 pp @ 1.65%（0.073）** | 0 |
+| adaptive | 1,760 | 40 | 0.815 pp @ **−0.58%**（0.010） | 0 |
+
+**把决策密度调到与 DEER 相当（interval 512），consensus 最好也只有 1.57 pp 掉分
+换 1.65% 净节省**——在两个轴上同时劣于 DEER 的 conservative 操作点
+（−0.33 pp @ 28.2%）。而且整条 interval 轴呈现的仍是同一个「只靠不开火换安全」的
+模式：interval 从 64 涨到 512，最低 drop 从 3.52 降到 1.57，净节省从 11.2% 塌到
+1.65%。40 条安全规则**全部**来自 adaptive 族，而其中最好的一条净节省是**负的**。
+
+决策点数量不是 consensus 失败的原因。**这条可以直接写成 §5.7 的第四条限定的
+答案**，而不是又一条限定。
+
+**与 G2 的关系**：这条控制的是决策**密度**，G2 控制的是**精确位置**。两者互补，
+且这条不需要 GPU、现在就成立。即使 G2 失败或延迟，§5.7 也已经有了一个实测的
+timing 控制。
+
+### C3 — 相关工作偏薄，且与最接近的先前工作区分不足
+
+**受威胁的论断。** §2 的覆盖面，以及全文的新颖性主张。
+
+**攻击路线（两条，第二条更危险）。**
+
+1. **覆盖。** §2 只有 47 行、3 段、18 条引用。`custom.bib` 里有 **9 条孤儿条目**，
+   经核查确实一次都没被引用：`wei2022cot`、`huang2024selfcorrect`、
+   `kadavath2022know`、`snell2024scaling`、`brown2024monkeys`、`kuhn2023semantic`、
+   `guo2017calibration`、`ross1977false`、`tje`。这些不是随手留下的垃圾——它们是
+   **被 8 页限制挤掉的覆盖面**，而 preprint 没有页数限制。其中至少三条与论文的
+   论证直接相关：`huang2024selfcorrect`（模型无法自我纠错）正对着机制论证，
+   `kadavath2022know`（模型知道自己知道什么）正对着 §5.7「结合反映模型自身估计的
+   信号或许有用」那句，`wei2022cot` 是 CoT 本身——一篇通篇讲 chain of thought 的
+   论文没引 CoT 原文，很显眼。另外**完全缺席**的是 test-time compute 的预算控制
+   一支（s1 / budget forcing、L1 / 长度控制、token-budget-aware reasoning）——
+   这是「让推理变短」最出名的相邻文献。
+2. **新颖性（更危险）。** §2 用一个从句描述 `dong2026learnstop`：
+   "learned prefix-feature stoppers reach the more cautious conclusion that **no
+   single aggressive policy is universally safe**"。这与本文的核心论断**非常接近**。
+   审稿人完全可以说：这个结论已经有人得出了，本文只是换了个签名。论文现在的区分
+   （「我们问的是能否选出一条可迁移策略」）只有一句话，撑不住。
+
+#### 结论：`settled-fix`
+
+覆盖这条是纯写作，preprint 无页数压力，直接补。新颖性这条需要一段真正的区分论证，
+建议沿三条轴写清楚：(a) 本文搜的是**预注册的穷举规则空间**（3,520 条）并报告
+**0 条通过任何 gate**，不是「某条学出来的策略不普适」；(b) 本文给出**机制**
+（独立性缺失 + 探针诱导的占位答案 + 窗口无法外活占位答案），而非只报告经验现象；
+(c) 本文有**同一管线内的正向对照**（DEER 通过全部 gate），把结论定位到信号而非
+early exit 本身。这三条 `dong2026learnstop` 都没有。
+
+**行动**：§2 扩写；把 9 条孤儿里至少 `wei2022cot` / `huang2024selfcorrect` /
+`kadavath2022know` / `snell2024scaling` 接回正文；补预算控制一支；给
+`dong2026learnstop` 一段而不是一个从句。**全部待批准，我没动。**
+
+---
+
+## 第 3 轮 — 依赖 GPU（已派给 ugcpu2，见 `GOAL_UGCPU2_V5.md`）
 
 | # | 缺陷 | 状态 | 算力 | 墙钟 |
 |---|---|---|---|---|
